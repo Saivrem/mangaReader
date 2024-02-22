@@ -6,10 +6,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -23,7 +20,7 @@ public class ImageViewer extends JFrame {
     private final JButton prevButton;
 
     // Panels
-    private ImagePanel imagePanel;
+    private final ImagePanel imagePanel;
 
     // Other
 
@@ -55,14 +52,15 @@ public class ImageViewer extends JFrame {
 
         setLayout(new BorderLayout());
         add(createMenuBar(), BorderLayout.NORTH);
+
         southPanel.add(prevButton);
         southPanel.add(openButton);
         southPanel.add(nextButton);
         add(southPanel, BorderLayout.SOUTH);
-        openButton.addActionListener(e -> chooseFile());
 
-        nextButton.addActionListener(e -> showNextImage());
         prevButton.addActionListener(e -> showPreviousImage());
+        openButton.addActionListener(e -> chooseFile());
+        nextButton.addActionListener(e -> showNextImage());
 
         addKeyListener(new KeyListener() {
             @Override
@@ -72,6 +70,7 @@ public class ImageViewer extends JFrame {
 
             @Override
             public void keyPressed(KeyEvent e) {
+                // TODO Extract file walking logic into separate class
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_RIGHT:
                         showNextImage();
@@ -89,10 +88,12 @@ public class ImageViewer extends JFrame {
                 // NOOP
             }
         });
+
         pack();
         setLocationRelativeTo(null);
         setFocusable(true);
         requestFocus();
+
         setVisible(true);
     }
 
@@ -110,7 +111,7 @@ public class ImageViewer extends JFrame {
     }
 
     private void chooseFile() {
-        JFileChooser fileChooser = new JFileChooser();
+        JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", extensions);
         fileChooser.setFileFilter(filter);
 
