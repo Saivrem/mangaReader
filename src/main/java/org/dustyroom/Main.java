@@ -7,6 +7,7 @@ import javax.swing.plaf.ColorUIResource;
 import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 
 public class Main {
+    private final static String DARK_THEME = "-d";
 
     // TODO Figure how to customize title bar
     private final static NimbusLookAndFeel nimbusLookAndFeel = new NimbusLookAndFeel() {
@@ -24,7 +25,11 @@ public class Main {
     };
 
     public static void main(String[] args) throws Exception {
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        if (args.length > 0 && args[0].equals(DARK_THEME)) {
+            UIManager.setLookAndFeel(nimbusLookAndFeel);
+        } else {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        }
         SwingUtilities.invokeLater(() -> new ImageViewer().setVisible(true));
     }
 }
