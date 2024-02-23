@@ -1,8 +1,8 @@
 # Manga viewer
 
 Supports two cmd args:
- - `-l` `nimbus` to use dark theme instead of system
- - `-f` `/path/to/folder` to open folder from terminal
+ - `-t` `dark` to use dark theme instead of system
+ - `-d` `/path/to/folder` to open folder from terminal
 
 ## Feature list TODO:
 

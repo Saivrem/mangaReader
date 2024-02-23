@@ -1,6 +1,5 @@
 package org.dustyroom.be.filewalking;
 
-import javax.swing.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -8,6 +7,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import static org.dustyroom.ui.utils.DialogUtils.noMoreImagesAlert;
 
 public class FileTreeIterator {
 
@@ -54,7 +55,7 @@ public class FileTreeIterator {
         try {
             return pagesIterator.next();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "There are no more images", "Info", JOptionPane.INFORMATION_MESSAGE);
+            noMoreImagesAlert("next");
             return null;
         }
     }
@@ -68,8 +69,7 @@ public class FileTreeIterator {
         try {
             return pagesIterator.previous();
         } catch (Exception e) {
-            // TODO make custom exception and handler
-            JOptionPane.showMessageDialog(null, "There are no previous images", "Info", JOptionPane.INFORMATION_MESSAGE);
+            noMoreImagesAlert("previous");
             return null;
         }
     }

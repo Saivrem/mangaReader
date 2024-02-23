@@ -23,6 +23,7 @@ import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.be.utils.PathUtils.getFileName;
 import static org.dustyroom.be.utils.PathUtils.isNotImage;
+import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 
 @Slf4j
 public class ImageViewer extends JFrame {
@@ -135,13 +136,21 @@ public class ImageViewer extends JFrame {
         JMenu fileMenu = new JMenu("File");
         JMenuItem openMenuItem = new JMenuItem("Open");
 
+        JMenu helpMenu = new JMenu("Help");
+        JMenuItem aboutMenuItem = new JMenuItem("About");
+
         openMenuItem.addActionListener(e -> chooseFile());
+        aboutMenuItem.addActionListener(e -> showAboutDialog(this));
 
         fileMenu.add(openMenuItem);
+        helpMenu.add(aboutMenuItem);
         menuBar.add(fileMenu);
+        menuBar.add(helpMenu);
 
         return menuBar;
     }
+
+
 
     private void chooseFile() {
         String root = currentFile == null ? System.getProperty("user.home") : currentFile.getParent().toString();

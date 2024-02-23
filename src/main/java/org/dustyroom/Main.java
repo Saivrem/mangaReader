@@ -11,15 +11,17 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.dustyroom.be.utils.Constants.DARK_THEME;
+
 public class Main {
-    private final static String NIMBUS = "nimbus";
+
     private static FileTreeIterator fileTreeIterator;
 
     public static void main(String[] args) throws Exception {
         Map<String, String> stringStringMap = readArgs(args);
         if (!stringStringMap.isEmpty()) {
-            setupLookAndFeel(stringStringMap.get("-l"));
-            fileTreeIterator = setupFileLocation(stringStringMap.get("-f"));
+            setupLookAndFeel(stringStringMap.get("-t"));
+            fileTreeIterator = setupFileLocation(stringStringMap.get("-d"));
         }
 
         SwingUtilities.invokeLater(() -> new ImageViewer(fileTreeIterator).setVisible(true));
@@ -27,7 +29,7 @@ public class Main {
 
     private static void setupLookAndFeel(String param) throws Exception {
         if (param != null) {
-            if (param.equals(NIMBUS)) {
+            if (param.equals(DARK_THEME)) {
                 UIManager.setLookAndFeel(LookSettings.NIMBUS.getLookAndFeel());
             } else {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
