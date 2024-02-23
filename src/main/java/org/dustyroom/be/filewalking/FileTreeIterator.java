@@ -68,6 +68,7 @@ public class FileTreeIterator {
         try {
             return pagesIterator.previous();
         } catch (Exception e) {
+            // TODO make custom exception and handler
             JOptionPane.showMessageDialog(null, "There are no previous images", "Info", JOptionPane.INFORMATION_MESSAGE);
             return null;
         }

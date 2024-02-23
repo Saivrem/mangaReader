@@ -42,7 +42,7 @@ public class ImageViewer extends JFrame {
     private FileTreeIterator fileTreeIterator;
     private Path currentFile;
 
-    public ImageViewer() {
+    public ImageViewer(FileTreeIterator fileTreeIterator) {
         setTitle("Image Viewer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
@@ -53,6 +53,7 @@ public class ImageViewer extends JFrame {
         firstButton = new JButton("First");
         lastButton = new JButton("Last");
 
+        this.fileTreeIterator = fileTreeIterator;
         initializeUI();
     }
 
@@ -123,6 +124,10 @@ public class ImageViewer extends JFrame {
         requestFocus();
 
         setVisible(true);
+
+        if (fileTreeIterator != null) {
+            showNextImage();
+        }
     }
 
     private JMenuBar createMenuBar() {
@@ -192,7 +197,7 @@ public class ImageViewer extends JFrame {
     private void showNextImage() {
         Path next = fileTreeIterator.next();
         if (next == null) return;
-        if (currentFile.equals(next)) {
+        if (next.equals(currentFile)) {
             next = fileTreeIterator.next();
             currentFile = next != null ? next : currentFile;
         } else {
@@ -204,7 +209,7 @@ public class ImageViewer extends JFrame {
     private void showPreviousImage() {
         Path previous = fileTreeIterator.previous();
         if (previous == null) return;
-        if (currentFile.equals(previous)) {
+        if (previous.equals(currentFile)) {
             previous = fileTreeIterator.previous();
             currentFile = previous != null ? previous : currentFile;
         } else {

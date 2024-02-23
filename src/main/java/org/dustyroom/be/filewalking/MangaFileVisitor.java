@@ -12,11 +12,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static org.dustyroom.be.utils.Constants.FILES_BLACKLIST;
+
 public class MangaFileVisitor extends SimpleFileVisitor<Path> {
 
     @Getter
     private final Map<Path, List<Path>> tree = new TreeMap<>();
-    private final List<String> blacklist = List.of(".DS_Store");
 
     private List<Path> files = new ArrayList<>();
 
@@ -42,6 +43,6 @@ public class MangaFileVisitor extends SimpleFileVisitor<Path> {
     }
 
     private boolean blacklisted(String string) {
-        return blacklist.stream().anyMatch(string::contains);
+        return FILES_BLACKLIST.stream().anyMatch(string::contains);
     }
 }
