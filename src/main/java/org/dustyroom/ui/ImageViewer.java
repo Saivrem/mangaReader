@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.be.utils.PathUtils.getFileName;
 import static org.dustyroom.be.utils.PathUtils.isNotImage;
@@ -142,6 +143,7 @@ public class ImageViewer extends JFrame {
         JFileChooser fileChooser = new JFileChooser(root);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
+        fileChooser.setFileSelectionMode(FILES_AND_DIRECTORIES);
 
         int result = fileChooser.showOpenDialog(this);
 

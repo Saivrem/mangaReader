@@ -1,10 +1,13 @@
 package org.dustyroom.be.filewalking;
 
 import javax.swing.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class FileTreeIterator {
 
@@ -14,14 +17,26 @@ public class FileTreeIterator {
     private ListIterator<Path> pagesIterator;
 
     public FileTreeIterator(Map<Path, List<Path>> tree, Path file) {
-        Path currentKey = file.getParent();
-        List<Path> paths = tree.get(currentKey);
-        int index = paths.indexOf(file);
 
-        this.tree = tree;
-        this.treeKeys = tree.keySet().stream().toList();
-        this.treeIndex = treeKeys.indexOf(currentKey);
-        this.pagesIterator = paths.listIterator(index == 0 ? 0 : index - 1);
+
+        if (Files.isRegularFile(file)) {
+            this.tree = tree;
+            Path currentKey = file.getParent();
+            List<Path> paths = tree.get(currentKey);
+            int index = paths.indexOf(file);
+
+            this.treeKeys = tree.keySet().stream().toList();
+            this.treeIndex = treeKeys.indexOf(currentKey);
+            this.pagesIterator = paths.listIterator(index > 0 ? index - 1 : 0);
+        } else {
+            this.tree = tree.entrySet().stream()
+                    .filter(p -> !p.getValue().isEmpty())
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, TreeMap::new));
+
+            this.treeIndex = 0;
+            this.treeKeys = this.tree.keySet().stream().toList();
+            this.pagesIterator = this.tree.entrySet().iterator().next().getValue().listIterator();
+        }
     }
 
     public boolean hasNext() {
