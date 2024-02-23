@@ -1,16 +1,29 @@
 package org.dustyroom.ui;
 
+import lombok.extern.slf4j.Slf4j;
+import org.dustyroom.be.filewalking.FileTreeIterator;
+import org.dustyroom.be.filewalking.MangaFileVisitor;
 import org.dustyroom.ui.panels.ImagePanel;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.*;
-import java.io.File;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.IOException;
-import java.util.Arrays;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Set;
 
+import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
+import static org.dustyroom.be.utils.PathUtils.getFileName;
+import static org.dustyroom.be.utils.PathUtils.isNotImage;
+
+@Slf4j
 public class ImageViewer extends JFrame {
 
     // Buttons
@@ -23,10 +36,8 @@ public class ImageViewer extends JFrame {
     private final ImagePanel imagePanel;
 
     // Other
-
-    File[] files;
-    private int currentIndex;
-    private final static String[] extensions = {"jpg", "jpeg", "png", "gif"};
+    private FileTreeIterator fileTreeIterator;
+    private Path currentFile;
 
     public ImageViewer() {
         setTitle("Image Viewer");
@@ -111,54 +122,75 @@ public class ImageViewer extends JFrame {
     }
 
     private void chooseFile() {
-        JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home"));
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", extensions);
+        String root = currentFile == null ? System.getProperty("user.home") : currentFile.getParent().toString();
+        JFileChooser fileChooser = new JFileChooser(root);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
 
         int result = fileChooser.showOpenDialog(this);
 
         if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
+            Path selectedFile = fileChooser.getSelectedFile().toPath();
+            Path levelUp = selectedFile.getParent().getParent();
 
-            files = selectedFile.getParentFile().listFiles((dir, name) -> Arrays.stream(extensions).anyMatch(ext -> name.toLowerCase().endsWith(ext)));
-            currentIndex = 0;
-            if (files != null && files.length > 0) {
-                Arrays.sort(files);
-                updateImagePanel(selectedFile);
+            MangaFileVisitor mangaFileVisitor = new MangaFileVisitor();
+            try {
+                if (Files.isRegularFile(selectedFile)) {
+                    Files.walkFileTree(levelUp, Set.of(FileVisitOption.FOLLOW_LINKS), 2, mangaFileVisitor);
+                } else {
+                    Files.walkFileTree(selectedFile, mangaFileVisitor);
+                }
+            } catch (IOException ioException) {
+                log.error("Can't walk {}, application will be closed", selectedFile);
+                System.exit(1);
             }
+            fileTreeIterator = new FileTreeIterator(mangaFileVisitor.getTree(), selectedFile);
+            currentFile = fileTreeIterator.next();
+            updateImagePanel();
         }
     }
 
-    private void updateImagePanel(File selectedFile) {
-        if (selectedFile != null) {
-            for (int i = 0; i < files.length; i++) {
-                if (files[i].equals(selectedFile)) {
-                    currentIndex = i;
-                    break;
-                }
-            }
+    private void updateImagePanel() {
+        if (isNotImage(currentFile)) {
+            return;
         }
 
-        if (currentIndex >= 0 && currentIndex < files.length) {
-            File currentFile = files[currentIndex];
-            setTitle(currentFile.getName());
-            try {
-                imagePanel.setImage(ImageIO.read(currentFile));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            this.repaint();
-            requestFocus();
+        setTitle(String.format(String.format("%s - %s - %s - %s",
+                getFileName(currentFile, 4),
+                getFileName(currentFile, 3),
+                getFileName(currentFile, 2),
+                getFileName(currentFile, 1)
+        )));
+        try {
+            imagePanel.setImage(ImageIO.read(Files.newInputStream(currentFile)));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+        this.repaint();
+        requestFocus();
     }
 
     private void showNextImage() {
-        currentIndex = (currentIndex + 1) % files.length;
-        updateImagePanel(null);
+        Path next = fileTreeIterator.next();
+        if (next == null) return;
+        if (currentFile.equals(next)) {
+            next = fileTreeIterator.next();
+            currentFile = next != null ? next : currentFile;
+        } else {
+            currentFile = next;
+        }
+        updateImagePanel();
     }
 
     private void showPreviousImage() {
-        currentIndex = (currentIndex - 1 + files.length) % files.length;
-        updateImagePanel(null);
+        Path previous = fileTreeIterator.previous();
+        if (previous == null) return;
+        if (currentFile.equals(previous)) {
+            previous = fileTreeIterator.previous();
+            currentFile = previous != null ? previous : currentFile;
+        } else {
+            currentFile = previous;
+        }
+        updateImagePanel();
     }
 }
