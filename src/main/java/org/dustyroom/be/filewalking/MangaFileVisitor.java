@@ -16,12 +16,15 @@ public class MangaFileVisitor extends SimpleFileVisitor<Path> {
 
     @Getter
     private final Map<Path, List<Path>> tree = new TreeMap<>();
+    private final List<String> blacklist = List.of(".DS_Store");
 
     private List<Path> files = new ArrayList<>();
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-        files.add(file);
+        if (!blacklisted(file.toString())) {
+            files.add(file);
+        }
         return FileVisitResult.CONTINUE;
     }
 
@@ -36,5 +39,9 @@ public class MangaFileVisitor extends SimpleFileVisitor<Path> {
         tree.put(dir, files);
         files = new ArrayList<>();
         return FileVisitResult.CONTINUE;
+    }
+
+    private boolean blacklisted(String string) {
+        return blacklist.stream().anyMatch(string::contains);
     }
 }

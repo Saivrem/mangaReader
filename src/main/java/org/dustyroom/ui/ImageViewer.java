@@ -166,6 +166,7 @@ public class ImageViewer extends JFrame {
             currentFile = fileTreeIterator.next();
             updateImagePanel();
         }
+        requestFocus();
     }
 
     private void updateImagePanel() {

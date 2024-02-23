@@ -17,8 +17,6 @@ public class FileTreeIterator {
     private ListIterator<Path> pagesIterator;
 
     public FileTreeIterator(Map<Path, List<Path>> tree, Path file) {
-
-
         if (Files.isRegularFile(file)) {
             this.tree = tree;
             Path currentKey = file.getParent();
