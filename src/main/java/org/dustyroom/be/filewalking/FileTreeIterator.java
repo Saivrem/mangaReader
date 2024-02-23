@@ -59,4 +59,18 @@ public class FileTreeIterator {
             return null;
         }
     }
+
+    public Path getFirst() {
+        while (pagesIterator.hasPrevious()) {
+            pagesIterator.previous();
+        }
+        return pagesIterator.next();
+    }
+
+    public Path getLast() {
+        while (pagesIterator.hasNext()) {
+            pagesIterator.next();
+        }
+        return pagesIterator.previous();
+    }
 }

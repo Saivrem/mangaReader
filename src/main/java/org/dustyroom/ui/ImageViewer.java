@@ -31,6 +31,8 @@ public class ImageViewer extends JFrame {
     private final JButton openButton;
     private final JButton nextButton;
     private final JButton prevButton;
+    private final JButton firstButton;
+    private final JButton lastButton;
 
     // Panels
     private final ImagePanel imagePanel;
@@ -47,6 +49,8 @@ public class ImageViewer extends JFrame {
         openButton = new JButton("Open Image");
         nextButton = new JButton("Next");
         prevButton = new JButton("Previous");
+        firstButton = new JButton("First");
+        lastButton = new JButton("Last");
 
         initializeUI();
     }
@@ -64,14 +68,18 @@ public class ImageViewer extends JFrame {
         setLayout(new BorderLayout());
         add(createMenuBar(), BorderLayout.NORTH);
 
+        southPanel.add(firstButton);
         southPanel.add(prevButton);
         southPanel.add(openButton);
         southPanel.add(nextButton);
+        southPanel.add(lastButton);
         add(southPanel, BorderLayout.SOUTH);
 
+        firstButton.addActionListener(e -> showFirstImage());
         prevButton.addActionListener(e -> showPreviousImage());
         openButton.addActionListener(e -> chooseFile());
         nextButton.addActionListener(e -> showNextImage());
+        lastButton.addActionListener(e -> showLastImage());
 
         addKeyListener(new KeyListener() {
             @Override
@@ -84,10 +92,18 @@ public class ImageViewer extends JFrame {
                 // TODO Extract file walking logic into separate class
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_RIGHT:
+                    case KeyEvent.VK_PAGE_DOWN:
                         showNextImage();
                         break;
                     case KeyEvent.VK_LEFT:
+                    case KeyEvent.VK_PAGE_UP:
                         showPreviousImage();
+                        break;
+                    case KeyEvent.VK_HOME:
+                        showFirstImage();
+                        break;
+                    case KeyEvent.VK_END:
+                        showLastImage();
                         break;
                     case KeyEvent.VK_ESCAPE:
                         System.exit(0);
@@ -191,6 +207,16 @@ public class ImageViewer extends JFrame {
         } else {
             currentFile = previous;
         }
+        updateImagePanel();
+    }
+
+    private void showFirstImage() {
+        currentFile = fileTreeIterator.getFirst();
+        updateImagePanel();
+    }
+
+    private void showLastImage() {
+        currentFile = fileTreeIterator.getLast();
         updateImagePanel();
     }
 }
