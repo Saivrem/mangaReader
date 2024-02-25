@@ -46,6 +46,7 @@ public class ImageViewer extends JFrame {
     private FileTreeIterator fileTreeIterator;
     @Getter
     private Path currentFile;
+    private boolean fullscreen = false;
 
     public ImageViewer(FileTreeIterator fileTreeIterator) {
         setTitle("Image Viewer");
@@ -123,7 +124,14 @@ public class ImageViewer extends JFrame {
                     case KeyEvent.VK_END:
                         showLastImage();
                         break;
+                    case KeyEvent.VK_F:
+                        toggleFullscreen();
+                        break;
+                    case KeyEvent.VK_O:
+                        chooseFile();
+                        break;
                     case KeyEvent.VK_ESCAPE:
+                    case KeyEvent.VK_Q:
                         System.exit(0);
                 }
             }
@@ -149,19 +157,22 @@ public class ImageViewer extends JFrame {
 
     private JMenu buildFileMenu() {
         JMenu fileMenu = new JMenu("File");
-        JMenuItem openMenuItem = new JMenuItem("Open");
+        JMenuItem openMenuItem = new JMenuItem("Open (O)");
+        JMenuItem exitMenuItem = new JMenuItem("Exit (Q)");
 
         openMenuItem.addActionListener(e -> chooseFile());
+        exitMenuItem.addActionListener(e -> System.exit(0));
         fileMenu.add(openMenuItem);
+        fileMenu.add(exitMenuItem);
         return fileMenu;
     }
 
     private JMenu buildNavigationMenu() {
         JMenu navigationMenu = new JMenu("Navigation");
-        JMenuItem nextImageItem = new JMenuItem("Next →");
-        JMenuItem previousImageItem = new JMenuItem("Prev ←");
-        JMenuItem firstImageItem = new JMenuItem("first ⇱");
-        JMenuItem lastImageItem = new JMenuItem("last ⇲");
+        JMenuItem nextImageItem = new JMenuItem("Next (→)");
+        JMenuItem previousImageItem = new JMenuItem("Prev (←)");
+        JMenuItem firstImageItem = new JMenuItem("first (⇱)");
+        JMenuItem lastImageItem = new JMenuItem("last (⇲)");
 
         nextImageItem.addActionListener(e -> showNextImage());
         previousImageItem.addActionListener(e -> showPreviousImage());
@@ -182,6 +193,8 @@ public class ImageViewer extends JFrame {
         JMenuItem nimbusThemeMenuItem = new JMenuItem("Nimbus theme");
         JMenuItem systemThemeMenuItem = new JMenuItem("System theme");
 
+        JMenuItem toggleFullscreenMenuItem = new JMenuItem("Toggle Fullscreen (F)");
+
         nimbusThemeMenuItem.addActionListener(e -> {
             setDarkTheme();
             redrawComponent(this);
@@ -190,10 +203,12 @@ public class ImageViewer extends JFrame {
             setSystemTheme();
             redrawComponent(this);
         });
+        toggleFullscreenMenuItem.addActionListener(e -> toggleFullscreen());
 
         colorSchemeMenu.add(nimbusThemeMenuItem);
         colorSchemeMenu.add(systemThemeMenuItem);
         optionsMenu.add(colorSchemeMenu);
+        optionsMenu.add(toggleFullscreenMenuItem);
 
         return optionsMenu;
     }
@@ -289,5 +304,30 @@ public class ImageViewer extends JFrame {
     private void showLastImage() {
         currentFile = fileTreeIterator.getLast();
         updateImagePanel();
+    }
+
+    private void toggleFullscreen() {
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice gd = ge.getDefaultScreenDevice();
+
+        if (fullscreen) {
+            setVisible(false);
+            dispose();
+            setUndecorated(false);
+            gd.setFullScreenWindow(null);
+            southPanel.setVisible(true);
+            menuBar.setVisible(true);
+            setVisible(true);
+        } else {
+            setVisible(false);
+            dispose();
+            setUndecorated(true);
+            gd.setFullScreenWindow(this);
+            southPanel.setVisible(false);
+            menuBar.setVisible(false);
+            setVisible(true);
+        }
+
+        fullscreen = !fullscreen;
     }
 }
