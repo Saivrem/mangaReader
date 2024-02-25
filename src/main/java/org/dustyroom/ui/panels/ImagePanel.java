@@ -17,12 +17,7 @@ public class ImagePanel extends JPanel {
 
     public void toggleZoomMode() {
         fitMode = !fitMode;
-        if (fitMode) {
-            scale = fitScale();
-        } else {
-            // Set an initial zoom level, or keep the current scale if already in zoom mode
-            scale = (scale == 1.0) ? 1.2 : scale;
-        }
+        scale = fitScale();
     }
 
     public double fitScale() {
@@ -45,11 +40,6 @@ public class ImagePanel extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         if (image != null) {
-            /*if (fitMode) {
-                fitImage(g);
-            } else {
-                zoomImage(g);
-            }*/
             drawImage(g, fitMode);
         }
     }
