@@ -30,6 +30,9 @@ import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 @Slf4j
 public class ImageViewer extends JFrame {
 
+    private final GraphicsEnvironment graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
+    private final GraphicsDevice graphicsDevice = graphicsEnvironment.getDefaultScreenDevice();
+
     // Menu
     private final JMenuBar menuBar = new JMenuBar();
 
@@ -224,6 +227,9 @@ public class ImageViewer extends JFrame {
     }
 
     private void chooseFile() {
+        if (fullscreen) {
+            graphicsDevice.setFullScreenWindow(null);
+        }
         String root = currentFile == null ? System.getProperty("user.home") : currentFile.getParent().toString();
         JFileChooser fileChooser = new JFileChooser(root);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
@@ -250,6 +256,9 @@ public class ImageViewer extends JFrame {
             fileTreeIterator = new FileTreeIterator(mangaFileVisitor.getTree(), selectedFile);
             currentFile = fileTreeIterator.next();
             updateImagePanel();
+        }
+        if (fullscreen) {
+            graphicsDevice.setFullScreenWindow(this);
         }
         requestFocus();
     }
@@ -307,14 +316,11 @@ public class ImageViewer extends JFrame {
     }
 
     private void toggleFullscreen() {
-        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        GraphicsDevice gd = ge.getDefaultScreenDevice();
-
         if (fullscreen) {
             setVisible(false);
             dispose();
             setUndecorated(false);
-            gd.setFullScreenWindow(null);
+            graphicsDevice.setFullScreenWindow(null);
             southPanel.setVisible(true);
             menuBar.setVisible(true);
             setVisible(true);
@@ -322,12 +328,13 @@ public class ImageViewer extends JFrame {
             setVisible(false);
             dispose();
             setUndecorated(true);
-            gd.setFullScreenWindow(this);
+            graphicsDevice.setFullScreenWindow(this);
             southPanel.setVisible(false);
             menuBar.setVisible(false);
             setVisible(true);
         }
 
         fullscreen = !fullscreen;
+        requestFocusInWindow();
     }
 }
