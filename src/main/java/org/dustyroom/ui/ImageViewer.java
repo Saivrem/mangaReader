@@ -22,7 +22,6 @@ import java.util.Set;
 
 import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
-import static org.dustyroom.be.utils.PathUtils.getFileName;
 import static org.dustyroom.be.utils.PathUtils.isImage;
 import static org.dustyroom.be.utils.UiUtils.*;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
@@ -305,12 +304,7 @@ public class ImageViewer extends JFrame {
 
     private void updateImagePanel() {
         if (isImage(currentFile)) {
-            setTitle(String.format(String.format("%s - %s - %s - %s",
-                    getFileName(currentFile, 4),
-                    getFileName(currentFile, 3),
-                    getFileName(currentFile, 2),
-                    getFileName(currentFile, 1)
-            )));
+            setTitle(currentFile.toString());
             try {
                 imagePanel.setImage(ImageIO.read(Files.newInputStream(currentFile)));
             } catch (IOException e) {
