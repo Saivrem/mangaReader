@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'org.dustyroom'
-version = '0.1-alpha'
+version = '0.4'
 
 repositories {
     mavenCentral()

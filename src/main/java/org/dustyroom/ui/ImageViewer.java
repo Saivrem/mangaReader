@@ -66,6 +66,7 @@ public class ImageViewer extends JFrame {
                 imagePanel.repaint();
             }
         });
+
         setLayout(new BorderLayout());
 
         setupMenuBar();
@@ -103,6 +104,16 @@ public class ImageViewer extends JFrame {
     }
 
     private void setupControls() {
+
+        addMouseWheelListener(e -> {
+            int notches = e.getWheelRotation();
+            if (notches < 0) {
+                showPreviousImage();
+            } else {
+                showNextImage();
+            }
+            imagePanel.repaint();
+        });
         addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
@@ -133,6 +144,16 @@ public class ImageViewer extends JFrame {
                     case KeyEvent.VK_O:
                         chooseFile();
                         break;
+                    case KeyEvent.VK_H:
+                        fitMode();
+                        break;
+                    case KeyEvent.VK_PLUS:
+                    case KeyEvent.VK_EQUALS:
+                        zoomIn();
+                        break;
+                    case KeyEvent.VK_MINUS:
+                        zoomOut();
+                        break;
                     case KeyEvent.VK_ESCAPE:
                     case KeyEvent.VK_Q:
                         System.exit(0);
@@ -148,11 +169,13 @@ public class ImageViewer extends JFrame {
 
     private void setupMenuBar() {
         JMenu fileMenu = buildFileMenu();
+        JMenu viewMenu = buildViewMenu();
         JMenu navigationMenu = buildNavigationMenu();
         JMenu optionsMenu = buildOptionsMenu();
         JMenu helpMenu = buildHelpMenu();
 
         menuBar.add(fileMenu);
+        menuBar.add(viewMenu);
         menuBar.add(navigationMenu);
         menuBar.add(optionsMenu);
         menuBar.add(helpMenu);
@@ -168,6 +191,23 @@ public class ImageViewer extends JFrame {
         fileMenu.add(openMenuItem);
         fileMenu.add(exitMenuItem);
         return fileMenu;
+    }
+
+    private JMenu buildViewMenu() {
+        JMenu viewMenu = new JMenu("View");
+        JMenuItem fitMenuItem = new JMenuItem("Fit height mode (h)");
+        JMenuItem zoomInMenuItem = new JMenuItem("Zoom In (+)");
+        JMenuItem zoomOutMenuItem = new JMenuItem("Zoom out (-)");
+
+        fitMenuItem.addActionListener(e -> fitMode());
+
+        zoomInMenuItem.addActionListener(e -> zoomIn());
+        zoomOutMenuItem.addActionListener(e -> zoomOut());
+
+        viewMenu.add(fitMenuItem);
+        viewMenu.add(zoomInMenuItem);
+        viewMenu.add(zoomOutMenuItem);
+        return viewMenu;
     }
 
     private JMenu buildNavigationMenu() {
@@ -336,5 +376,26 @@ public class ImageViewer extends JFrame {
 
         fullscreen = !fullscreen;
         requestFocusInWindow();
+    }
+
+    private void fitMode() {
+        imagePanel.toggleZoomMode();
+        imagePanel.repaint();
+    }
+
+    private void zoomOut() {
+        if (imagePanel.isFitMode()) {
+            imagePanel.toggleZoomMode();
+        }
+        imagePanel.zoomOut();
+        imagePanel.repaint();
+    }
+
+    private void zoomIn() {
+        if (imagePanel.isFitMode()) {
+            imagePanel.toggleZoomMode();
+        }
+        imagePanel.zoomIn();
+        imagePanel.repaint();
     }
 }
