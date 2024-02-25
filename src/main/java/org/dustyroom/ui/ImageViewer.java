@@ -1,5 +1,6 @@
 package org.dustyroom.ui;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.be.filewalking.FileTreeIterator;
 import org.dustyroom.be.filewalking.MangaFileVisitor;
@@ -22,68 +23,82 @@ import java.util.Set;
 import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.be.utils.PathUtils.getFileName;
-import static org.dustyroom.be.utils.PathUtils.isNotImage;
+import static org.dustyroom.be.utils.PathUtils.isImage;
+import static org.dustyroom.be.utils.UiUtils.*;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 
 @Slf4j
 public class ImageViewer extends JFrame {
 
+    // Menu
+    private final JMenuBar menuBar = new JMenuBar();
+
     // Buttons
-    private final JPanel southPanel = new JPanel(new FlowLayout());
-    private final JButton openButton;
-    private final JButton nextButton;
-    private final JButton prevButton;
-    private final JButton firstButton;
-    private final JButton lastButton;
-
+    private final JButton openButton = new JButton("\uD83D\uDCC2");
+    private final JButton nextButton = new JButton("→");
+    private final JButton prevButton = new JButton("←");
+    private final JButton firstButton = new JButton("⇤");
+    private final JButton lastButton = new JButton("⇥");
     // Panels
-    private final ImagePanel imagePanel;
-
+    private final JPanel southPanel = new JPanel(new FlowLayout());
+    private final ImagePanel imagePanel = new ImagePanel();
     // Other
     private FileTreeIterator fileTreeIterator;
+    @Getter
     private Path currentFile;
 
     public ImageViewer(FileTreeIterator fileTreeIterator) {
         setTitle("Image Viewer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
-        imagePanel = new ImagePanel();
-        openButton = new JButton("Open Image");
-        nextButton = new JButton("Next");
-        prevButton = new JButton("Previous");
-        firstButton = new JButton("First");
-        lastButton = new JButton("Last");
-
         this.fileTreeIterator = fileTreeIterator;
         initializeUI();
     }
 
     private void initializeUI() {
-        setContentPane(imagePanel);
-
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
                 imagePanel.repaint();
             }
         });
-
         setLayout(new BorderLayout());
-        add(createMenuBar(), BorderLayout.NORTH);
 
+        setupMenuBar();
+        setupButtons();
+        setupControls();
+
+        add(menuBar, BorderLayout.NORTH);
+        add(imagePanel, BorderLayout.CENTER);
+        add(southPanel, BorderLayout.SOUTH);
+
+        pack();
+        setLocationRelativeTo(null);
+        setFocusable(true);
+        requestFocus();
+
+        if (fileTreeIterator != null) {
+            showNextImage();
+        }
+
+        setVisible(true);
+    }
+
+    private void setupButtons() {
         southPanel.add(firstButton);
         southPanel.add(prevButton);
         southPanel.add(openButton);
         southPanel.add(nextButton);
         southPanel.add(lastButton);
-        add(southPanel, BorderLayout.SOUTH);
 
         firstButton.addActionListener(e -> showFirstImage());
         prevButton.addActionListener(e -> showPreviousImage());
         openButton.addActionListener(e -> chooseFile());
         nextButton.addActionListener(e -> showNextImage());
         lastButton.addActionListener(e -> showLastImage());
+    }
 
+    private void setupControls() {
         addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
@@ -118,39 +133,80 @@ public class ImageViewer extends JFrame {
                 // NOOP
             }
         });
-
-        pack();
-        setLocationRelativeTo(null);
-        setFocusable(true);
-        requestFocus();
-
-        setVisible(true);
-
-        if (fileTreeIterator != null) {
-            showNextImage();
-        }
     }
 
-    private JMenuBar createMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
+    private void setupMenuBar() {
+        JMenu fileMenu = buildFileMenu();
+        JMenu navigationMenu = buildNavigationMenu();
+        JMenu optionsMenu = buildOptionsMenu();
+        JMenu helpMenu = buildHelpMenu();
+
+        menuBar.add(fileMenu);
+        menuBar.add(navigationMenu);
+        menuBar.add(optionsMenu);
+        menuBar.add(helpMenu);
+    }
+
+    private JMenu buildFileMenu() {
         JMenu fileMenu = new JMenu("File");
         JMenuItem openMenuItem = new JMenuItem("Open");
 
+        openMenuItem.addActionListener(e -> chooseFile());
+        fileMenu.add(openMenuItem);
+        return fileMenu;
+    }
+
+    private JMenu buildNavigationMenu() {
+        JMenu navigationMenu = new JMenu("Navigation");
+        JMenuItem nextImageItem = new JMenuItem("Next →");
+        JMenuItem previousImageItem = new JMenuItem("Prev ←");
+        JMenuItem firstImageItem = new JMenuItem("first ⇱");
+        JMenuItem lastImageItem = new JMenuItem("last ⇲");
+
+        nextImageItem.addActionListener(e -> showNextImage());
+        previousImageItem.addActionListener(e -> showPreviousImage());
+        firstImageItem.addActionListener(e -> showFirstImage());
+        lastImageItem.addActionListener(e -> showLastImage());
+
+        navigationMenu.add(nextImageItem);
+        navigationMenu.add(previousImageItem);
+        navigationMenu.add(firstImageItem);
+        navigationMenu.add(lastImageItem);
+
+        return navigationMenu;
+    }
+
+    private JMenu buildOptionsMenu() {
+        JMenu optionsMenu = new JMenu("Options");
+        JMenu colorSchemeMenu = new JMenu("Color scheme");
+        JMenuItem nimbusThemeMenuItem = new JMenuItem("Nimbus theme");
+        JMenuItem systemThemeMenuItem = new JMenuItem("System theme");
+
+        nimbusThemeMenuItem.addActionListener(e -> {
+            setDarkTheme();
+            redrawComponent(this);
+        });
+        systemThemeMenuItem.addActionListener(e -> {
+            setSystemTheme();
+            redrawComponent(this);
+        });
+
+        colorSchemeMenu.add(nimbusThemeMenuItem);
+        colorSchemeMenu.add(systemThemeMenuItem);
+        optionsMenu.add(colorSchemeMenu);
+
+        return optionsMenu;
+    }
+
+    private JMenu buildHelpMenu() {
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutMenuItem = new JMenuItem("About");
 
-        openMenuItem.addActionListener(e -> chooseFile());
         aboutMenuItem.addActionListener(e -> showAboutDialog(this));
-
-        fileMenu.add(openMenuItem);
         helpMenu.add(aboutMenuItem);
-        menuBar.add(fileMenu);
-        menuBar.add(helpMenu);
 
-        return menuBar;
+        return helpMenu;
     }
-
-
 
     private void chooseFile() {
         String root = currentFile == null ? System.getProperty("user.home") : currentFile.getParent().toString();
@@ -184,22 +240,20 @@ public class ImageViewer extends JFrame {
     }
 
     private void updateImagePanel() {
-        if (isNotImage(currentFile)) {
-            return;
+        if (isImage(currentFile)) {
+            setTitle(String.format(String.format("%s - %s - %s - %s",
+                    getFileName(currentFile, 4),
+                    getFileName(currentFile, 3),
+                    getFileName(currentFile, 2),
+                    getFileName(currentFile, 1)
+            )));
+            try {
+                imagePanel.setImage(ImageIO.read(Files.newInputStream(currentFile)));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            this.repaint();
         }
-
-        setTitle(String.format(String.format("%s - %s - %s - %s",
-                getFileName(currentFile, 4),
-                getFileName(currentFile, 3),
-                getFileName(currentFile, 2),
-                getFileName(currentFile, 1)
-        )));
-        try {
-            imagePanel.setImage(ImageIO.read(Files.newInputStream(currentFile)));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        this.repaint();
         requestFocus();
     }
 

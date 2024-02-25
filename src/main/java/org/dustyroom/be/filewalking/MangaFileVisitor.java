@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static org.dustyroom.be.utils.Constants.FILES_BLACKLIST;
+import static org.dustyroom.be.utils.PathUtils.isImage;
 
 public class MangaFileVisitor extends SimpleFileVisitor<Path> {
 
@@ -23,7 +23,7 @@ public class MangaFileVisitor extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-        if (!blacklisted(file.toString())) {
+        if (isImage(file)) {
             files.add(file);
         }
         return FileVisitResult.CONTINUE;
@@ -40,9 +40,5 @@ public class MangaFileVisitor extends SimpleFileVisitor<Path> {
         tree.put(dir, files);
         files = new ArrayList<>();
         return FileVisitResult.CONTINUE;
-    }
-
-    private boolean blacklisted(String string) {
-        return FILES_BLACKLIST.stream().anyMatch(string::contains);
     }
 }

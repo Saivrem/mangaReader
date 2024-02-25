@@ -3,7 +3,6 @@ package org.dustyroom;
 import org.dustyroom.be.filewalking.FileTreeIterator;
 import org.dustyroom.be.filewalking.MangaFileVisitor;
 import org.dustyroom.ui.ImageViewer;
-import org.dustyroom.ui.LookSettings;
 
 import javax.swing.*;
 import java.nio.file.Files;
@@ -12,6 +11,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.dustyroom.be.utils.Constants.DARK_THEME;
+import static org.dustyroom.be.utils.UiUtils.setDarkTheme;
+import static org.dustyroom.be.utils.UiUtils.setSystemTheme;
 
 public class Main {
 
@@ -22,17 +23,17 @@ public class Main {
         if (!stringStringMap.isEmpty()) {
             setupLookAndFeel(stringStringMap.get("-t"));
             fileTreeIterator = setupFileLocation(stringStringMap.get("-d"));
+        } else {
+            setSystemTheme();
         }
 
         SwingUtilities.invokeLater(() -> new ImageViewer(fileTreeIterator).setVisible(true));
     }
 
-    private static void setupLookAndFeel(String param) throws Exception {
+    private static void setupLookAndFeel(String param) {
         if (param != null) {
             if (param.equals(DARK_THEME)) {
-                UIManager.setLookAndFeel(LookSettings.NIMBUS.getLookAndFeel());
-            } else {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                setDarkTheme();
             }
         }
     }

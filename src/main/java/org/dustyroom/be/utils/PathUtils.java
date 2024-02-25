@@ -14,9 +14,9 @@ public class PathUtils {
         return path.getName(path.getNameCount() - offset).toString();
     }
 
-    public static boolean isNotImage(Path image) {
-        if (image == null) return true;
+    public static boolean isImage(Path image) {
+        if (image == null) return false;
         String fileName = getFileName(image, 1);
-        return Arrays.stream(SUPPORTED_FORMATS).noneMatch(fileName::endsWith);
+        return Arrays.stream(SUPPORTED_FORMATS).anyMatch(fileName::endsWith);
     }
 }
