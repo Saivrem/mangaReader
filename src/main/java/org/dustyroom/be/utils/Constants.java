@@ -4,6 +4,7 @@ public class Constants {
     // TODO Consider config. H2?
     public final static String[] SUPPORTED_FORMATS = {"jpg", "jpeg", "png", "gif"};
     public final static String DARK_THEME = "dark";
+    public final static String METAL_THEME = "metal";
     public final static String ABOUT = """
             Manga Reader
                         

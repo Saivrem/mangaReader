@@ -10,9 +10,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.dustyroom.be.utils.Constants.DARK_THEME;
-import static org.dustyroom.be.utils.UiUtils.setDarkTheme;
 import static org.dustyroom.be.utils.UiUtils.setSystemTheme;
+import static org.dustyroom.be.utils.UiUtils.setupLookAndFeel;
 
 public class Main {
 
@@ -28,14 +27,6 @@ public class Main {
         }
 
         SwingUtilities.invokeLater(() -> new ImageViewer(fileTreeIterator).setVisible(true));
-    }
-
-    private static void setupLookAndFeel(String param) {
-        if (param != null) {
-            if (param.equals(DARK_THEME)) {
-                setDarkTheme();
-            }
-        }
     }
 
     private static FileTreeIterator setupFileLocation(String param) throws Exception {

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 import javax.swing.*;
 import javax.swing.plaf.ColorUIResource;
+import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 
 @RequiredArgsConstructor
@@ -23,6 +24,8 @@ public enum LookSettings {
             defaults.put("nimbusTitleText", new ColorUIResource(255, 255, 255));
             return defaults;
         }
-    });
+    }),
+    METAL(new MetalLookAndFeel());
+
     private final LookAndFeel lookAndFeel;
 }

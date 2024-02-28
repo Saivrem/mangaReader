@@ -84,8 +84,6 @@ public class ImageViewer extends JFrame {
         if (fileTreeIterator != null) {
             showNextImage();
         }
-
-        setVisible(true);
     }
 
     private void setupButtons() {
@@ -233,12 +231,17 @@ public class ImageViewer extends JFrame {
         JMenu optionsMenu = new JMenu("Options");
         JMenu colorSchemeMenu = new JMenu("Color scheme");
         JMenuItem nimbusThemeMenuItem = new JMenuItem("Nimbus theme");
+        JMenuItem metalThemeMenuItem = new JMenuItem("Metal theme");
         JMenuItem systemThemeMenuItem = new JMenuItem("System theme");
 
         JMenuItem toggleFullscreenMenuItem = new JMenuItem("Toggle Fullscreen (F)");
 
         nimbusThemeMenuItem.addActionListener(e -> {
             setDarkTheme();
+            redrawComponent(this);
+        });
+        metalThemeMenuItem.addActionListener(e -> {
+            setMetalTheme();
             redrawComponent(this);
         });
         systemThemeMenuItem.addActionListener(e -> {
@@ -248,6 +251,7 @@ public class ImageViewer extends JFrame {
         toggleFullscreenMenuItem.addActionListener(e -> toggleFullscreen());
 
         colorSchemeMenu.add(nimbusThemeMenuItem);
+        colorSchemeMenu.add(metalThemeMenuItem);
         colorSchemeMenu.add(systemThemeMenuItem);
         optionsMenu.add(colorSchemeMenu);
         optionsMenu.add(toggleFullscreenMenuItem);
