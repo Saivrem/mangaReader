@@ -4,7 +4,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.be.filewalking.FileTreeIterator;
 import org.dustyroom.be.filewalking.MangaFileVisitor;
-import org.dustyroom.ui.panels.ImagePanel;
+import org.dustyroom.ui.components.ImagePanel;
+import org.dustyroom.ui.components.MenuBar;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -23,8 +24,6 @@ import java.util.Set;
 import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.be.utils.PathUtils.isImage;
-import static org.dustyroom.be.utils.UiUtils.*;
-import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 
 @Slf4j
 public class ImageViewer extends JFrame {
@@ -32,10 +31,9 @@ public class ImageViewer extends JFrame {
     private final GraphicsEnvironment graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
     private final GraphicsDevice graphicsDevice = graphicsEnvironment.getDefaultScreenDevice();
 
-    // Menu
-    private final JMenuBar menuBar = new JMenuBar();
+    private final MenuBar menuBar;
 
-    // Buttons
+    // TODO Create navigation Panel
     private final JButton openButton = new JButton("\uD83D\uDCC2");
     private final JButton nextButton = new JButton("→");
     private final JButton prevButton = new JButton("←");
@@ -55,6 +53,9 @@ public class ImageViewer extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
         this.fileTreeIterator = fileTreeIterator;
+
+        menuBar = new MenuBar(ImageViewer.this::toggleFullscreen);
+
         initializeUI();
     }
 
@@ -68,7 +69,6 @@ public class ImageViewer extends JFrame {
 
         setLayout(new BorderLayout());
 
-        setupMenuBar();
         setupButtons();
         setupControls();
 
@@ -164,111 +164,6 @@ public class ImageViewer extends JFrame {
         });
     }
 
-    private void setupMenuBar() {
-        JMenu fileMenu = buildFileMenu();
-        JMenu viewMenu = buildViewMenu();
-        JMenu navigationMenu = buildNavigationMenu();
-        JMenu optionsMenu = buildOptionsMenu();
-        JMenu helpMenu = buildHelpMenu();
-
-        menuBar.add(fileMenu);
-        menuBar.add(viewMenu);
-        menuBar.add(navigationMenu);
-        menuBar.add(optionsMenu);
-        menuBar.add(helpMenu);
-    }
-
-    private JMenu buildFileMenu() {
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem openMenuItem = new JMenuItem("Open (O)");
-        JMenuItem exitMenuItem = new JMenuItem("Exit (Q)");
-
-        openMenuItem.addActionListener(e -> chooseFile());
-        exitMenuItem.addActionListener(e -> System.exit(0));
-        fileMenu.add(openMenuItem);
-        fileMenu.add(exitMenuItem);
-        return fileMenu;
-    }
-
-    private JMenu buildViewMenu() {
-        JMenu viewMenu = new JMenu("View");
-        JMenuItem fitMenuItem = new JMenuItem("Fit height mode (h)");
-        JMenuItem zoomInMenuItem = new JMenuItem("Zoom In (+)");
-        JMenuItem zoomOutMenuItem = new JMenuItem("Zoom out (-)");
-
-        fitMenuItem.addActionListener(e -> fitMode());
-
-        zoomInMenuItem.addActionListener(e -> zoomIn());
-        zoomOutMenuItem.addActionListener(e -> zoomOut());
-
-        viewMenu.add(fitMenuItem);
-        viewMenu.add(zoomInMenuItem);
-        viewMenu.add(zoomOutMenuItem);
-        return viewMenu;
-    }
-
-    private JMenu buildNavigationMenu() {
-        JMenu navigationMenu = new JMenu("Navigation");
-        JMenuItem nextImageItem = new JMenuItem("Next (→)");
-        JMenuItem previousImageItem = new JMenuItem("Prev (←)");
-        JMenuItem firstImageItem = new JMenuItem("first (⇱)");
-        JMenuItem lastImageItem = new JMenuItem("last (⇲)");
-
-        nextImageItem.addActionListener(e -> showNextImage());
-        previousImageItem.addActionListener(e -> showPreviousImage());
-        firstImageItem.addActionListener(e -> showFirstImage());
-        lastImageItem.addActionListener(e -> showLastImage());
-
-        navigationMenu.add(nextImageItem);
-        navigationMenu.add(previousImageItem);
-        navigationMenu.add(firstImageItem);
-        navigationMenu.add(lastImageItem);
-
-        return navigationMenu;
-    }
-
-    private JMenu buildOptionsMenu() {
-        JMenu optionsMenu = new JMenu("Options");
-        JMenu colorSchemeMenu = new JMenu("Color scheme");
-        JMenuItem nimbusThemeMenuItem = new JMenuItem("Nimbus theme");
-        JMenuItem metalThemeMenuItem = new JMenuItem("Metal theme");
-        JMenuItem systemThemeMenuItem = new JMenuItem("System theme");
-
-        JMenuItem toggleFullscreenMenuItem = new JMenuItem("Toggle Fullscreen (F)");
-
-        nimbusThemeMenuItem.addActionListener(e -> {
-            setDarkTheme();
-            redrawComponent(this);
-        });
-        metalThemeMenuItem.addActionListener(e -> {
-            setMetalTheme();
-            redrawComponent(this);
-        });
-        systemThemeMenuItem.addActionListener(e -> {
-            setSystemTheme();
-            redrawComponent(this);
-        });
-        toggleFullscreenMenuItem.addActionListener(e -> toggleFullscreen());
-
-        colorSchemeMenu.add(nimbusThemeMenuItem);
-        colorSchemeMenu.add(metalThemeMenuItem);
-        colorSchemeMenu.add(systemThemeMenuItem);
-        optionsMenu.add(colorSchemeMenu);
-        optionsMenu.add(toggleFullscreenMenuItem);
-
-        return optionsMenu;
-    }
-
-    private JMenu buildHelpMenu() {
-        JMenu helpMenu = new JMenu("Help");
-        JMenuItem aboutMenuItem = new JMenuItem("About");
-
-        aboutMenuItem.addActionListener(e -> showAboutDialog(this));
-        helpMenu.add(aboutMenuItem);
-
-        return helpMenu;
-    }
-
     private void chooseFile() {
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(null);
@@ -353,6 +248,27 @@ public class ImageViewer extends JFrame {
         updateImagePanel();
     }
 
+    private void fitMode() {
+        imagePanel.toggleZoomMode();
+        imagePanel.repaint();
+    }
+
+    private void zoomOut() {
+        if (imagePanel.isFitMode()) {
+            imagePanel.toggleZoomMode();
+        }
+        imagePanel.zoomOut();
+        imagePanel.repaint();
+    }
+
+    private void zoomIn() {
+        if (imagePanel.isFitMode()) {
+            imagePanel.toggleZoomMode();
+        }
+        imagePanel.zoomIn();
+        imagePanel.repaint();
+    }
+
     private void toggleFullscreen() {
         if (fullscreen) {
             setVisible(false);
@@ -374,26 +290,5 @@ public class ImageViewer extends JFrame {
 
         fullscreen = !fullscreen;
         requestFocusInWindow();
-    }
-
-    private void fitMode() {
-        imagePanel.toggleZoomMode();
-        imagePanel.repaint();
-    }
-
-    private void zoomOut() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
-        imagePanel.zoomOut();
-        imagePanel.repaint();
-    }
-
-    private void zoomIn() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
-        imagePanel.zoomIn();
-        imagePanel.repaint();
     }
 }
