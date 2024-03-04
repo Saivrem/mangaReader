@@ -20,7 +20,6 @@ import static org.dustyroom.be.utils.IteratorUtils.validFileName;
 @Slf4j
 public class ZipImageIterator implements ImageIterator {
     private final List<ZipEntry> entryList = new ArrayList<>();
-
     private final File zipFilePath;
     private ZipFile zipFile;
     private int listSize;
