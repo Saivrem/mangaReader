@@ -4,8 +4,6 @@ import org.dustyroom.ui.components.listeners.*;
 
 import javax.swing.*;
 
-import static org.dustyroom.be.utils.UiUtils.*;
-
 public class MenuBar extends JMenuBar {
     private final OpenFileListener openFileListener;
     private final FitModeListener fitModeListener;
@@ -16,6 +14,7 @@ public class MenuBar extends JMenuBar {
     private final FirstFileListener firstFileListener;
     private final LastFileListener lastFileListener;
     private final ToggleFullscreenListener toggleFullscreenListener;
+    private final ThemeChangeListener themeChangeListener;
     private final ShowAboutListener showAboutListener;
 
     public MenuBar(
@@ -28,10 +27,10 @@ public class MenuBar extends JMenuBar {
             FirstFileListener firstFileListener,
             LastFileListener lastFileListener,
             ToggleFullscreenListener toggleFullscreenListener,
+            ThemeChangeListener themeChangeListener,
             ShowAboutListener showAboutListener
     ) {
         this.openFileListener = openFileListener;
-        this.toggleFullscreenListener = toggleFullscreenListener;
         this.fitModeListener = fitModeListener;
         this.zoomInListener = zoomInListener;
         this.zoomOutListener = zoomOutListener;
@@ -39,6 +38,8 @@ public class MenuBar extends JMenuBar {
         this.prevFileListener = prevFileListener;
         this.firstFileListener = firstFileListener;
         this.lastFileListener = lastFileListener;
+        this.toggleFullscreenListener = toggleFullscreenListener;
+        this.themeChangeListener = themeChangeListener;
         this.showAboutListener = showAboutListener;
 
         add(buildFileMenu());
@@ -106,18 +107,9 @@ public class MenuBar extends JMenuBar {
 
         JMenuItem toggleFullscreenMenuItem = new JMenuItem("Toggle Fullscreen (F)");
 
-        nimbusThemeMenuItem.addActionListener(e -> {
-            setDarkTheme();
-            redrawComponent(this);
-        });
-        metalThemeMenuItem.addActionListener(e -> {
-            setMetalTheme();
-            redrawComponent(this);
-        });
-        systemThemeMenuItem.addActionListener(e -> {
-            setSystemTheme();
-            redrawComponent(this);
-        });
+        nimbusThemeMenuItem.addActionListener(e -> themeChangeListener.setNimbusTheme());
+        metalThemeMenuItem.addActionListener(e -> themeChangeListener.setMetalTheme());
+        systemThemeMenuItem.addActionListener(e -> themeChangeListener.setSystemTheme());
         toggleFullscreenMenuItem.addActionListener(e -> toggleFullscreenListener.toggleFullscreen());
 
         colorSchemeMenu.add(nimbusThemeMenuItem);

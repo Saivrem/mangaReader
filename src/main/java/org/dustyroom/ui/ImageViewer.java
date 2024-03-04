@@ -6,9 +6,11 @@ import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ZipImageIterator;
 import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.utils.UiUtils;
 import org.dustyroom.ui.components.ImagePanel;
 import org.dustyroom.ui.components.MenuBar;
 import org.dustyroom.ui.components.NavigationPanel;
+import org.dustyroom.ui.components.listeners.ThemeChangeListener;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -21,6 +23,7 @@ import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
+import static org.dustyroom.be.utils.UiUtils.redrawComponent;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 
 @Slf4j
@@ -49,6 +52,25 @@ public class ImageViewer extends JFrame {
                 ImageViewer.this::showFirstImage,
                 ImageViewer.this::showLastImage,
                 ImageViewer.this::toggleFullscreen,
+                new ThemeChangeListener() {
+                    @Override
+                    public void setNimbusTheme() {
+                        UiUtils.setDarkTheme();
+                        redrawComponent(ImageViewer.this);
+                    }
+
+                    @Override
+                    public void setMetalTheme() {
+                        UiUtils.setMetalTheme();
+                        redrawComponent(ImageViewer.this);
+                    }
+
+                    @Override
+                    public void setSystemTheme() {
+                        UiUtils.setSystemTheme();
+                        redrawComponent(ImageViewer.this);
+                    }
+                },
                 () -> showAboutDialog(ImageViewer.this)
         );
 
