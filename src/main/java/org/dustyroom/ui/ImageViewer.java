@@ -1,12 +1,12 @@
 package org.dustyroom.ui;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.dustyroom.be.filewalking.FileTreeIterator;
-import org.dustyroom.be.filewalking.MangaFileVisitor;
+import org.dustyroom.be.DirImageIterator;
+import org.dustyroom.be.FileImageIterator;
+import org.dustyroom.be.ImageIterator;
+import org.dustyroom.be.ZipImageIterator;
 import org.dustyroom.ui.panels.ImagePanel;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
@@ -14,15 +14,10 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.IOException;
-import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
-import static org.dustyroom.be.utils.PathUtils.isImage;
 import static org.dustyroom.be.utils.UiUtils.*;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 
@@ -45,17 +40,17 @@ public class ImageViewer extends JFrame {
     private final JPanel southPanel = new JPanel(new FlowLayout());
     private final ImagePanel imagePanel = new ImagePanel();
     // Other
-    private FileTreeIterator fileTreeIterator;
-    @Getter
-    private Path currentFile;
+    private ImageIterator imageIterator;
     private boolean fullscreen = false;
 
-    public ImageViewer(FileTreeIterator fileTreeIterator) {
+    public ImageViewer() {
         setTitle("Image Viewer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
-        this.fileTreeIterator = fileTreeIterator;
+        // this.fileTreeIterator = fileTreeIterator;
         initializeUI();
+
+        setVisible(true);
     }
 
     private void initializeUI() {
@@ -80,10 +75,6 @@ public class ImageViewer extends JFrame {
         setLocationRelativeTo(null);
         setFocusable(true);
         requestFocus();
-
-        if (fileTreeIterator != null) {
-            showNextImage();
-        }
     }
 
     private void setupButtons() {
@@ -273,7 +264,7 @@ public class ImageViewer extends JFrame {
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(null);
         }
-        String root = currentFile == null ? System.getProperty("user.home") : currentFile.getParent().toString();
+        String root = /*currentFile == null ? */ System.getProperty("user.home")/* : currentFile.getParent().toString()*/;
         JFileChooser fileChooser = new JFileChooser(root);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
@@ -282,23 +273,16 @@ public class ImageViewer extends JFrame {
         int result = fileChooser.showOpenDialog(this);
 
         if (result == JFileChooser.APPROVE_OPTION) {
-            Path selectedFile = fileChooser.getSelectedFile().toPath();
-            Path levelUp = selectedFile.getParent().getParent();
-
-            MangaFileVisitor mangaFileVisitor = new MangaFileVisitor();
-            try {
-                if (Files.isRegularFile(selectedFile)) {
-                    Files.walkFileTree(levelUp, Set.of(FileVisitOption.FOLLOW_LINKS), 2, mangaFileVisitor);
-                } else {
-                    Files.walkFileTree(selectedFile, mangaFileVisitor);
-                }
-            } catch (IOException ioException) {
-                log.error("Can't walk {}, application will be closed", selectedFile);
-                System.exit(1);
+            File selectedFile = fileChooser.getSelectedFile();
+            if (selectedFile.isDirectory()) {
+                imageIterator = new DirImageIterator();
+            } else if (selectedFile.toString().endsWith(".zip")) {
+                imageIterator = new ZipImageIterator(selectedFile);
+            } else {
+                imageIterator = new FileImageIterator();
             }
-            fileTreeIterator = new FileTreeIterator(mangaFileVisitor.getTree(), selectedFile);
-            currentFile = fileTreeIterator.next();
-            updateImagePanel();
+            imagePanel.setImage(imageIterator.next());
+            imagePanel.repaint();
         }
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(this);
@@ -306,51 +290,20 @@ public class ImageViewer extends JFrame {
         requestFocus();
     }
 
-    private void updateImagePanel() {
-        if (isImage(currentFile)) {
-            setTitle(currentFile.toString());
-            try {
-                imagePanel.setImage(ImageIO.read(Files.newInputStream(currentFile)));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            this.repaint();
-        }
-        requestFocus();
-    }
-
     private void showNextImage() {
-        Path next = fileTreeIterator.next();
-        if (next == null) return;
-        if (next.equals(currentFile)) {
-            next = fileTreeIterator.next();
-            currentFile = next != null ? next : currentFile;
-        } else {
-            currentFile = next;
-        }
-        updateImagePanel();
+        imagePanel.drawImage(imageIterator.next());
     }
 
     private void showPreviousImage() {
-        Path previous = fileTreeIterator.previous();
-        if (previous == null) return;
-        if (previous.equals(currentFile)) {
-            previous = fileTreeIterator.previous();
-            currentFile = previous != null ? previous : currentFile;
-        } else {
-            currentFile = previous;
-        }
-        updateImagePanel();
+        imagePanel.drawImage(imageIterator.prev());
     }
 
     private void showFirstImage() {
-        currentFile = fileTreeIterator.getFirst();
-        updateImagePanel();
+        // TODO
     }
 
     private void showLastImage() {
-        currentFile = fileTreeIterator.getLast();
-        updateImagePanel();
+        // TODO
     }
 
     private void toggleFullscreen() {
