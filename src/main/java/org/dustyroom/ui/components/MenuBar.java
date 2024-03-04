@@ -1,35 +1,51 @@
 package org.dustyroom.ui.components;
 
+import org.dustyroom.ui.components.listeners.*;
+
 import javax.swing.*;
 
 import static org.dustyroom.be.utils.UiUtils.*;
-import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 
 public class MenuBar extends JMenuBar {
+    private final OpenFileListener openFileListener;
+    private final FitModeListener fitModeListener;
+    private final ZoomInListener zoomInListener;
+    private final ZoomOutListener zoomOutListener;
+    private final NextFileListener nextFileListener;
+    private final PrevFileListener prevFileListener;
+    private final FirstFileListener firstFileListener;
+    private final LastFileListener lastFileListener;
+    private final ToggleFullscreenListener toggleFullscreenListener;
+    private final ShowAboutListener showAboutListener;
 
-    private final JMenu fileMenu;
-    private final JMenu viewMenu;
-    private final JMenu navigationMenu;
-    private final JMenu optionsMenu;
-    private final JMenu helpMenu;
-    private final OptionsMenuListener optionsMenuListener;
+    public MenuBar(
+            OpenFileListener openFileListener,
+            FitModeListener fitModeListener,
+            ZoomInListener zoomInListener,
+            ZoomOutListener zoomOutListener,
+            NextFileListener nextFileListener,
+            PrevFileListener prevFileListener,
+            FirstFileListener firstFileListener,
+            LastFileListener lastFileListener,
+            ToggleFullscreenListener toggleFullscreenListener,
+            ShowAboutListener showAboutListener
+    ) {
+        this.openFileListener = openFileListener;
+        this.toggleFullscreenListener = toggleFullscreenListener;
+        this.fitModeListener = fitModeListener;
+        this.zoomInListener = zoomInListener;
+        this.zoomOutListener = zoomOutListener;
+        this.nextFileListener = nextFileListener;
+        this.prevFileListener = prevFileListener;
+        this.firstFileListener = firstFileListener;
+        this.lastFileListener = lastFileListener;
+        this.showAboutListener = showAboutListener;
 
-    public MenuBar(OptionsMenuListener optionsMenuListener) {
-        // Probably I am going to remove JMenu variables but let them stay
-        // in case I decide to actually use them from somewhere;
-        this.optionsMenuListener = optionsMenuListener;
-
-        fileMenu = buildFileMenu();
-        viewMenu = buildViewMenu();
-        navigationMenu = buildNavigationMenu();
-        optionsMenu = buildOptionsMenu();
-        helpMenu = buildHelpMenu();
-
-        add(fileMenu);
-        add(viewMenu);
-        add(navigationMenu);
-        add(optionsMenu);
-        add(helpMenu);
+        add(buildFileMenu());
+        add(buildViewMenu());
+        add(buildNavigationMenu());
+        add(buildOptionsMenu());
+        add(buildHelpMenu());
     }
 
     private JMenu buildFileMenu() {
@@ -37,7 +53,7 @@ public class MenuBar extends JMenuBar {
         JMenuItem openMenuItem = new JMenuItem("Open (O)");
         JMenuItem exitMenuItem = new JMenuItem("Exit (Q)");
 
-        openMenuItem.addActionListener(e -> chooseFile());
+        openMenuItem.addActionListener(e -> openFileListener.open());
         exitMenuItem.addActionListener(e -> System.exit(0));
         fileMenu.add(openMenuItem);
         fileMenu.add(exitMenuItem);
@@ -50,10 +66,10 @@ public class MenuBar extends JMenuBar {
         JMenuItem zoomInMenuItem = new JMenuItem("Zoom In (+)");
         JMenuItem zoomOutMenuItem = new JMenuItem("Zoom out (-)");
 
-        fitMenuItem.addActionListener(e -> fitMode());
+        fitMenuItem.addActionListener(e -> fitModeListener.fitMode());
 
-        zoomInMenuItem.addActionListener(e -> zoomIn());
-        zoomOutMenuItem.addActionListener(e -> zoomOut());
+        zoomInMenuItem.addActionListener(e -> zoomInListener.zoomIn());
+        zoomOutMenuItem.addActionListener(e -> zoomOutListener.zoomOut());
 
         viewMenu.add(fitMenuItem);
         viewMenu.add(zoomInMenuItem);
@@ -68,10 +84,10 @@ public class MenuBar extends JMenuBar {
         JMenuItem firstImageItem = new JMenuItem("first (⇱)");
         JMenuItem lastImageItem = new JMenuItem("last (⇲)");
 
-        nextImageItem.addActionListener(e -> showNextImage());
-        previousImageItem.addActionListener(e -> showPreviousImage());
-        firstImageItem.addActionListener(e -> showFirstImage());
-        lastImageItem.addActionListener(e -> showLastImage());
+        nextImageItem.addActionListener(e -> nextFileListener.next());
+        previousImageItem.addActionListener(e -> prevFileListener.prev());
+        firstImageItem.addActionListener(e -> firstFileListener.first());
+        lastImageItem.addActionListener(e -> lastFileListener.last());
 
         navigationMenu.add(nextImageItem);
         navigationMenu.add(previousImageItem);
@@ -102,7 +118,7 @@ public class MenuBar extends JMenuBar {
             setSystemTheme();
             redrawComponent(this);
         });
-        toggleFullscreenMenuItem.addActionListener(e -> optionsMenuListener.toggleFullscreen());
+        toggleFullscreenMenuItem.addActionListener(e -> toggleFullscreenListener.toggleFullscreen());
 
         colorSchemeMenu.add(nimbusThemeMenuItem);
         colorSchemeMenu.add(metalThemeMenuItem);
@@ -117,7 +133,7 @@ public class MenuBar extends JMenuBar {
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutMenuItem = new JMenuItem("About");
 
-        aboutMenuItem.addActionListener(e -> showAboutDialog(this));
+        aboutMenuItem.addActionListener(e -> showAboutListener.showAbout());
         helpMenu.add(aboutMenuItem);
 
         return helpMenu;

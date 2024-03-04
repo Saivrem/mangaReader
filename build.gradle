@@ -3,21 +3,23 @@ plugins {
 }
 
 group = 'org.dustyroom'
-version = '0.4.2'
+version = '0.4.3'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
+    def lombokVersion = '1.18.30'
+
     implementation 'ch.qos.logback:logback-classic:1.4.12'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 
-    compileOnly 'org.projectlombok:lombok:1.18.24'
-    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
-    testCompileOnly 'org.projectlombok:lombok:1.18.24'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     testImplementation platform('org.junit:junit-bom:5.9.1')
     testImplementation 'org.junit.jupiter:junit-jupiter'

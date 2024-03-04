@@ -8,6 +8,7 @@ import org.dustyroom.be.iterators.ZipImageIterator;
 import org.dustyroom.be.models.Picture;
 import org.dustyroom.ui.components.ImagePanel;
 import org.dustyroom.ui.components.MenuBar;
+import org.dustyroom.ui.components.NavigationPanel;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -20,28 +21,15 @@ import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
-import static org.dustyroom.be.utils.UiUtils.*;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
-import static org.dustyroom.be.utils.PathUtils.isImage;
 
 @Slf4j
 public class ImageViewer extends JFrame {
-
     private final GraphicsEnvironment graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
     private final GraphicsDevice graphicsDevice = graphicsEnvironment.getDefaultScreenDevice();
-
     private final MenuBar menuBar;
-
-    // TODO Create navigation Panel
-    private final JButton openButton = new JButton("\uD83D\uDCC2");
-    private final JButton nextButton = new JButton("→");
-    private final JButton prevButton = new JButton("←");
-    private final JButton firstButton = new JButton("⇤");
-    private final JButton lastButton = new JButton("⇥");
-    // Panels
-    private final JPanel southPanel = new JPanel(new FlowLayout());
-    private final ImagePanel imagePanel = new ImagePanel();
-    // Other
+    private final NavigationPanel navigationPanel;
+    private final ImagePanel imagePanel;
     private ImageIterator imageIterator;
     private File currentDir;
     private boolean fullscreen = false;
@@ -50,7 +38,29 @@ public class ImageViewer extends JFrame {
         setTitle("Image Viewer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
-        menuBar = new MenuBar(ImageViewer.this::toggleFullscreen);
+
+        menuBar = new MenuBar(
+                ImageViewer.this::chooseFile,
+                ImageViewer.this::fitMode,
+                ImageViewer.this::zoomIn,
+                ImageViewer.this::zoomOut,
+                ImageViewer.this::showNextImage,
+                ImageViewer.this::showPreviousImage,
+                ImageViewer.this::showFirstImage,
+                ImageViewer.this::showLastImage,
+                ImageViewer.this::toggleFullscreen,
+                () -> showAboutDialog(ImageViewer.this)
+        );
+
+        navigationPanel = new NavigationPanel(
+                ImageViewer.this::showNextImage,
+                ImageViewer.this::showPreviousImage,
+                ImageViewer.this::showFirstImage,
+                ImageViewer.this::showLastImage,
+                ImageViewer.this::chooseFile
+        );
+
+        imagePanel = new ImagePanel();
 
         initializeUI();
 
@@ -58,6 +68,12 @@ public class ImageViewer extends JFrame {
     }
 
     private void initializeUI() {
+        setLayout(new BorderLayout());
+
+        add(menuBar, BorderLayout.NORTH);
+        add(imagePanel, BorderLayout.CENTER);
+        add(navigationPanel, BorderLayout.SOUTH);
+
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -65,33 +81,12 @@ public class ImageViewer extends JFrame {
             }
         });
 
-        setLayout(new BorderLayout());
-
-        setupButtons();
         setupControls();
-
-        add(menuBar, BorderLayout.NORTH);
-        add(imagePanel, BorderLayout.CENTER);
-        add(southPanel, BorderLayout.SOUTH);
 
         pack();
         setLocationRelativeTo(null);
         setFocusable(true);
         requestFocus();
-    }
-
-    private void setupButtons() {
-        southPanel.add(firstButton);
-        southPanel.add(prevButton);
-        southPanel.add(openButton);
-        southPanel.add(nextButton);
-        southPanel.add(lastButton);
-
-        firstButton.addActionListener(e -> showFirstImage());
-        prevButton.addActionListener(e -> showPreviousImage());
-        openButton.addActionListener(e -> chooseFile());
-        nextButton.addActionListener(e -> showNextImage());
-        lastButton.addActionListener(e -> showLastImage());
     }
 
     private void setupControls() {
@@ -215,7 +210,7 @@ public class ImageViewer extends JFrame {
             dispose();
             setUndecorated(false);
             graphicsDevice.setFullScreenWindow(null);
-            southPanel.setVisible(true);
+            navigationPanel.setVisible(true);
             menuBar.setVisible(true);
             setVisible(true);
         } else {
@@ -223,7 +218,7 @@ public class ImageViewer extends JFrame {
             dispose();
             setUndecorated(true);
             graphicsDevice.setFullScreenWindow(this);
-            southPanel.setVisible(false);
+            navigationPanel.setVisible(false);
             menuBar.setVisible(false);
             setVisible(true);
         }
