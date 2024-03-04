@@ -12,7 +12,6 @@ import java.util.*;
 import static org.dustyroom.be.utils.PathUtils.isImage;
 
 public class MangaFileVisitor extends SimpleFileVisitor<Path> {
-    private final static PathComparator pathComparator = new PathComparator();
 
     @Getter
     private final Map<Path, List<Path>> tree = new TreeMap<>();
@@ -34,7 +33,7 @@ public class MangaFileVisitor extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-        files.sort(pathComparator);
+        files.sort(Path::compareTo);
         tree.put(dir, files);
         files = new ArrayList<>();
         return FileVisitResult.CONTINUE;
