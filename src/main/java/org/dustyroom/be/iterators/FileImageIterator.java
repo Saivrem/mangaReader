@@ -36,6 +36,7 @@ public class FileImageIterator implements ImageIterator {
             log.error("Can't list files in {}", parent);
             System.exit(1);
         }
+
         fileList.sort(File::compareTo);
         currentIndex = fileList.indexOf(file);
         listIterator = fileList.listIterator(currentIndex);

@@ -8,10 +8,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -39,6 +36,7 @@ public class ZipImageIterator implements ImageIterator {
                 }
             }
 
+            entryList.sort(Comparator.comparing(ZipEntry::getName));
             listSize = entryList.size();
             listIterator = entryList.listIterator();
         } catch (Exception e) {
