@@ -8,7 +8,12 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
+
+import static org.dustyroom.be.utils.IteratorUtils.validFileName;
 
 @Slf4j
 public class FileImageIterator implements ImageIterator {
@@ -20,7 +25,11 @@ public class FileImageIterator implements ImageIterator {
     public FileImageIterator(File file) {
         File parent = file.getParentFile();
         try {
-            Collections.addAll(fileList, Objects.requireNonNull(parent.listFiles()));
+            for (File f : Objects.requireNonNull(parent.listFiles())) {
+                if (validFileName(f.getName())) {
+                    fileList.add(f);
+                }
+            }
             listSize = fileList.size();
         } catch (Exception e) {
             log.error("Can't list files in {}", parent);

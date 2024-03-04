@@ -14,9 +14,10 @@ import java.util.ListIterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static org.dustyroom.be.utils.IteratorUtils.validFileName;
+
 @Slf4j
 public class ZipImageIterator implements ImageIterator {
-
     private final List<ZipEntry> entryList = new ArrayList<>();
     private ZipFile zipFile;
     private int listSize;
@@ -29,7 +30,10 @@ public class ZipImageIterator implements ImageIterator {
             Enumeration<? extends ZipEntry> zipEntryEnumeration = zipFile.entries();
 
             while (zipEntryEnumeration.hasMoreElements()) {
-                entryList.add(zipEntryEnumeration.nextElement());
+                ZipEntry zipEntry = zipEntryEnumeration.nextElement();
+                if (validFileName(zipEntry.getName())) {
+                    entryList.add(zipEntry);
+                }
             }
 
             listSize = entryList.size();
