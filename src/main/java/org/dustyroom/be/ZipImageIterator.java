@@ -60,8 +60,7 @@ public class ZipImageIterator implements ImageIterator {
                 next = listIterator.next();
             }
         } else {
-            listIterator = entryList.listIterator(1);
-            next = listIterator.previous();
+            return first();
         }
         return readImageFromZip(next);
     }
@@ -75,9 +74,20 @@ public class ZipImageIterator implements ImageIterator {
                 previous = listIterator.previous();
             }
         } else {
-            listIterator = entryList.listIterator(listSize - 1);
-            previous = listIterator.next();
+            return last();
         }
         return readImageFromZip(previous);
+    }
+
+    @Override
+    public BufferedImage first() {
+        listIterator = entryList.listIterator(1);
+        return readImageFromZip(listIterator.previous());
+    }
+
+    @Override
+    public BufferedImage last() {
+        listIterator = entryList.listIterator(listSize - 1);
+        return readImageFromZip(listIterator.next());
     }
 }

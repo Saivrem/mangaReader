@@ -12,4 +12,14 @@ public class FileImageIterator implements ImageIterator {
     public BufferedImage prev() {
         return null;
     }
+
+    @Override
+    public BufferedImage first() {
+        return null;
+    }
+
+    @Override
+    public BufferedImage last() {
+        return null;
+    }
 }

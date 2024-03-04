@@ -299,11 +299,11 @@ public class ImageViewer extends JFrame {
     }
 
     private void showFirstImage() {
-        // TODO
+        imagePanel.drawImage(imageIterator.first());
     }
 
     private void showLastImage() {
-        // TODO
+        imagePanel.drawImage(imageIterator.last());
     }
 
     private void toggleFullscreen() {
