@@ -73,4 +73,10 @@ public class ImagePanel extends JPanel {
         g2d.drawImage(image, x, y, imageWidth, imageHeight, this);
         g2d.dispose();
     }
+
+    public void drawImage(BufferedImage image) {
+        if (image == null) return;
+        this.image = image;
+        repaint();
+    }
 }

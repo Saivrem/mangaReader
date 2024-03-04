@@ -1,13 +1,14 @@
 package org.dustyroom.ui;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.dustyroom.be.filewalking.FileTreeIterator;
-import org.dustyroom.be.filewalking.MangaFileVisitor;
+import org.dustyroom.be.iterators.DirImageIterator;
+import org.dustyroom.be.iterators.FileImageIterator;
+import org.dustyroom.be.iterators.ImageIterator;
+import org.dustyroom.be.iterators.ZipImageIterator;
+import org.dustyroom.be.models.Picture;
 import org.dustyroom.ui.components.ImagePanel;
 import org.dustyroom.ui.components.MenuBar;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
@@ -15,14 +16,12 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.IOException;
-import java.nio.file.FileVisitOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import java.io.File;
 
-import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
+import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
+import static org.dustyroom.be.utils.UiUtils.*;
+import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 import static org.dustyroom.be.utils.PathUtils.isImage;
 
 @Slf4j
@@ -43,20 +42,19 @@ public class ImageViewer extends JFrame {
     private final JPanel southPanel = new JPanel(new FlowLayout());
     private final ImagePanel imagePanel = new ImagePanel();
     // Other
-    private FileTreeIterator fileTreeIterator;
-    @Getter
-    private Path currentFile;
+    private ImageIterator imageIterator;
+    private File currentDir;
     private boolean fullscreen = false;
 
-    public ImageViewer(FileTreeIterator fileTreeIterator) {
+    public ImageViewer() {
         setTitle("Image Viewer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
-        this.fileTreeIterator = fileTreeIterator;
-
         menuBar = new MenuBar(ImageViewer.this::toggleFullscreen);
 
         initializeUI();
+
+        setVisible(true);
     }
 
     private void initializeUI() {
@@ -80,10 +78,6 @@ public class ImageViewer extends JFrame {
         setLocationRelativeTo(null);
         setFocusable(true);
         requestFocus();
-
-        if (fileTreeIterator != null) {
-            showNextImage();
-        }
     }
 
     private void setupButtons() {
@@ -168,32 +162,24 @@ public class ImageViewer extends JFrame {
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(null);
         }
-        String root = currentFile == null ? System.getProperty("user.home") : currentFile.getParent().toString();
+        String root = currentDir == null ? System.getProperty("user.home") : currentDir.toString();
         JFileChooser fileChooser = new JFileChooser(root);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
-        fileChooser.setFileSelectionMode(FILES_AND_DIRECTORIES);
+        fileChooser.setFileSelectionMode(FILES_ONLY); //FILES_AND_DIRECTORIES
 
         int result = fileChooser.showOpenDialog(this);
 
         if (result == JFileChooser.APPROVE_OPTION) {
-            Path selectedFile = fileChooser.getSelectedFile().toPath();
-            Path levelUp = selectedFile.getParent().getParent();
-
-            MangaFileVisitor mangaFileVisitor = new MangaFileVisitor();
-            try {
-                if (Files.isRegularFile(selectedFile)) {
-                    Files.walkFileTree(levelUp, Set.of(FileVisitOption.FOLLOW_LINKS), 2, mangaFileVisitor);
-                } else {
-                    Files.walkFileTree(selectedFile, mangaFileVisitor);
-                }
-            } catch (IOException ioException) {
-                log.error("Can't walk {}, application will be closed", selectedFile);
-                System.exit(1);
+            File selectedFile = fileChooser.getSelectedFile();
+            if (selectedFile.isDirectory()) {
+                imageIterator = new DirImageIterator();
+            } else if (selectedFile.toString().endsWith(".zip")) {
+                imageIterator = new ZipImageIterator(selectedFile);
+            } else {
+                imageIterator = new FileImageIterator(selectedFile);
             }
-            fileTreeIterator = new FileTreeIterator(mangaFileVisitor.getTree(), selectedFile);
-            currentFile = fileTreeIterator.next();
-            updateImagePanel();
+            processPicture(imageIterator.next());
         }
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(this);
@@ -201,72 +187,26 @@ public class ImageViewer extends JFrame {
         requestFocus();
     }
 
-    private void updateImagePanel() {
-        if (isImage(currentFile)) {
-            setTitle(currentFile.toString());
-            try {
-                imagePanel.setImage(ImageIO.read(Files.newInputStream(currentFile)));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            this.repaint();
-        }
-        requestFocus();
-    }
-
     private void showNextImage() {
-        Path next = fileTreeIterator.next();
-        if (next == null) return;
-        if (next.equals(currentFile)) {
-            next = fileTreeIterator.next();
-            currentFile = next != null ? next : currentFile;
-        } else {
-            currentFile = next;
-        }
-        updateImagePanel();
+        processPicture(imageIterator.next());
     }
 
     private void showPreviousImage() {
-        Path previous = fileTreeIterator.previous();
-        if (previous == null) return;
-        if (previous.equals(currentFile)) {
-            previous = fileTreeIterator.previous();
-            currentFile = previous != null ? previous : currentFile;
-        } else {
-            currentFile = previous;
-        }
-        updateImagePanel();
+        processPicture(imageIterator.prev());
     }
 
     private void showFirstImage() {
-        currentFile = fileTreeIterator.getFirst();
-        updateImagePanel();
+        processPicture(imageIterator.first());
     }
 
     private void showLastImage() {
-        currentFile = fileTreeIterator.getLast();
-        updateImagePanel();
+        processPicture(imageIterator.last());
     }
 
-    private void fitMode() {
-        imagePanel.toggleZoomMode();
-        imagePanel.repaint();
-    }
-
-    private void zoomOut() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
-        imagePanel.zoomOut();
-        imagePanel.repaint();
-    }
-
-    private void zoomIn() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
-        imagePanel.zoomIn();
-        imagePanel.repaint();
+    private void processPicture(Picture picture) {
+        currentDir = picture.metadata().dir();
+        setTitle(picture.metadata().name());
+        imagePanel.drawImage(picture.image());
     }
 
     private void toggleFullscreen() {
@@ -290,5 +230,26 @@ public class ImageViewer extends JFrame {
 
         fullscreen = !fullscreen;
         requestFocusInWindow();
+    }
+
+    private void fitMode() {
+        imagePanel.toggleZoomMode();
+        imagePanel.repaint();
+    }
+
+    private void zoomOut() {
+        if (imagePanel.isFitMode()) {
+            imagePanel.toggleZoomMode();
+        }
+        imagePanel.zoomOut();
+        imagePanel.repaint();
+    }
+
+    private void zoomIn() {
+        if (imagePanel.isFitMode()) {
+            imagePanel.toggleZoomMode();
+        }
+        imagePanel.zoomIn();
+        imagePanel.repaint();
     }
 }
