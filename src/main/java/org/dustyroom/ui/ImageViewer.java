@@ -1,10 +1,10 @@
 package org.dustyroom.ui;
 
 import lombok.extern.slf4j.Slf4j;
-import org.dustyroom.be.DirImageIterator;
-import org.dustyroom.be.FileImageIterator;
-import org.dustyroom.be.ImageIterator;
-import org.dustyroom.be.ZipImageIterator;
+import org.dustyroom.be.iterators.DirImageIterator;
+import org.dustyroom.be.iterators.FileImageIterator;
+import org.dustyroom.be.iterators.ImageIterator;
+import org.dustyroom.be.iterators.ZipImageIterator;
 import org.dustyroom.ui.panels.ImagePanel;
 
 import javax.swing.*;

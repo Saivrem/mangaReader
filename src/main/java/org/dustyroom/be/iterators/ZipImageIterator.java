@@ -1,4 +1,4 @@
-package org.dustyroom.be;
+package org.dustyroom.be.iterators;
 
 import lombok.extern.slf4j.Slf4j;
 

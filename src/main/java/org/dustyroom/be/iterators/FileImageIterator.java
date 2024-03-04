@@ -1,8 +1,8 @@
-package org.dustyroom.be;
+package org.dustyroom.be.iterators;
 
 import java.awt.image.BufferedImage;
 
-public class DirImageIterator implements ImageIterator {
+public class FileImageIterator implements ImageIterator {
     @Override
     public BufferedImage next() {
         return null;
