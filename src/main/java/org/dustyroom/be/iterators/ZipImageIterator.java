@@ -2,6 +2,7 @@ package org.dustyroom.be.iterators;
 
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.PictureMetadata;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -19,12 +20,15 @@ import static org.dustyroom.be.utils.IteratorUtils.validFileName;
 @Slf4j
 public class ZipImageIterator implements ImageIterator {
     private final List<ZipEntry> entryList = new ArrayList<>();
+
+    private final File zipFilePath;
     private ZipFile zipFile;
     private int listSize;
     private ListIterator<ZipEntry> listIterator;
     private ZipEntry current;
 
     public ZipImageIterator(File zipFilePath) {
+        this.zipFilePath = zipFilePath;
         try {
             zipFile = new ZipFile(zipFilePath);
             Enumeration<? extends ZipEntry> zipEntryEnumeration = zipFile.entries();
@@ -89,7 +93,10 @@ public class ZipImageIterator implements ImageIterator {
         current = entry;
         try {
             BufferedImage read = ImageIO.read(zipFile.getInputStream(entry));
-            return new Picture(entry.getName(), read);
+            return new Picture(
+                    read,
+                    new PictureMetadata(entry.getName(), zipFilePath.getParentFile())
+            );
         } catch (IOException e) {
             return null;
         }

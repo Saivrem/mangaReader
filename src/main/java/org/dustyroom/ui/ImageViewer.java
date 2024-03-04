@@ -42,6 +42,7 @@ public class ImageViewer extends JFrame {
     private final ImagePanel imagePanel = new ImagePanel();
     // Other
     private ImageIterator imageIterator;
+    private File currentDir;
     private boolean fullscreen = false;
 
     public ImageViewer() {
@@ -265,7 +266,7 @@ public class ImageViewer extends JFrame {
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(null);
         }
-        String root = /*currentFile == null ? */ System.getProperty("user.home")/* : currentFile.getParent().toString()*/;
+        String root = currentDir == null ? System.getProperty("user.home") : currentDir.toString();
         JFileChooser fileChooser = new JFileChooser(root);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
@@ -307,7 +308,8 @@ public class ImageViewer extends JFrame {
     }
 
     private void processPicture(Picture picture) {
-        setTitle(picture.name());
+        currentDir = picture.metadata().dir();
+        setTitle(picture.metadata().name());
         imagePanel.drawImage(picture.image());
     }
 

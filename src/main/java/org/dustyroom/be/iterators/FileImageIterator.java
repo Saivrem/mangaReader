@@ -2,6 +2,7 @@ package org.dustyroom.be.iterators;
 
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.PictureMetadata;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -38,6 +39,9 @@ public class FileImageIterator implements ImageIterator {
         fileList.sort(File::compareTo);
         currentIndex = fileList.indexOf(file);
         listIterator = fileList.listIterator(currentIndex);
+        if (currentIndex == 0) {
+            prev();
+        }
     }
 
     @Override
@@ -88,9 +92,13 @@ public class FileImageIterator implements ImageIterator {
     }
 
     private Picture readImageFrom(File file) {
+        currentIndex = fileList.indexOf(file);
         try {
             BufferedImage read = ImageIO.read(Files.newInputStream(file.toPath()));
-            return new Picture(file.getName(), read);
+            return new Picture(
+                    read,
+                    new PictureMetadata(file.getName(), file.getParentFile())
+            );
         } catch (IOException e) {
             log.warn("Can't read the file {}", file);
             return null;
