@@ -33,8 +33,6 @@ public class ZipImageIterator implements ImageIterator {
 
             listSize = entryList.size();
             listIterator = entryList.listIterator();
-            current = listIterator.next();
-            listIterator.previous();
         } catch (Exception e) {
             log.error("Can't read Zip file {}\n application will be closed", zipFilePath);
             System.exit(1);
@@ -42,7 +40,7 @@ public class ZipImageIterator implements ImageIterator {
     }
 
     private BufferedImage readImageFromZip(ZipEntry entry) {
-        System.out.println("File: " + entry.getName());
+        log.debug("File: {}", entry.getName());
         current = entry;
         try {
             return ImageIO.read(zipFile.getInputStream(entry));
@@ -56,7 +54,7 @@ public class ZipImageIterator implements ImageIterator {
         ZipEntry next;
         if (listIterator.hasNext()) {
             next = listIterator.next();
-            if (current.equals(next)) {
+            if (next.equals(current)) {
                 next = listIterator.next();
             }
         } else {
@@ -70,7 +68,7 @@ public class ZipImageIterator implements ImageIterator {
         ZipEntry previous;
         if (listIterator.hasPrevious()) {
             previous = listIterator.previous();
-            if (current.equals(previous)) {
+            if (previous.equals(current)) {
                 previous = listIterator.previous();
             }
         } else {

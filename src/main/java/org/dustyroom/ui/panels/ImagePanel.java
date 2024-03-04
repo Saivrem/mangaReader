@@ -75,6 +75,7 @@ public class ImagePanel extends JPanel {
     }
 
     public void drawImage(BufferedImage image) {
+        if (image == null) return;
         this.image = image;
         repaint();
     }
