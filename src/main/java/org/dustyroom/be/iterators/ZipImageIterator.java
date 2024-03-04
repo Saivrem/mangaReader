@@ -1,6 +1,7 @@
 package org.dustyroom.be.iterators;
 
 import lombok.extern.slf4j.Slf4j;
+import org.dustyroom.be.models.Picture;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -39,18 +40,8 @@ public class ZipImageIterator implements ImageIterator {
         }
     }
 
-    private BufferedImage readImageFromZip(ZipEntry entry) {
-        log.debug("File: {}", entry.getName());
-        current = entry;
-        try {
-            return ImageIO.read(zipFile.getInputStream(entry));
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
     @Override
-    public BufferedImage next() {
+    public Picture next() {
         ZipEntry next;
         if (listIterator.hasNext()) {
             next = listIterator.next();
@@ -60,32 +51,43 @@ public class ZipImageIterator implements ImageIterator {
         } else {
             return first();
         }
-        return readImageFromZip(next);
+        return readImageFrom(next);
     }
 
     @Override
-    public BufferedImage prev() {
-        ZipEntry previous;
+    public Picture prev() {
+        ZipEntry prev;
         if (listIterator.hasPrevious()) {
-            previous = listIterator.previous();
-            if (previous.equals(current)) {
-                previous = listIterator.previous();
+            prev = listIterator.previous();
+            if (prev.equals(current)) {
+                prev = listIterator.previous();
             }
         } else {
             return last();
         }
-        return readImageFromZip(previous);
+        return readImageFrom(prev);
     }
 
     @Override
-    public BufferedImage first() {
+    public Picture first() {
         listIterator = entryList.listIterator(1);
-        return readImageFromZip(listIterator.previous());
+        return readImageFrom(listIterator.previous());
     }
 
     @Override
-    public BufferedImage last() {
+    public Picture last() {
         listIterator = entryList.listIterator(listSize - 1);
-        return readImageFromZip(listIterator.next());
+        return readImageFrom(listIterator.next());
+    }
+
+    private Picture readImageFrom(ZipEntry entry) {
+        log.debug("File: {}", entry.getName());
+        current = entry;
+        try {
+            BufferedImage read = ImageIO.read(zipFile.getInputStream(entry));
+            return new Picture(entry.getName(), read);
+        } catch (IOException e) {
+            return null;
+        }
     }
 }

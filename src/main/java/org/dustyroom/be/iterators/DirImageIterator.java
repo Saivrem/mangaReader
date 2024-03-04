@@ -1,25 +1,25 @@
 package org.dustyroom.be.iterators;
 
-import java.awt.image.BufferedImage;
+import org.dustyroom.be.models.Picture;
 
 public class DirImageIterator implements ImageIterator {
     @Override
-    public BufferedImage next() {
+    public Picture next() {
         return null;
     }
 
     @Override
-    public BufferedImage prev() {
+    public Picture prev() {
         return null;
     }
 
     @Override
-    public BufferedImage first() {
+    public Picture first() {
         return null;
     }
 
     @Override
-    public BufferedImage last() {
+    public Picture last() {
         return null;
     }
 }

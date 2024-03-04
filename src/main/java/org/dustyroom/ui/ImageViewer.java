@@ -5,6 +5,7 @@ import org.dustyroom.be.iterators.DirImageIterator;
 import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ZipImageIterator;
+import org.dustyroom.be.models.Picture;
 import org.dustyroom.ui.panels.ImagePanel;
 
 import javax.swing.*;
@@ -16,7 +17,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
 
-import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
+import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.be.utils.UiUtils.*;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
@@ -268,7 +269,7 @@ public class ImageViewer extends JFrame {
         JFileChooser fileChooser = new JFileChooser(root);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
-        fileChooser.setFileSelectionMode(FILES_AND_DIRECTORIES);
+        fileChooser.setFileSelectionMode(FILES_ONLY); //FILES_AND_DIRECTORIES
 
         int result = fileChooser.showOpenDialog(this);
 
@@ -279,10 +280,9 @@ public class ImageViewer extends JFrame {
             } else if (selectedFile.toString().endsWith(".zip")) {
                 imageIterator = new ZipImageIterator(selectedFile);
             } else {
-                imageIterator = new FileImageIterator();
+                imageIterator = new FileImageIterator(selectedFile);
             }
-            imagePanel.setImage(imageIterator.next());
-            imagePanel.repaint();
+            processPicture(imageIterator.next());
         }
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(this);
@@ -291,19 +291,24 @@ public class ImageViewer extends JFrame {
     }
 
     private void showNextImage() {
-        imagePanel.drawImage(imageIterator.next());
+        processPicture(imageIterator.next());
     }
 
     private void showPreviousImage() {
-        imagePanel.drawImage(imageIterator.prev());
+        processPicture(imageIterator.prev());
     }
 
     private void showFirstImage() {
-        imagePanel.drawImage(imageIterator.first());
+        processPicture(imageIterator.first());
     }
 
     private void showLastImage() {
-        imagePanel.drawImage(imageIterator.last());
+        processPicture(imageIterator.last());
+    }
+
+    private void processPicture(Picture picture) {
+        setTitle(picture.name());
+        imagePanel.drawImage(picture.image());
     }
 
     private void toggleFullscreen() {

@@ -1,14 +1,14 @@
 package org.dustyroom.be.iterators;
 
-import java.awt.image.BufferedImage;
+import org.dustyroom.be.models.Picture;
 
 public interface ImageIterator {
 
-    BufferedImage next();
+    Picture next();
 
-    BufferedImage prev();
+    Picture prev();
 
-    BufferedImage first();
+    Picture first();
 
-    BufferedImage last();
+    Picture last();
 }
