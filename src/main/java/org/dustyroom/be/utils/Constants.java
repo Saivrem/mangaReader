@@ -11,15 +11,7 @@ public class Constants {
     public final static String ABOUT = """
             Manga Reader
                         
-            Hotkeys:
-            Open file   : O
-            Next image  : -> / Pg Down
-            Prev image  : <- / Pg Up
-            First image : Home
-            Last image  : End
-            Quit        : Esc / Q
-                        
-            Version 0.1
+            Version 0.4.2
             Author: Denys Sheviakov
             """;
 }
