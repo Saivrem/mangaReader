@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static org.dustyroom.be.utils.IteratorUtils.validFileName;
+import static org.dustyroom.be.utils.FileUtils.isSupported;
 
 @Slf4j
 public class ZipImageIterator implements ImageIterator {
@@ -31,12 +31,12 @@ public class ZipImageIterator implements ImageIterator {
 
             while (zipEntryEnumeration.hasMoreElements()) {
                 ZipEntry zipEntry = zipEntryEnumeration.nextElement();
-                if (validFileName(zipEntry.getName())) {
+                if (isSupported(zipEntry.getName())) {
                     entryList.add(zipEntry);
                 }
             }
 
-            entryList.sort(Comparator.comparing(ZipEntry::getName));
+            entryList.sort(Comparator.comparing(ZipEntry::getName, stringComparator));
             listSize = entryList.size();
             listIterator = entryList.listIterator();
         } catch (Exception e) {

@@ -9,12 +9,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Objects;
+import java.util.*;
 
-import static org.dustyroom.be.utils.IteratorUtils.validFileName;
+import static org.dustyroom.be.utils.FileUtils.isSupported;
 
 @Slf4j
 public class FileImageIterator implements ImageIterator {
@@ -27,7 +24,7 @@ public class FileImageIterator implements ImageIterator {
         File parent = file.getParentFile();
         try {
             for (File f : Objects.requireNonNull(parent.listFiles())) {
-                if (validFileName(f.getName())) {
+                if (isSupported(f.getName())) {
                     fileList.add(f);
                 }
             }
@@ -37,7 +34,7 @@ public class FileImageIterator implements ImageIterator {
             System.exit(1);
         }
 
-        fileList.sort(File::compareTo);
+        fileList.sort(Comparator.comparing(File::getName, stringComparator));
         currentIndex = fileList.indexOf(file);
         listIterator = fileList.listIterator(currentIndex);
         if (currentIndex == 0) {

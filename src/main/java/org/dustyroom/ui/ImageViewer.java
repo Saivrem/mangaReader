@@ -1,5 +1,6 @@
 package org.dustyroom.ui;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.be.iterators.DirImageIterator;
 import org.dustyroom.be.iterators.FileImageIterator;
@@ -35,6 +36,7 @@ public class ImageViewer extends JFrame {
     private final MenuBar menuBar;
     private final NavigationPanel navigationPanel;
     private final ImagePanel imagePanel;
+    @Setter
     private ImageIterator imageIterator;
     private File currentDir;
     private boolean fullscreen = false;
@@ -231,7 +233,7 @@ public class ImageViewer extends JFrame {
         processPicture(imageIterator.last());
     }
 
-    private void processPicture(Picture picture) {
+    public void processPicture(Picture picture) {
         currentDir = picture.metadata().dir();
         setTitle(picture.metadata().name());
         imagePanel.drawImage(picture.image());
