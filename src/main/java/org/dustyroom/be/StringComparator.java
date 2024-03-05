@@ -1,11 +1,26 @@
 package org.dustyroom.be;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Comparator;
 
 @Slf4j
 public class StringComparator implements Comparator<String> {
+
+    public static boolean hasOnlyNumbers(String input) {
+        if (StringUtils.isBlank(input)) {
+            return false;
+        }
+
+        for (char c : input.toCharArray()) {
+            if (!Character.isDigit(c)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     @Override
     public int compare(String name1, String name2) {
@@ -27,20 +42,6 @@ public class StringComparator implements Comparator<String> {
         }
 
         return name1.compareTo(name2);
-    }
-
-    public static boolean hasOnlyNumbers(String input) {
-        if (input == null || input.isEmpty()) {
-            return false;
-        }
-
-        for (char c : input.toCharArray()) {
-            if (!Character.isDigit(c)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private Integer extractNumericPart(String path) {

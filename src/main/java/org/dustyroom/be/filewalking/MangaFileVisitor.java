@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static org.dustyroom.be.utils.PathUtils.isImage;
+import static org.dustyroom.be.utils.FileUtils.isSupported;
 
 public class MangaFileVisitor extends SimpleFileVisitor<Path> {
 
@@ -23,7 +23,7 @@ public class MangaFileVisitor extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-        if (isImage(file)) {
+        if (isSupported(file.toString())) {
             files.add(file);
         }
         return FileVisitResult.CONTINUE;

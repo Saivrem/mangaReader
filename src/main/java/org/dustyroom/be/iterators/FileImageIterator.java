@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.*;
 
-import static org.dustyroom.be.utils.IteratorUtils.validFileName;
+import static org.dustyroom.be.utils.FileUtils.isSupported;
 
 @Slf4j
 public class FileImageIterator implements ImageIterator {
@@ -24,7 +24,7 @@ public class FileImageIterator implements ImageIterator {
         File parent = file.getParentFile();
         try {
             for (File f : Objects.requireNonNull(parent.listFiles())) {
-                if (validFileName(f.getName())) {
+                if (isSupported(f.getName())) {
                     fileList.add(f);
                 }
             }
