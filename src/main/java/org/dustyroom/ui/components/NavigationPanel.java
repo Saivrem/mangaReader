@@ -63,5 +63,6 @@ public class NavigationPanel extends JPanel implements ActionListener {
         } else if (clicked == openButton) {
             openFileListener.open();
         }
+        SwingUtilities.getWindowAncestor(this).requestFocus();
     }
 }

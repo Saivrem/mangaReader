@@ -6,11 +6,11 @@ import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ZipImageIterator;
 import org.dustyroom.be.models.Picture;
-import org.dustyroom.be.utils.UiUtils;
 import org.dustyroom.ui.components.ImagePanel;
 import org.dustyroom.ui.components.MenuBar;
 import org.dustyroom.ui.components.NavigationPanel;
 import org.dustyroom.ui.components.listeners.ThemeChangeListener;
+import org.dustyroom.ui.utils.UiUtils;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -23,8 +23,10 @@ import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
-import static org.dustyroom.be.utils.UiUtils.redrawComponent;
+import static org.dustyroom.ui.LookSettings.SYSTEM;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
+import static org.dustyroom.ui.utils.UiUtils.redrawComponent;
+import static org.dustyroom.ui.utils.UiUtils.setDarkTheme;
 
 @Slf4j
 public class ImageViewer extends JFrame {
@@ -41,6 +43,7 @@ public class ImageViewer extends JFrame {
         setTitle("Image Viewer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
+        setDarkTheme();
 
         menuBar = new MenuBar(
                 ImageViewer.this::chooseFile,
@@ -85,7 +88,6 @@ public class ImageViewer extends JFrame {
         imagePanel = new ImagePanel();
 
         initializeUI();
-
         setVisible(true);
     }
 
@@ -181,7 +183,15 @@ public class ImageViewer extends JFrame {
         }
         String root = currentDir == null ? System.getProperty("user.home") : currentDir.toString();
         JFileChooser fileChooser = new JFileChooser(root);
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
+        fileChooser.setPreferredSize(new Dimension(800, 600));
+
+        // System LnF simply doesn't have this option
+        if (UiUtils.getCurrent() != SYSTEM) {
+            Action details = fileChooser.getActionMap().get("viewTypeDetails");
+            details.actionPerformed(null);
+        }
+
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Supported Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
         fileChooser.setFileSelectionMode(FILES_ONLY); //FILES_AND_DIRECTORIES
 
@@ -201,6 +211,7 @@ public class ImageViewer extends JFrame {
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(this);
         }
+
         requestFocus();
     }
 
