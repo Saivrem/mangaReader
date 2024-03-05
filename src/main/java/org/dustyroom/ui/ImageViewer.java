@@ -6,7 +6,11 @@ import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ZipImageIterator;
 import org.dustyroom.be.models.Picture;
-import org.dustyroom.ui.panels.ImagePanel;
+import org.dustyroom.ui.components.ImagePanel;
+import org.dustyroom.ui.components.MenuBar;
+import org.dustyroom.ui.components.NavigationPanel;
+import org.dustyroom.ui.components.listeners.ThemeChangeListener;
+import org.dustyroom.ui.utils.UiUtils;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -19,28 +23,18 @@ import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
-import static org.dustyroom.be.utils.UiUtils.*;
+import static org.dustyroom.ui.LookSettings.SYSTEM;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
+import static org.dustyroom.ui.utils.UiUtils.redrawComponent;
+import static org.dustyroom.ui.utils.UiUtils.setDarkTheme;
 
 @Slf4j
 public class ImageViewer extends JFrame {
-
     private final GraphicsEnvironment graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
     private final GraphicsDevice graphicsDevice = graphicsEnvironment.getDefaultScreenDevice();
-
-    // Menu
-    private final JMenuBar menuBar = new JMenuBar();
-
-    // Buttons
-    private final JButton openButton = new JButton("\uD83D\uDCC2");
-    private final JButton nextButton = new JButton("→");
-    private final JButton prevButton = new JButton("←");
-    private final JButton firstButton = new JButton("⇤");
-    private final JButton lastButton = new JButton("⇥");
-    // Panels
-    private final JPanel southPanel = new JPanel(new FlowLayout());
-    private final ImagePanel imagePanel = new ImagePanel();
-    // Other
+    private final MenuBar menuBar;
+    private final NavigationPanel navigationPanel;
+    private final ImagePanel imagePanel;
     private ImageIterator imageIterator;
     private File currentDir;
     private boolean fullscreen = false;
@@ -49,13 +43,61 @@ public class ImageViewer extends JFrame {
         setTitle("Image Viewer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
-        // this.fileTreeIterator = fileTreeIterator;
-        initializeUI();
+        setDarkTheme();
 
+        menuBar = new MenuBar(
+                ImageViewer.this::chooseFile,
+                ImageViewer.this::fitMode,
+                ImageViewer.this::zoomIn,
+                ImageViewer.this::zoomOut,
+                ImageViewer.this::showNextImage,
+                ImageViewer.this::showPreviousImage,
+                ImageViewer.this::showFirstImage,
+                ImageViewer.this::showLastImage,
+                ImageViewer.this::toggleFullscreen,
+                new ThemeChangeListener() {
+                    @Override
+                    public void setNimbusTheme() {
+                        UiUtils.setDarkTheme();
+                        redrawComponent(ImageViewer.this);
+                    }
+
+                    @Override
+                    public void setMetalTheme() {
+                        UiUtils.setMetalTheme();
+                        redrawComponent(ImageViewer.this);
+                    }
+
+                    @Override
+                    public void setSystemTheme() {
+                        UiUtils.setSystemTheme();
+                        redrawComponent(ImageViewer.this);
+                    }
+                },
+                () -> showAboutDialog(ImageViewer.this)
+        );
+
+        navigationPanel = new NavigationPanel(
+                ImageViewer.this::showNextImage,
+                ImageViewer.this::showPreviousImage,
+                ImageViewer.this::showFirstImage,
+                ImageViewer.this::showLastImage,
+                ImageViewer.this::chooseFile
+        );
+
+        imagePanel = new ImagePanel();
+
+        initializeUI();
         setVisible(true);
     }
 
     private void initializeUI() {
+        setLayout(new BorderLayout());
+
+        add(menuBar, BorderLayout.NORTH);
+        add(imagePanel, BorderLayout.CENTER);
+        add(navigationPanel, BorderLayout.SOUTH);
+
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -63,34 +105,12 @@ public class ImageViewer extends JFrame {
             }
         });
 
-        setLayout(new BorderLayout());
-
-        setupMenuBar();
-        setupButtons();
         setupControls();
-
-        add(menuBar, BorderLayout.NORTH);
-        add(imagePanel, BorderLayout.CENTER);
-        add(southPanel, BorderLayout.SOUTH);
 
         pack();
         setLocationRelativeTo(null);
         setFocusable(true);
         requestFocus();
-    }
-
-    private void setupButtons() {
-        southPanel.add(firstButton);
-        southPanel.add(prevButton);
-        southPanel.add(openButton);
-        southPanel.add(nextButton);
-        southPanel.add(lastButton);
-
-        firstButton.addActionListener(e -> showFirstImage());
-        prevButton.addActionListener(e -> showPreviousImage());
-        openButton.addActionListener(e -> chooseFile());
-        nextButton.addActionListener(e -> showNextImage());
-        lastButton.addActionListener(e -> showLastImage());
     }
 
     private void setupControls() {
@@ -157,118 +177,21 @@ public class ImageViewer extends JFrame {
         });
     }
 
-    private void setupMenuBar() {
-        JMenu fileMenu = buildFileMenu();
-        JMenu viewMenu = buildViewMenu();
-        JMenu navigationMenu = buildNavigationMenu();
-        JMenu optionsMenu = buildOptionsMenu();
-        JMenu helpMenu = buildHelpMenu();
-
-        menuBar.add(fileMenu);
-        menuBar.add(viewMenu);
-        menuBar.add(navigationMenu);
-        menuBar.add(optionsMenu);
-        menuBar.add(helpMenu);
-    }
-
-    private JMenu buildFileMenu() {
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem openMenuItem = new JMenuItem("Open (O)");
-        JMenuItem exitMenuItem = new JMenuItem("Exit (Q)");
-
-        openMenuItem.addActionListener(e -> chooseFile());
-        exitMenuItem.addActionListener(e -> System.exit(0));
-        fileMenu.add(openMenuItem);
-        fileMenu.add(exitMenuItem);
-        return fileMenu;
-    }
-
-    private JMenu buildViewMenu() {
-        JMenu viewMenu = new JMenu("View");
-        JMenuItem fitMenuItem = new JMenuItem("Fit height mode (h)");
-        JMenuItem zoomInMenuItem = new JMenuItem("Zoom In (+)");
-        JMenuItem zoomOutMenuItem = new JMenuItem("Zoom out (-)");
-
-        fitMenuItem.addActionListener(e -> fitMode());
-
-        zoomInMenuItem.addActionListener(e -> zoomIn());
-        zoomOutMenuItem.addActionListener(e -> zoomOut());
-
-        viewMenu.add(fitMenuItem);
-        viewMenu.add(zoomInMenuItem);
-        viewMenu.add(zoomOutMenuItem);
-        return viewMenu;
-    }
-
-    private JMenu buildNavigationMenu() {
-        JMenu navigationMenu = new JMenu("Navigation");
-        JMenuItem nextImageItem = new JMenuItem("Next (→)");
-        JMenuItem previousImageItem = new JMenuItem("Prev (←)");
-        JMenuItem firstImageItem = new JMenuItem("first (⇱)");
-        JMenuItem lastImageItem = new JMenuItem("last (⇲)");
-
-        nextImageItem.addActionListener(e -> showNextImage());
-        previousImageItem.addActionListener(e -> showPreviousImage());
-        firstImageItem.addActionListener(e -> showFirstImage());
-        lastImageItem.addActionListener(e -> showLastImage());
-
-        navigationMenu.add(nextImageItem);
-        navigationMenu.add(previousImageItem);
-        navigationMenu.add(firstImageItem);
-        navigationMenu.add(lastImageItem);
-
-        return navigationMenu;
-    }
-
-    private JMenu buildOptionsMenu() {
-        JMenu optionsMenu = new JMenu("Options");
-        JMenu colorSchemeMenu = new JMenu("Color scheme");
-        JMenuItem nimbusThemeMenuItem = new JMenuItem("Nimbus theme");
-        JMenuItem metalThemeMenuItem = new JMenuItem("Metal theme");
-        JMenuItem systemThemeMenuItem = new JMenuItem("System theme");
-
-        JMenuItem toggleFullscreenMenuItem = new JMenuItem("Toggle Fullscreen (F)");
-
-        nimbusThemeMenuItem.addActionListener(e -> {
-            setDarkTheme();
-            redrawComponent(this);
-        });
-        metalThemeMenuItem.addActionListener(e -> {
-            setMetalTheme();
-            redrawComponent(this);
-        });
-        systemThemeMenuItem.addActionListener(e -> {
-            setSystemTheme();
-            redrawComponent(this);
-        });
-        toggleFullscreenMenuItem.addActionListener(e -> toggleFullscreen());
-
-        colorSchemeMenu.add(nimbusThemeMenuItem);
-        colorSchemeMenu.add(metalThemeMenuItem);
-        colorSchemeMenu.add(systemThemeMenuItem);
-        optionsMenu.add(colorSchemeMenu);
-        optionsMenu.add(toggleFullscreenMenuItem);
-
-        return optionsMenu;
-    }
-
-    private JMenu buildHelpMenu() {
-        JMenu helpMenu = new JMenu("Help");
-        JMenuItem aboutMenuItem = new JMenuItem("About");
-
-        aboutMenuItem.addActionListener(e -> showAboutDialog(this));
-        helpMenu.add(aboutMenuItem);
-
-        return helpMenu;
-    }
-
     private void chooseFile() {
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(null);
         }
         String root = currentDir == null ? System.getProperty("user.home") : currentDir.toString();
         JFileChooser fileChooser = new JFileChooser(root);
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files", SUPPORTED_FORMATS);
+        fileChooser.setPreferredSize(new Dimension(800, 600));
+
+        // System LnF simply doesn't have this option
+        if (UiUtils.getCurrent() != SYSTEM) {
+            Action details = fileChooser.getActionMap().get("viewTypeDetails");
+            details.actionPerformed(null);
+        }
+
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Supported Files", SUPPORTED_FORMATS);
         fileChooser.setFileFilter(filter);
         fileChooser.setFileSelectionMode(FILES_ONLY); //FILES_AND_DIRECTORIES
 
@@ -288,6 +211,7 @@ public class ImageViewer extends JFrame {
         if (fullscreen) {
             graphicsDevice.setFullScreenWindow(this);
         }
+
         requestFocus();
     }
 
@@ -319,7 +243,7 @@ public class ImageViewer extends JFrame {
             dispose();
             setUndecorated(false);
             graphicsDevice.setFullScreenWindow(null);
-            southPanel.setVisible(true);
+            navigationPanel.setVisible(true);
             menuBar.setVisible(true);
             setVisible(true);
         } else {
@@ -327,7 +251,7 @@ public class ImageViewer extends JFrame {
             dispose();
             setUndecorated(true);
             graphicsDevice.setFullScreenWindow(this);
-            southPanel.setVisible(false);
+            navigationPanel.setVisible(false);
             menuBar.setVisible(false);
             setVisible(true);
         }

@@ -1,42 +1,26 @@
-package org.dustyroom.be.utils;
+package org.dustyroom.ui.utils;
 
+import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import org.dustyroom.ui.LookSettings;
 
 import javax.swing.*;
 import java.awt.*;
 
-import static org.dustyroom.be.utils.Constants.DARK_THEME;
-import static org.dustyroom.be.utils.Constants.METAL_THEME;
-import static org.dustyroom.ui.LookSettings.METAL;
-import static org.dustyroom.ui.LookSettings.NIMBUS;
+import static org.dustyroom.ui.LookSettings.*;
 
 @Slf4j
 @UtilityClass
 public class UiUtils {
 
-    public static void setupLookAndFeel(String param) {
-        if (StringUtils.isNotBlank(param)) {
-            switch (param) {
-                case DARK_THEME:
-                    setDarkTheme();
-                    break;
-                case METAL_THEME:
-                    setMetalTheme();
-                    break;
-                default:
-                    setSystemTheme();
-                    break;
-            }
-        } else {
-            UiUtils.setSystemTheme();
-        }
-    }
+    @Getter
+    public static LookSettings current;
 
     public static void setDarkTheme() {
         try {
             UIManager.setLookAndFeel(NIMBUS.getLookAndFeel());
+            current = NIMBUS;
         } catch (UnsupportedLookAndFeelException e) {
             log.error("Can't set Nimbus theme due to {}", e.getMessage());
         }
@@ -45,6 +29,7 @@ public class UiUtils {
     public static void setMetalTheme() {
         try {
             UIManager.setLookAndFeel(METAL.getLookAndFeel());
+            current = METAL;
         } catch (UnsupportedLookAndFeelException e) {
             log.error("Can't set Nimbus theme due to {}", e.getMessage());
         }
@@ -53,6 +38,7 @@ public class UiUtils {
     public static void setSystemTheme() {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            current = SYSTEM;
         } catch (ClassNotFoundException |
                  InstantiationException |
                  IllegalAccessException |

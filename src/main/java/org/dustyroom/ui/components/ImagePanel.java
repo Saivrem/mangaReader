@@ -1,4 +1,4 @@
-package org.dustyroom.ui.panels;
+package org.dustyroom.ui.components;
 
 import lombok.Getter;
 import lombok.Setter;
