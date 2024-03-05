@@ -36,7 +36,7 @@ public class ZipImageIterator implements ImageIterator {
                 }
             }
 
-            entryList.sort(Comparator.comparing(ZipEntry::getName));
+            entryList.sort(Comparator.comparing(ZipEntry::getName, stringComparator));
             listSize = entryList.size();
             listIterator = entryList.listIterator();
         } catch (Exception e) {
