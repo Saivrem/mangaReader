@@ -24,43 +24,35 @@ public class StringComparator implements Comparator<String> {
 
     @Override
     public int compare(String name1, String name2) {
-        name1 = name1.substring(0, name1.lastIndexOf("."));
-        name2 = name2.substring(0, name2.lastIndexOf("."));
+        String modifiedName1 = name1.substring(0, name1.lastIndexOf("."));
+        String modifiedName2 = name2.substring(0, name2.lastIndexOf("."));
 
-        if (hasOnlyNumbers(name1) && hasOnlyNumbers(name2)) {
-            long numericName1 = Long.parseLong(name1);
-            long numericName2 = Long.parseLong(name2);
+        // TODO extract numeric part and compare as numbers, or else as strings
+        // For numeric only strings this will make no difference
+        // Won't produce collisions for sorting of numeric only vs alpha-numeric
+        if (hasOnlyNumbers(modifiedName1) && hasOnlyNumbers(modifiedName2)) {
+            long numericName1 = Long.parseLong(modifiedName1);
+            long numericName2 = Long.parseLong(modifiedName2);
+
             return Long.compare(numericName1, numericName2);
         }
 
-        if (containsDigits(name1) && containsDigits(name2)) {
-            Integer first = extractNumericPart(name1);
-            Integer second = extractNumericPart(name2);
-            if (first != null && second != null) {
-                return Integer.compare(first, second);
-            }
-        }
-
-        return name1.compareTo(name2);
+        return String.CASE_INSENSITIVE_ORDER.compare(modifiedName1, modifiedName2);
     }
 
+    @Deprecated
     private Integer extractNumericPart(String path) {
-        String[] parts = path.split("\\D+");
-        StringBuilder numericStringBuilder = new StringBuilder();
-        for (String part : parts) {
-            if (part.matches("\\d+")) {
-                numericStringBuilder.append(part);
+        StringBuilder numeric = new StringBuilder();
+
+        for (char ch : path.toCharArray()) {
+            if (Character.isDigit(ch)) {
+                numeric.append(ch);
             }
         }
         try {
-            return Integer.parseInt(numericStringBuilder.toString());
+            return Integer.parseInt(numeric.toString());
         } catch (NumberFormatException e) {
-            log.warn("Can't extract numeric part from {}", path);
             return null;
         }
-    }
-
-    private boolean containsDigits(String input) {
-        return input.matches(".*\\d.*");
     }
 }
