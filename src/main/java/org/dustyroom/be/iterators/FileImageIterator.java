@@ -9,32 +9,37 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
-import static org.dustyroom.be.utils.FileUtils.isSupported;
+import static org.dustyroom.be.utils.FileUtils.*;
+import static org.dustyroom.be.utils.ListUtils.getFirstOrDefault;
+import static org.dustyroom.be.utils.ListUtils.getLastOrDefault;
 
 @Slf4j
 public class FileImageIterator implements ImageIterator {
-    private final List<File> fileList = new ArrayList<>();
+    private List<File> fileList;
+    private File file;
     private int currentIndex;
     private ListIterator<File> listIterator;
     private int listSize;
 
     public FileImageIterator(File file) {
-        File parent = file.getParentFile();
-        try {
-            for (File f : Objects.requireNonNull(parent.listFiles())) {
-                if (isSupported(f.getName())) {
-                    fileList.add(f);
-                }
-            }
-            listSize = fileList.size();
-        } catch (Exception e) {
-            log.error("Can't list files in {}", parent);
-            System.exit(1);
-        }
+        this.file = file;
+        init();
+    }
 
-        fileList.sort(Comparator.comparing(File::getName, stringComparator));
+    private void init() {
+        if (isImage.test(file)) {
+            fileList = getSortedFilesFromParent(file, isImage);
+        } else if (isNotEmptyDirectory.test(file)) {
+            fileList = getSortedFiles(file, isImage);
+            file = getFirstOrDefault(fileList, file);
+        } else {
+            fileList = new ArrayList<>();
+        }
+        listSize = fileList.size();
         currentIndex = fileList.indexOf(file);
         listIterator = fileList.listIterator(currentIndex);
         if (currentIndex == 0) {
@@ -48,7 +53,11 @@ public class FileImageIterator implements ImageIterator {
         if (listIterator.hasNext()) {
             next = listIterator.next();
             if (isSameFile(next)) {
-                next = listIterator.next();
+                if (listIterator.hasNext()) {
+                    next = listIterator.next();
+                } else {
+                    return first();
+                }
             }
         } else {
             return first();
@@ -78,14 +87,16 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public Picture first() {
-        listIterator = fileList.listIterator(1);
-        return readImageFrom(listIterator.previous());
+        currentIndex = 1;
+        listIterator = fileList.listIterator(currentIndex);
+        return prev();
     }
 
     @Override
     public Picture last() {
         // TODO Think about code duplication
-        listIterator = fileList.listIterator(listSize - 1);
+        currentIndex = listSize - 1;
+        listIterator = fileList.listIterator(currentIndex);
         return readImageFrom(listIterator.next());
     }
 
@@ -101,5 +112,45 @@ public class FileImageIterator implements ImageIterator {
             log.warn("Can't read the file {}", file);
             return null;
         }
+    }
+
+    @Override
+    public Picture nextVol() {
+        File parentFile = file.getParentFile();
+        List<File> sortedFiles = getSortedFilesFromParent(parentFile, isNotEmptyDirectory);
+        for (int i = 0; i < sortedFiles.size(); i++) {
+            if (sortedFiles.get(i).equals(parentFile)) {
+                if (i == sortedFiles.size() - 1) {
+                    file = getFirstOrDefault(sortedFiles, file);
+                } else {
+                    file = sortedFiles.get(i + 1);
+                }
+                break;
+            }
+        }
+        if (sortedFiles.size() > 1) {
+            init();
+        }
+        return next();
+    }
+
+    @Override
+    public Picture prevVol() {
+        File parentFile = file.getParentFile();
+        List<File> sortedFiles = getSortedFilesFromParent(parentFile, isNotEmptyDirectory);
+        for (int i = 0; i < sortedFiles.size(); i++) {
+            if (sortedFiles.get(i).equals(parentFile)) {
+                if (i == 0) {
+                    file = getLastOrDefault(sortedFiles, file);
+                } else {
+                    file = sortedFiles.get(i - 1);
+                }
+                break;
+            }
+        }
+        if (sortedFiles.size() > 1) {
+            init();
+        }
+        return next();
     }
 }

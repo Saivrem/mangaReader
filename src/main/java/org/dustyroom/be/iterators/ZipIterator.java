@@ -12,19 +12,27 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static org.dustyroom.be.utils.FileUtils.isSupported;
+import static org.dustyroom.be.utils.FileUtils.*;
+import static org.dustyroom.be.utils.ListUtils.getFirstOrDefault;
+import static org.dustyroom.be.utils.ListUtils.getLastOrDefault;
 
 @Slf4j
-public class ZipImageIterator implements ImageIterator {
-    private final List<ZipEntry> entryList = new ArrayList<>();
-    private final File zipFilePath;
+public class ZipIterator implements ImageIterator {
+
+    private List<ZipEntry> entryList;
+    private File zipFilePath;
     private ZipFile zipFile;
     private int listSize;
     private ListIterator<ZipEntry> listIterator;
     private ZipEntry current;
 
-    public ZipImageIterator(File zipFilePath) {
+    public ZipIterator(File zipFilePath) {
         this.zipFilePath = zipFilePath;
+        init();
+    }
+
+    private void init() {
+        entryList = new ArrayList<>();
         try {
             zipFile = new ZipFile(zipFilePath);
             Enumeration<? extends ZipEntry> zipEntryEnumeration = zipFile.entries();
@@ -36,7 +44,7 @@ public class ZipImageIterator implements ImageIterator {
                 }
             }
 
-            entryList.sort(Comparator.comparing(ZipEntry::getName, stringComparator));
+            entryList.sort(Comparator.comparing(ZipEntry::getName, String::compareTo));
             listSize = entryList.size();
             listIterator = entryList.listIterator();
         } catch (Exception e) {
@@ -97,5 +105,43 @@ public class ZipImageIterator implements ImageIterator {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    @Override
+    public Picture nextVol() {
+        List<File> sortedFiles = getSortedFilesFromParent(zipFilePath, isZipFile);
+        for (int i = 0; i < sortedFiles.size(); i++) {
+            if (sortedFiles.get(i).equals(zipFilePath)) {
+                if (i == sortedFiles.size() - 1) {
+                    zipFilePath = getFirstOrDefault(sortedFiles, zipFilePath);
+                } else {
+                    zipFilePath = sortedFiles.get(i + 1);
+                }
+                break;
+            }
+        }
+        if (sortedFiles.size() > 1) {
+            init();
+        }
+        return next();
+    }
+
+    @Override
+    public Picture prevVol() {
+        List<File> sortedFiles = getSortedFilesFromParent(zipFilePath, isZipFile);
+        for (int i = 0; i < sortedFiles.size(); i++) {
+            if (sortedFiles.get(i).equals(zipFilePath)) {
+                if (i == 0) {
+                    zipFilePath = getLastOrDefault(sortedFiles, zipFilePath);
+                } else {
+                    zipFilePath = sortedFiles.get(i - 1);
+                }
+                break;
+            }
+        }
+        if (sortedFiles.size() > 1) {
+            init();
+        }
+        return next();
     }
 }

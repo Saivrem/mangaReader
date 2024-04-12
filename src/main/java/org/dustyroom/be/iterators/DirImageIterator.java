@@ -22,4 +22,14 @@ public class DirImageIterator implements ImageIterator {
     public Picture last() {
         return null;
     }
+
+    @Override
+    public Picture nextVol() {
+        return null;
+    }
+
+    @Override
+    public Picture prevVol() {
+        return null;
+    }
 }

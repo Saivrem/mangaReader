@@ -13,6 +13,8 @@ public class MenuBar extends JMenuBar {
     private final PrevFileListener prevFileListener;
     private final FirstFileListener firstFileListener;
     private final LastFileListener lastFileListener;
+    private final NextVolumeListener nextVolumeListener;
+    private final PrevVolumeListener prevVolumeListener;
     private final ToggleFullscreenListener toggleFullscreenListener;
     private final ThemeChangeListener themeChangeListener;
     private final ShowAboutListener showAboutListener;
@@ -26,6 +28,8 @@ public class MenuBar extends JMenuBar {
             PrevFileListener prevFileListener,
             FirstFileListener firstFileListener,
             LastFileListener lastFileListener,
+            NextVolumeListener nextVolumeListener,
+            PrevVolumeListener prevVolumeListener,
             ToggleFullscreenListener toggleFullscreenListener,
             ThemeChangeListener themeChangeListener,
             ShowAboutListener showAboutListener
@@ -38,6 +42,8 @@ public class MenuBar extends JMenuBar {
         this.prevFileListener = prevFileListener;
         this.firstFileListener = firstFileListener;
         this.lastFileListener = lastFileListener;
+        this.nextVolumeListener = nextVolumeListener;
+        this.prevVolumeListener = prevVolumeListener;
         this.toggleFullscreenListener = toggleFullscreenListener;
         this.themeChangeListener = themeChangeListener;
         this.showAboutListener = showAboutListener;
@@ -82,18 +88,24 @@ public class MenuBar extends JMenuBar {
         JMenu navigationMenu = new JMenu("Navigation");
         JMenuItem nextImageItem = new JMenuItem("Next (→)");
         JMenuItem previousImageItem = new JMenuItem("Prev (←)");
-        JMenuItem firstImageItem = new JMenuItem("first (⇱)");
-        JMenuItem lastImageItem = new JMenuItem("last (⇲)");
+        JMenuItem firstImageItem = new JMenuItem("First (⇱)");
+        JMenuItem lastImageItem = new JMenuItem("Last (⇲)");
+        JMenuItem prevVolumeItem = new JMenuItem("Prev volume");
+        JMenuItem nextVolumeItem = new JMenuItem("Next volume");
 
         nextImageItem.addActionListener(e -> nextFileListener.next());
         previousImageItem.addActionListener(e -> prevFileListener.prev());
         firstImageItem.addActionListener(e -> firstFileListener.first());
         lastImageItem.addActionListener(e -> lastFileListener.last());
+        prevVolumeItem.addActionListener(e -> prevVolumeListener.prevVolume());
+        nextVolumeItem.addActionListener(e -> nextVolumeListener.nextVolume());
 
         navigationMenu.add(nextImageItem);
         navigationMenu.add(previousImageItem);
         navigationMenu.add(firstImageItem);
         navigationMenu.add(lastImageItem);
+        navigationMenu.add(prevVolumeItem);
+        navigationMenu.add(nextVolumeItem);
 
         return navigationMenu;
     }
