@@ -100,7 +100,7 @@ public class ZipIterator implements ImageIterator {
             BufferedImage read = ImageIO.read(zipFile.getInputStream(entry));
             return new Picture(
                     read,
-                    new PictureMetadata(entry.getName(), zipFilePath.getParentFile())
+                    new PictureMetadata(entry.getName(), zipFilePath.getName(), zipFilePath.getParentFile())
             );
         } catch (IOException e) {
             return null;

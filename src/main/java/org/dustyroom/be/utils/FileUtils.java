@@ -39,6 +39,7 @@ public class FileUtils {
                 .filter(Objects::nonNull)
                 .flatMap(Arrays::stream)
                 .filter(predicate)
+                .sorted()
                 .toList();
     }
 }

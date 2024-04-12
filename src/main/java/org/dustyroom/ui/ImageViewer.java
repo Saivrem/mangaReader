@@ -7,6 +7,7 @@ import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ZipIterator;
 import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.PictureMetadata;
 import org.dustyroom.ui.components.ImagePanel;
 import org.dustyroom.ui.components.MenuBar;
 import org.dustyroom.ui.components.NavigationPanel;
@@ -171,6 +172,12 @@ public class ImageViewer extends JFrame {
                     case KeyEvent.VK_MINUS:
                         zoomOut();
                         break;
+                    case KeyEvent.VK_UP:
+                        showPrevVolume();
+                        break;
+                    case KeyEvent.VK_DOWN:
+                        showNextVolume();
+                        break;
                     case KeyEvent.VK_ESCAPE:
                     case KeyEvent.VK_Q:
                         System.exit(0);
@@ -248,8 +255,9 @@ public class ImageViewer extends JFrame {
     }
 
     public void processPicture(Picture picture) {
-        currentDir = picture.metadata().dir();
-        setTitle(picture.metadata().name());
+        PictureMetadata metadata = picture.metadata();
+        currentDir = metadata.dir();
+        setTitle(String.format("%s - %s", metadata.fileName(), metadata.name()));
         imagePanel.drawImage(picture.image());
     }
 

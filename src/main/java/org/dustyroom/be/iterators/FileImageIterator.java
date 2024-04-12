@@ -106,7 +106,7 @@ public class FileImageIterator implements ImageIterator {
             BufferedImage read = ImageIO.read(Files.newInputStream(file.toPath()));
             return new Picture(
                     read,
-                    new PictureMetadata(file.getName(), file.getParentFile())
+                    new PictureMetadata(file.getName(), file.getParentFile().getName(), file.getParentFile())
             );
         } catch (IOException e) {
             log.warn("Can't read the file {}", file);
