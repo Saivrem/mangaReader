@@ -12,9 +12,8 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static org.dustyroom.be.utils.FileUtils.*;
-import static org.dustyroom.be.utils.ListUtils.getFirstOrDefault;
-import static org.dustyroom.be.utils.ListUtils.getLastOrDefault;
+import static org.dustyroom.be.utils.FileUtils.isSupported;
+import static org.dustyroom.be.utils.FileUtils.isZipFile;
 
 @Slf4j
 public class ZipIterator implements ImageIterator {
@@ -31,7 +30,8 @@ public class ZipIterator implements ImageIterator {
         init();
     }
 
-    private void init() {
+    @Override
+    public void init() {
         entryList = new ArrayList<>();
         try {
             zipFile = new ZipFile(zipFilePath);
@@ -51,6 +51,16 @@ public class ZipIterator implements ImageIterator {
             log.error("Can't read Zip file {}\n application will be closed", zipFilePath);
             System.exit(1);
         }
+    }
+
+    @Override
+    public File getFile() {
+        return zipFilePath;
+    }
+
+    @Override
+    public void setFile(File file) {
+        this.zipFilePath = file;
     }
 
     @Override
@@ -109,39 +119,11 @@ public class ZipIterator implements ImageIterator {
 
     @Override
     public Picture nextVol() {
-        List<File> sortedFiles = getSortedFilesFromParent(zipFilePath, isZipFile);
-        for (int i = 0; i < sortedFiles.size(); i++) {
-            if (sortedFiles.get(i).equals(zipFilePath)) {
-                if (i == sortedFiles.size() - 1) {
-                    zipFilePath = getFirstOrDefault(sortedFiles, zipFilePath);
-                } else {
-                    zipFilePath = sortedFiles.get(i + 1);
-                }
-                break;
-            }
-        }
-        if (sortedFiles.size() > 1) {
-            init();
-        }
-        return next();
+        return nextVol(isZipFile);
     }
 
     @Override
     public Picture prevVol() {
-        List<File> sortedFiles = getSortedFilesFromParent(zipFilePath, isZipFile);
-        for (int i = 0; i < sortedFiles.size(); i++) {
-            if (sortedFiles.get(i).equals(zipFilePath)) {
-                if (i == 0) {
-                    zipFilePath = getLastOrDefault(sortedFiles, zipFilePath);
-                } else {
-                    zipFilePath = sortedFiles.get(i - 1);
-                }
-                break;
-            }
-        }
-        if (sortedFiles.size() > 1) {
-            init();
-        }
-        return next();
+        return prevVol(isZipFile);
     }
 }

@@ -15,7 +15,6 @@ import java.util.ListIterator;
 
 import static org.dustyroom.be.utils.FileUtils.*;
 import static org.dustyroom.be.utils.ListUtils.getFirstOrDefault;
-import static org.dustyroom.be.utils.ListUtils.getLastOrDefault;
 
 @Slf4j
 public class FileImageIterator implements ImageIterator {
@@ -30,7 +29,8 @@ public class FileImageIterator implements ImageIterator {
         init();
     }
 
-    private void init() {
+    @Override
+    public void init() {
         if (isImage.test(file)) {
             fileList = getSortedFilesFromParent(file, isImage);
         } else if (isNotEmptyDirectory.test(file)) {
@@ -45,6 +45,16 @@ public class FileImageIterator implements ImageIterator {
         if (currentIndex == 0) {
             prev();
         }
+    }
+
+    @Override
+    public File getFile() {
+        return file;
+    }
+
+    @Override
+    public void setFile(File file) {
+        this.file = file;
     }
 
     @Override
@@ -116,41 +126,11 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public Picture nextVol() {
-        File parentFile = file.getParentFile();
-        List<File> sortedFiles = getSortedFilesFromParent(parentFile, isNotEmptyDirectory);
-        for (int i = 0; i < sortedFiles.size(); i++) {
-            if (sortedFiles.get(i).equals(parentFile)) {
-                if (i == sortedFiles.size() - 1) {
-                    file = getFirstOrDefault(sortedFiles, file);
-                } else {
-                    file = sortedFiles.get(i + 1);
-                }
-                break;
-            }
-        }
-        if (sortedFiles.size() > 1) {
-            init();
-        }
-        return next();
+        return nextVol(isNotEmptyDirectory);
     }
 
     @Override
     public Picture prevVol() {
-        File parentFile = file.getParentFile();
-        List<File> sortedFiles = getSortedFilesFromParent(parentFile, isNotEmptyDirectory);
-        for (int i = 0; i < sortedFiles.size(); i++) {
-            if (sortedFiles.get(i).equals(parentFile)) {
-                if (i == 0) {
-                    file = getLastOrDefault(sortedFiles, file);
-                } else {
-                    file = sortedFiles.get(i - 1);
-                }
-                break;
-            }
-        }
-        if (sortedFiles.size() > 1) {
-            init();
-        }
-        return next();
+        return prevVol(isNotEmptyDirectory);
     }
 }

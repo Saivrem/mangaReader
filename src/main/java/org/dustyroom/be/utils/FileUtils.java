@@ -3,10 +3,7 @@ package org.dustyroom.be.utils;
 import lombok.experimental.UtilityClass;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
@@ -39,7 +36,12 @@ public class FileUtils {
                 .filter(Objects::nonNull)
                 .flatMap(Arrays::stream)
                 .filter(predicate)
-                .sorted()
+                .sorted((o1, o2) -> {
+                    String o1Name = o1.getName();
+                    String o2Name = o2.getName();
+
+                    return String.CASE_INSENSITIVE_ORDER.compare(o1Name, o2Name);
+                })
                 .toList();
     }
 }

@@ -2,7 +2,24 @@ package org.dustyroom.be.iterators;
 
 import org.dustyroom.be.models.Picture;
 
+import java.io.File;
+
 public class DirImageIterator implements ImageIterator {
+    @Override
+    public void init() {
+
+    }
+
+    @Override
+    public File getFile() {
+        return null;
+    }
+
+    @Override
+    public void setFile(File file) {
+
+    }
+
     @Override
     public Picture next() {
         return null;
