@@ -87,7 +87,9 @@ public class ImageViewer extends JFrame {
                 ImageViewer.this::showPreviousImage,
                 ImageViewer.this::showFirstImage,
                 ImageViewer.this::showLastImage,
-                ImageViewer.this::chooseFile
+                ImageViewer.this::chooseFile,
+                ImageViewer.this::showNextVolume,
+                ImageViewer.this::showPrevVolume
         );
 
         imagePanel = new ImagePanel();
