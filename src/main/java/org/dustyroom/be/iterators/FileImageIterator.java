@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
+import static org.dustyroom.be.models.Direction.NEXT;
+import static org.dustyroom.be.models.Direction.PREV;
 import static org.dustyroom.be.utils.FileUtils.*;
 import static org.dustyroom.be.utils.ListUtils.getFirstOrDefault;
 
@@ -104,7 +106,6 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public Picture last() {
-        // TODO Think about code duplication
         currentIndex = listSize - 1;
         listIterator = fileList.listIterator(currentIndex);
         return readImageFrom(listIterator.next());
@@ -126,11 +127,11 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public Picture nextVol() {
-        return nextVol(isNotEmptyDirectory);
+        return switchVol(isNotEmptyDirectory, NEXT);
     }
 
     @Override
     public Picture prevVol() {
-        return prevVol(isNotEmptyDirectory);
+        return switchVol(isNotEmptyDirectory, PREV);
     }
 }

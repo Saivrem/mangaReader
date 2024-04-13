@@ -12,6 +12,8 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static org.dustyroom.be.models.Direction.NEXT;
+import static org.dustyroom.be.models.Direction.PREV;
 import static org.dustyroom.be.utils.FileUtils.isSupported;
 import static org.dustyroom.be.utils.FileUtils.isZipFile;
 
@@ -48,7 +50,7 @@ public class ZipIterator implements ImageIterator {
             listSize = entryList.size();
             listIterator = entryList.listIterator();
         } catch (Exception e) {
-            log.error("Can't read Zip file {}\n application will be closed", zipFilePath);
+            log.warn("Can't read the file {}", zipFilePath);
             System.exit(1);
         }
     }
@@ -113,17 +115,18 @@ public class ZipIterator implements ImageIterator {
                     new PictureMetadata(entry.getName(), zipFilePath.getName(), zipFilePath.getParentFile())
             );
         } catch (IOException e) {
+            log.debug("Error reading image {}", e.getMessage());
             return null;
         }
     }
 
     @Override
     public Picture nextVol() {
-        return nextVol(isZipFile);
+        return switchVol(isZipFile, NEXT);
     }
 
     @Override
     public Picture prevVol() {
-        return prevVol(isZipFile);
+        return switchVol(isZipFile, PREV);
     }
 }
