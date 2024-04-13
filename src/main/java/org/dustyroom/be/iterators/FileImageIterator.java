@@ -48,8 +48,8 @@ public class FileImageIterator implements ImageIterator {
     }
 
     @Override
-    public File getFile() {
-        return file;
+    public File getVolumeRoot() {
+        return file.getParentFile();
     }
 
     @Override

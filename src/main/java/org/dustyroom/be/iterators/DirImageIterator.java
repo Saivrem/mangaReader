@@ -11,7 +11,7 @@ public class DirImageIterator implements ImageIterator {
     }
 
     @Override
-    public File getFile() {
+    public File getVolumeRoot() {
         return null;
     }
 

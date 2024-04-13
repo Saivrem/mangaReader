@@ -13,7 +13,7 @@ import static org.dustyroom.be.utils.ListUtils.getLastOrDefault;
 public interface ImageIterator {
     void init();
 
-    File getFile();
+    File getVolumeRoot();
 
     void setFile(File file);
 
@@ -30,7 +30,7 @@ public interface ImageIterator {
     Picture prevVol();
 
     default Picture nextVol(Predicate<File> predicate) {
-        File filePath = getFile();
+        File filePath = getVolumeRoot();
         List<File> sortedFiles = getSortedFilesFromParent(filePath, predicate);
         for (int i = 0; i < sortedFiles.size(); i++) {
             if (sortedFiles.get(i).equals(filePath)) {
@@ -49,7 +49,7 @@ public interface ImageIterator {
     }
 
     default Picture prevVol(Predicate<File> predicate) {
-        File filePath = getFile();
+        File filePath = getVolumeRoot();
 
         List<File> sortedFiles = getSortedFilesFromParent(filePath, predicate);
         for (int i = 0; i < sortedFiles.size(); i++) {

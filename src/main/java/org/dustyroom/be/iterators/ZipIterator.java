@@ -54,7 +54,7 @@ public class ZipIterator implements ImageIterator {
     }
 
     @Override
-    public File getFile() {
+    public File getVolumeRoot() {
         return zipFilePath;
     }
 
