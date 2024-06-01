@@ -31,7 +31,7 @@ public class UiUtils {
             UIManager.setLookAndFeel(METAL.getLookAndFeel());
             current = METAL;
         } catch (UnsupportedLookAndFeelException e) {
-            log.error("Can't set Nimbus theme due to {}", e.getMessage());
+            log.error("Can't set Metal theme due to {}", e.getMessage());
         }
     }
 
