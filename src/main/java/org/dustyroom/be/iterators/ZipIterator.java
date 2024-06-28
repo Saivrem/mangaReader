@@ -12,19 +12,29 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static org.dustyroom.be.models.Direction.NEXT;
+import static org.dustyroom.be.models.Direction.PREV;
 import static org.dustyroom.be.utils.FileUtils.isSupported;
+import static org.dustyroom.be.utils.FileUtils.isZipFile;
 
 @Slf4j
-public class ZipImageIterator implements ImageIterator {
-    private final List<ZipEntry> entryList = new ArrayList<>();
-    private final File zipFilePath;
+public class ZipIterator implements ImageIterator {
+
+    private List<ZipEntry> entryList;
+    private File zipFilePath;
     private ZipFile zipFile;
     private int listSize;
     private ListIterator<ZipEntry> listIterator;
     private ZipEntry current;
 
-    public ZipImageIterator(File zipFilePath) {
+    public ZipIterator(File zipFilePath) {
         this.zipFilePath = zipFilePath;
+        init();
+    }
+
+    @Override
+    public void init() {
+        entryList = new ArrayList<>();
         try {
             zipFile = new ZipFile(zipFilePath);
             Enumeration<? extends ZipEntry> zipEntryEnumeration = zipFile.entries();
@@ -36,13 +46,23 @@ public class ZipImageIterator implements ImageIterator {
                 }
             }
 
-            entryList.sort(Comparator.comparing(ZipEntry::getName, stringComparator));
+            entryList.sort(Comparator.comparing(ZipEntry::getName, String::compareTo));
             listSize = entryList.size();
             listIterator = entryList.listIterator();
         } catch (Exception e) {
-            log.error("Can't read Zip file {}\n application will be closed", zipFilePath);
+            log.warn("Can't read the file {}", zipFilePath);
             System.exit(1);
         }
+    }
+
+    @Override
+    public File getVolumeRoot() {
+        return zipFilePath;
+    }
+
+    @Override
+    public void setFile(File file) {
+        this.zipFilePath = file;
     }
 
     @Override
@@ -92,10 +112,21 @@ public class ZipImageIterator implements ImageIterator {
             BufferedImage read = ImageIO.read(zipFile.getInputStream(entry));
             return new Picture(
                     read,
-                    new PictureMetadata(entry.getName(), zipFilePath.getParentFile())
+                    new PictureMetadata(entry.getName(), zipFilePath.getName(), zipFilePath.getParentFile())
             );
         } catch (IOException e) {
+            log.debug("Error reading image {}", e.getMessage());
             return null;
         }
+    }
+
+    @Override
+    public Picture nextVol() {
+        return switchVol(isZipFile, NEXT);
+    }
+
+    @Override
+    public Picture prevVol() {
+        return switchVol(isZipFile, PREV);
     }
 }

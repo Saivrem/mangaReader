@@ -2,7 +2,7 @@ package org.dustyroom;
 
 import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
-import org.dustyroom.be.iterators.ZipImageIterator;
+import org.dustyroom.be.iterators.ZipIterator;
 import org.dustyroom.ui.ImageViewer;
 
 import javax.swing.*;
@@ -31,7 +31,7 @@ public class Main {
         if (file.isFile()) {
             String name = file.getName();
             if (name.endsWith("zip")) {
-                imageIterator = new ZipImageIterator(file);
+                imageIterator = new ZipIterator(file);
             } else if (isSupported(name)) {
                 imageIterator = new FileImageIterator(file);
             }

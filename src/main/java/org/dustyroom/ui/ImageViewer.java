@@ -5,8 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.be.iterators.DirImageIterator;
 import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
-import org.dustyroom.be.iterators.ZipImageIterator;
+import org.dustyroom.be.iterators.ZipIterator;
 import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.PictureMetadata;
 import org.dustyroom.ui.components.ImagePanel;
 import org.dustyroom.ui.components.MenuBar;
 import org.dustyroom.ui.components.NavigationPanel;
@@ -24,6 +25,7 @@ import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
+import static org.dustyroom.be.utils.FileUtils.isZipFile;
 import static org.dustyroom.ui.LookSettings.SYSTEM;
 import static org.dustyroom.ui.utils.DialogUtils.showAboutDialog;
 import static org.dustyroom.ui.utils.UiUtils.redrawComponent;
@@ -56,6 +58,8 @@ public class ImageViewer extends JFrame {
                 ImageViewer.this::showPreviousImage,
                 ImageViewer.this::showFirstImage,
                 ImageViewer.this::showLastImage,
+                ImageViewer.this::showNextVolume,
+                ImageViewer.this::showPrevVolume,
                 ImageViewer.this::toggleFullscreen,
                 new ThemeChangeListener() {
                     @Override
@@ -84,7 +88,9 @@ public class ImageViewer extends JFrame {
                 ImageViewer.this::showPreviousImage,
                 ImageViewer.this::showFirstImage,
                 ImageViewer.this::showLastImage,
-                ImageViewer.this::chooseFile
+                ImageViewer.this::chooseFile,
+                ImageViewer.this::showNextVolume,
+                ImageViewer.this::showPrevVolume
         );
 
         imagePanel = new ImagePanel();
@@ -166,6 +172,12 @@ public class ImageViewer extends JFrame {
                     case KeyEvent.VK_MINUS:
                         zoomOut();
                         break;
+                    case KeyEvent.VK_UP:
+                        showPrevVolume();
+                        break;
+                    case KeyEvent.VK_DOWN:
+                        showNextVolume();
+                        break;
                     case KeyEvent.VK_ESCAPE:
                     case KeyEvent.VK_Q:
                         System.exit(0);
@@ -202,9 +214,10 @@ public class ImageViewer extends JFrame {
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
             if (selectedFile.isDirectory()) {
+                // Currently disabled due to FILES_ONLY selection mode
                 imageIterator = new DirImageIterator();
-            } else if (selectedFile.toString().endsWith(".zip")) {
-                imageIterator = new ZipImageIterator(selectedFile);
+            } else if (isZipFile.test(selectedFile)) {
+                imageIterator = new ZipIterator(selectedFile);
             } else {
                 imageIterator = new FileImageIterator(selectedFile);
             }
@@ -233,9 +246,18 @@ public class ImageViewer extends JFrame {
         processPicture(imageIterator.last());
     }
 
+    private void showNextVolume() {
+        processPicture(imageIterator.nextVol());
+    }
+
+    private void showPrevVolume() {
+        processPicture(imageIterator.prevVol());
+    }
+
     public void processPicture(Picture picture) {
-        currentDir = picture.metadata().dir();
-        setTitle(picture.metadata().name());
+        PictureMetadata metadata = picture.metadata();
+        currentDir = metadata.dir();
+        setTitle(String.format("%s - %s", metadata.fileName(), metadata.name()));
         imagePanel.drawImage(picture.image());
     }
 

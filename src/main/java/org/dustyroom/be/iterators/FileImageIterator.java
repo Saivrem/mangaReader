@@ -9,32 +9,39 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
-import static org.dustyroom.be.utils.FileUtils.isSupported;
+import static org.dustyroom.be.models.Direction.NEXT;
+import static org.dustyroom.be.models.Direction.PREV;
+import static org.dustyroom.be.utils.FileUtils.*;
+import static org.dustyroom.be.utils.ListUtils.getFirstOrDefault;
 
 @Slf4j
 public class FileImageIterator implements ImageIterator {
-    private final List<File> fileList = new ArrayList<>();
+    private List<File> fileList;
+    private File file;
     private int currentIndex;
     private ListIterator<File> listIterator;
     private int listSize;
 
     public FileImageIterator(File file) {
-        File parent = file.getParentFile();
-        try {
-            for (File f : Objects.requireNonNull(parent.listFiles())) {
-                if (isSupported(f.getName())) {
-                    fileList.add(f);
-                }
-            }
-            listSize = fileList.size();
-        } catch (Exception e) {
-            log.error("Can't list files in {}", parent);
-            System.exit(1);
-        }
+        this.file = file;
+        init();
+    }
 
-        fileList.sort(Comparator.comparing(File::getName, stringComparator));
+    @Override
+    public void init() {
+        if (isImage.test(file)) {
+            fileList = getSortedFilesFromParent(file, isImage);
+        } else if (isNotEmptyDirectory.test(file)) {
+            fileList = getSortedFiles(file, isImage);
+            file = getFirstOrDefault(fileList, file);
+        } else {
+            fileList = new ArrayList<>();
+        }
+        listSize = fileList.size();
         currentIndex = fileList.indexOf(file);
         listIterator = fileList.listIterator(currentIndex);
         if (currentIndex == 0) {
@@ -43,12 +50,26 @@ public class FileImageIterator implements ImageIterator {
     }
 
     @Override
+    public File getVolumeRoot() {
+        return file.getParentFile();
+    }
+
+    @Override
+    public void setFile(File file) {
+        this.file = file;
+    }
+
+    @Override
     public Picture next() {
         File next;
         if (listIterator.hasNext()) {
             next = listIterator.next();
             if (isSameFile(next)) {
-                next = listIterator.next();
+                if (listIterator.hasNext()) {
+                    next = listIterator.next();
+                } else {
+                    return first();
+                }
             }
         } else {
             return first();
@@ -78,14 +99,15 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public Picture first() {
-        listIterator = fileList.listIterator(1);
-        return readImageFrom(listIterator.previous());
+        currentIndex = 1;
+        listIterator = fileList.listIterator(currentIndex);
+        return prev();
     }
 
     @Override
     public Picture last() {
-        // TODO Think about code duplication
-        listIterator = fileList.listIterator(listSize - 1);
+        currentIndex = listSize - 1;
+        listIterator = fileList.listIterator(currentIndex);
         return readImageFrom(listIterator.next());
     }
 
@@ -95,11 +117,21 @@ public class FileImageIterator implements ImageIterator {
             BufferedImage read = ImageIO.read(Files.newInputStream(file.toPath()));
             return new Picture(
                     read,
-                    new PictureMetadata(file.getName(), file.getParentFile())
+                    new PictureMetadata(file.getName(), file.getParentFile().getName(), file.getParentFile())
             );
         } catch (IOException e) {
             log.warn("Can't read the file {}", file);
             return null;
         }
+    }
+
+    @Override
+    public Picture nextVol() {
+        return switchVol(isNotEmptyDirectory, NEXT);
+    }
+
+    @Override
+    public Picture prevVol() {
+        return switchVol(isNotEmptyDirectory, PREV);
     }
 }
