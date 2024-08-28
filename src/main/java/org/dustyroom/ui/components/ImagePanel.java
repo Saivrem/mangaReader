@@ -22,8 +22,19 @@ public class ImagePanel extends JPanel {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
 
-        g2d.scale(scale, scale);
-        g2d.drawImage(image, 0, 0, this);
+        if (image != null) {
+            int panelWidth = getWidth();
+            int panelHeight = getHeight();
+            int imageWidth = (int) (image.getWidth() * scale);
+            int imageHeight = (int) (image.getHeight() * scale);
+
+            int x = (panelWidth - imageWidth) / 2;
+            int y = (panelHeight - imageHeight) / 2;
+            g2d.drawImage(image, x, y, imageWidth, imageHeight, this);
+        } else {
+            g2d.scale(scale, scale);
+            g2d.drawImage(image, 0, 0, this);
+        }
     }
 
     @Override
