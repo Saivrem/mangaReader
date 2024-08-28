@@ -38,6 +38,7 @@ public class ImageViewer extends JFrame {
     private final MenuBar menuBar;
     private final NavigationPanel navigationPanel;
     private final ImagePanel imagePanel;
+    private final JScrollPane scrollPane;
     @Setter
     private ImageIterator imageIterator;
     private File currentDir;
@@ -49,11 +50,15 @@ public class ImageViewer extends JFrame {
         setPreferredSize(new Dimension(800, 600));
         setDarkTheme();
 
+        imagePanel = new ImagePanel();
+        scrollPane = new JScrollPane(imagePanel);
+
         menuBar = new MenuBar(
                 ImageViewer.this::chooseFile,
-                ImageViewer.this::fitMode,
-                ImageViewer.this::zoomIn,
-                ImageViewer.this::zoomOut,
+                ImageViewer.this.imagePanel::fitImageToHeight,
+                ImageViewer.this.imagePanel::fitImageToWidth,
+                ImageViewer.this.imagePanel::zoomIn,
+                ImageViewer.this.imagePanel::zoomOut,
                 ImageViewer.this::showNextImage,
                 ImageViewer.this::showPreviousImage,
                 ImageViewer.this::showFirstImage,
@@ -93,8 +98,6 @@ public class ImageViewer extends JFrame {
                 ImageViewer.this::showPrevVolume
         );
 
-        imagePanel = new ImagePanel();
-
         initializeUI();
         setVisible(true);
     }
@@ -103,13 +106,17 @@ public class ImageViewer extends JFrame {
         setLayout(new BorderLayout());
 
         add(menuBar, BorderLayout.NORTH);
-        add(imagePanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
         add(navigationPanel, BorderLayout.SOUTH);
 
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                imagePanel.repaint();
+                if (imagePanel.isFitToHeightEnabled()) {
+                    imagePanel.fitImageToHeight();
+                } else if (imagePanel.isFitToWidthEnabled()) {
+                    imagePanel.fitImageToWidth();
+                }
             }
         });
 
@@ -123,15 +130,6 @@ public class ImageViewer extends JFrame {
 
     private void setupControls() {
 
-        addMouseWheelListener(e -> {
-            int notches = e.getWheelRotation();
-            if (notches < 0) {
-                showPreviousImage();
-            } else {
-                showNextImage();
-            }
-            imagePanel.repaint();
-        });
         addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
@@ -163,14 +161,17 @@ public class ImageViewer extends JFrame {
                         chooseFile();
                         break;
                     case KeyEvent.VK_H:
-                        fitMode();
+                        imagePanel.fitImageToHeight();
+                        break;
+                    case KeyEvent.VK_W:
+                        imagePanel.fitImageToWidth();
                         break;
                     case KeyEvent.VK_PLUS:
                     case KeyEvent.VK_EQUALS:
-                        zoomIn();
+                        imagePanel.zoomIn();
                         break;
                     case KeyEvent.VK_MINUS:
-                        zoomOut();
+                        imagePanel.zoomOut();
                         break;
                     case KeyEvent.VK_UP:
                         showPrevVolume();
@@ -258,6 +259,7 @@ public class ImageViewer extends JFrame {
         PictureMetadata metadata = picture.metadata();
         currentDir = metadata.dir();
         setTitle(String.format("%s - %s", metadata.fileName(), metadata.name()));
+        scrollPane.getViewport().setViewPosition(new Point(0, 0));
         imagePanel.drawImage(picture.image());
     }
 
@@ -282,26 +284,5 @@ public class ImageViewer extends JFrame {
 
         fullscreen = !fullscreen;
         requestFocusInWindow();
-    }
-
-    private void fitMode() {
-        imagePanel.toggleZoomMode();
-        imagePanel.repaint();
-    }
-
-    private void zoomOut() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
-        imagePanel.zoomOut();
-        imagePanel.repaint();
-    }
-
-    private void zoomIn() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
-        imagePanel.zoomIn();
-        imagePanel.repaint();
     }
 }

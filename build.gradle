@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'org.dustyroom'
-version = '0.4.5'
+version = '0.5'
 
 repositories {
     mavenCentral()
@@ -12,7 +12,7 @@ repositories {
 dependencies {
     def lombokVersion = '1.18.30'
 
-    implementation 'ch.qos.logback:logback-classic:1.4.12'
+    implementation 'ch.qos.logback:logback-classic:1.4.14'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
