@@ -50,11 +50,15 @@ public class ImageViewer extends JFrame {
         setPreferredSize(new Dimension(800, 600));
         setDarkTheme();
 
+        imagePanel = new ImagePanel();
+        scrollPane = new JScrollPane(imagePanel);
+
         menuBar = new MenuBar(
                 ImageViewer.this::chooseFile,
-                ImageViewer.this::fitHMode,
-                ImageViewer.this::zoomIn,
-                ImageViewer.this::zoomOut,
+                ImageViewer.this.imagePanel::fitImageToHeight,
+                ImageViewer.this.imagePanel::fitImageToWidth,
+                ImageViewer.this.imagePanel::zoomIn,
+                ImageViewer.this.imagePanel::zoomOut,
                 ImageViewer.this::showNextImage,
                 ImageViewer.this::showPreviousImage,
                 ImageViewer.this::showFirstImage,
@@ -93,9 +97,6 @@ public class ImageViewer extends JFrame {
                 ImageViewer.this::showNextVolume,
                 ImageViewer.this::showPrevVolume
         );
-
-        imagePanel = new ImagePanel();
-        scrollPane = new JScrollPane(imagePanel);
 
         initializeUI();
         setVisible(true);
@@ -160,17 +161,17 @@ public class ImageViewer extends JFrame {
                         chooseFile();
                         break;
                     case KeyEvent.VK_H:
-                        fitHMode();
+                        imagePanel.fitImageToHeight();
                         break;
                     case KeyEvent.VK_W:
-                        fitWMode();
+                        imagePanel.fitImageToWidth();
                         break;
                     case KeyEvent.VK_PLUS:
                     case KeyEvent.VK_EQUALS:
-                        zoomIn();
+                        imagePanel.zoomIn();
                         break;
                     case KeyEvent.VK_MINUS:
-                        zoomOut();
+                        imagePanel.zoomOut();
                         break;
                     case KeyEvent.VK_UP:
                         showPrevVolume();
@@ -283,21 +284,5 @@ public class ImageViewer extends JFrame {
 
         fullscreen = !fullscreen;
         requestFocusInWindow();
-    }
-
-    private void fitHMode() {
-        imagePanel.fitImageToHeight();
-    }
-
-    private void fitWMode() {
-        imagePanel.fitImageToWidth();
-    }
-
-    private void zoomOut() {
-        imagePanel.zoomOut();
-    }
-
-    private void zoomIn() {
-        imagePanel.zoomIn();
     }
 }

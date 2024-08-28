@@ -11,7 +11,8 @@ import java.util.Map;
 
 public class MenuBar extends JMenuBar implements ActionListener {
     private final CustomListener openFileListener;
-    private final CustomListener fitModeListener;
+    private final CustomListener fitHeightModeListener;
+    private final CustomListener fitWidthModeListener;
     private final CustomListener zoomInListener;
     private final CustomListener zoomOutListener;
     private final CustomListener nextFileListener;
@@ -29,7 +30,8 @@ public class MenuBar extends JMenuBar implements ActionListener {
 
     public MenuBar(
             CustomListener openFileListener,
-            CustomListener fitModeListener,
+            CustomListener fitHeightModeListener,
+            CustomListener fitWidthModeListener,
             CustomListener zoomInListener,
             CustomListener zoomOutListener,
             CustomListener nextFileListener,
@@ -43,7 +45,8 @@ public class MenuBar extends JMenuBar implements ActionListener {
             CustomListener showAboutListener
     ) {
         this.openFileListener = openFileListener;
-        this.fitModeListener = fitModeListener;
+        this.fitHeightModeListener = fitHeightModeListener;
+        this.fitWidthModeListener = fitWidthModeListener;
         this.zoomInListener = zoomInListener;
         this.zoomOutListener = zoomOutListener;
         this.nextFileListener = nextFileListener;
@@ -80,15 +83,18 @@ public class MenuBar extends JMenuBar implements ActionListener {
 
     private JMenu buildViewMenu() {
         JMenu viewMenu = new JMenu("View");
-        JMenuItem fitMenuItem = new JMenuItem("Fit height mode (h)");
+        JMenuItem fitHeightMenuItem = new JMenuItem("Fit height mode (h)");
+        JMenuItem fitWidthMenuItem = new JMenuItem("Fit width mode (w)");
         JMenuItem zoomInMenuItem = new JMenuItem("Zoom In (+)");
         JMenuItem zoomOutMenuItem = new JMenuItem("Zoom out (-)");
 
-        listenerMap.put(fitMenuItem, fitModeListener);
+        listenerMap.put(fitHeightMenuItem, fitHeightModeListener);
+        listenerMap.put(fitWidthMenuItem, fitWidthModeListener);
         listenerMap.put(zoomInMenuItem, zoomInListener);
         listenerMap.put(zoomOutMenuItem, zoomOutListener);
 
-        viewMenu.add(fitMenuItem);
+        viewMenu.add(fitHeightMenuItem);
+        viewMenu.add(fitWidthMenuItem);
         viewMenu.add(zoomInMenuItem);
         viewMenu.add(zoomOutMenuItem);
         return viewMenu;
