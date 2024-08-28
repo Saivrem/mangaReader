@@ -1,82 +1,86 @@
 package org.dustyroom.ui.components;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-@Getter
 @Setter
+@Getter
+@NoArgsConstructor
 public class ImagePanel extends JPanel {
-
+    boolean fitToHeightEnabled = true;
+    boolean fitToWidthEnabled = false;
     private BufferedImage image;
-    private boolean fitMode = true;
     private double scale = 1.0;
 
-    public void toggleZoomMode() {
-        fitMode = !fitMode;
-        scale = fitScale();
-    }
-
-    public double fitScale() {
-        double panelAspectRatio = (double) getWidth() / getHeight();
-        double imageAspectRatio = (double) image.getWidth(this) / image.getHeight(this);
-
-        return (panelAspectRatio > imageAspectRatio)
-                ? (double) getHeight() / image.getHeight(this)
-                : (double) getWidth() / image.getWidth(this);
-    }
-
-    public void zoomIn() {
-        scale *= 1.1;
-    }
-
-    public void zoomOut() {
-        scale /= 1.1;
-    }
-
+    @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (image != null) {
-            drawImage(g, fitMode);
-        }
+        Graphics2D g2d = (Graphics2D) g;
+
+        g2d.scale(scale, scale);
+        g2d.drawImage(image, 0, 0, this);
     }
 
-    private void drawImage(Graphics g, boolean fitMode) {
-        Graphics2D g2d = (Graphics2D) g.create();
-
-        int imageWidth, imageHeight;
-        int panelWidth = getWidth();
-        int panelHeight = getHeight();
-
-        if (fitMode) {
-            double panelAspectRatio = (double) panelWidth / panelHeight;
-            double imageAspectRatio = (double) image.getWidth(this) / image.getHeight(this);
-
-            if (panelAspectRatio > imageAspectRatio) {
-                imageWidth = (int) (panelHeight * imageAspectRatio);
-                imageHeight = panelHeight;
-            } else {
-                imageWidth = panelWidth;
-                imageHeight = (int) (panelWidth / imageAspectRatio);
-            }
-        } else {
-            imageWidth = (int) (image.getWidth(this) * scale);
-            imageHeight = (int) (image.getHeight(this) * scale);
+    @Override
+    public Dimension getPreferredSize() {
+        if (image != null) {
+            int newWidth = (int) (image.getWidth() * scale);
+            int newHeight = (int) (image.getHeight() * scale);
+            return new Dimension(newWidth, newHeight);
         }
+        return new Dimension(800, 600);
+    }
 
-        int x = (panelWidth - imageWidth) / 2;
-        int y = (panelHeight - imageHeight) / 2;
+    public void fitImageToHeight() {
+        double panelHeight = this.getParent().getHeight();
+        double imageHeight = image.getHeight();
+        scale = panelHeight / imageHeight;
+        fitToHeightEnabled = true;
+        fitToWidthEnabled = false;
+        this.revalidate();
+        this.repaint();
+    }
 
-        g2d.drawImage(image, x, y, imageWidth, imageHeight, this);
-        g2d.dispose();
+    public void fitImageToWidth() {
+        double panelWidth = this.getParent().getWidth();
+        double imageWidth = image.getWidth();
+        scale = panelWidth / imageWidth;
+        fitToHeightEnabled = false;
+        fitToWidthEnabled = true;
+        this.revalidate();
+        this.repaint();
     }
 
     public void drawImage(BufferedImage image) {
         if (image == null) return;
         this.image = image;
+        if (fitToHeightEnabled) {
+            fitImageToHeight();
+        } else if (fitToWidthEnabled) {
+            fitImageToWidth();
+        }
+        revalidate();
+        repaint();
+    }
+
+    public void zoomIn() {
+        scale *= 1.1;
+        fitToHeightEnabled = false;
+        fitToWidthEnabled = false;
+        revalidate();
+        repaint();
+    }
+
+    public void zoomOut() {
+        scale /= 1.1;
+        fitToHeightEnabled = false;
+        fitToWidthEnabled = false;
+        revalidate();
         repaint();
     }
 }

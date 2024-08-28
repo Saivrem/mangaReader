@@ -38,6 +38,7 @@ public class ImageViewer extends JFrame {
     private final MenuBar menuBar;
     private final NavigationPanel navigationPanel;
     private final ImagePanel imagePanel;
+    private final JScrollPane scrollPane;
     @Setter
     private ImageIterator imageIterator;
     private File currentDir;
@@ -51,7 +52,7 @@ public class ImageViewer extends JFrame {
 
         menuBar = new MenuBar(
                 ImageViewer.this::chooseFile,
-                ImageViewer.this::fitMode,
+                ImageViewer.this::fitHMode,
                 ImageViewer.this::zoomIn,
                 ImageViewer.this::zoomOut,
                 ImageViewer.this::showNextImage,
@@ -94,6 +95,7 @@ public class ImageViewer extends JFrame {
         );
 
         imagePanel = new ImagePanel();
+        scrollPane = new JScrollPane(imagePanel);
 
         initializeUI();
         setVisible(true);
@@ -103,13 +105,17 @@ public class ImageViewer extends JFrame {
         setLayout(new BorderLayout());
 
         add(menuBar, BorderLayout.NORTH);
-        add(imagePanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
         add(navigationPanel, BorderLayout.SOUTH);
 
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                imagePanel.repaint();
+                if (imagePanel.isFitToHeightEnabled()) {
+                    imagePanel.fitImageToHeight();
+                } else if (imagePanel.isFitToWidthEnabled()) {
+                    imagePanel.fitImageToWidth();
+                }
             }
         });
 
@@ -123,15 +129,6 @@ public class ImageViewer extends JFrame {
 
     private void setupControls() {
 
-        addMouseWheelListener(e -> {
-            int notches = e.getWheelRotation();
-            if (notches < 0) {
-                showPreviousImage();
-            } else {
-                showNextImage();
-            }
-            imagePanel.repaint();
-        });
         addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {
@@ -163,7 +160,10 @@ public class ImageViewer extends JFrame {
                         chooseFile();
                         break;
                     case KeyEvent.VK_H:
-                        fitMode();
+                        fitHMode();
+                        break;
+                    case KeyEvent.VK_W:
+                        fitWMode();
                         break;
                     case KeyEvent.VK_PLUS:
                     case KeyEvent.VK_EQUALS:
@@ -258,6 +258,7 @@ public class ImageViewer extends JFrame {
         PictureMetadata metadata = picture.metadata();
         currentDir = metadata.dir();
         setTitle(String.format("%s - %s", metadata.fileName(), metadata.name()));
+        scrollPane.getViewport().setViewPosition(new Point(0, 0));
         imagePanel.drawImage(picture.image());
     }
 
@@ -284,24 +285,19 @@ public class ImageViewer extends JFrame {
         requestFocusInWindow();
     }
 
-    private void fitMode() {
-        imagePanel.toggleZoomMode();
-        imagePanel.repaint();
+    private void fitHMode() {
+        imagePanel.fitImageToHeight();
+    }
+
+    private void fitWMode() {
+        imagePanel.fitImageToWidth();
     }
 
     private void zoomOut() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
         imagePanel.zoomOut();
-        imagePanel.repaint();
     }
 
     private void zoomIn() {
-        if (imagePanel.isFitMode()) {
-            imagePanel.toggleZoomMode();
-        }
         imagePanel.zoomIn();
-        imagePanel.repaint();
     }
 }
