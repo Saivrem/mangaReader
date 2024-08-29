@@ -8,8 +8,8 @@ public class Constants {
     public final static List<String> TO_FILTER = List.of("__MACOS");
     public final static String ABOUT = """
             Manga Reader
-                        
-            Version 0.4.3
+            
+            Version %s
             Author: Denys Sheviakov
             """;
 }
