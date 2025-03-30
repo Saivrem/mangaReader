@@ -69,7 +69,10 @@ public class ImageComponent extends JComponent {
         int imgW = (int) (image.getWidth() * scale);
         int imgH = (int) (image.getHeight() * scale);
 
-        g2d.drawImage(image, 0, 0, imgW, imgH, this);
+        int x = (getWidth() - imgW) / 2;
+        int y = (getHeight() - imgH) / 2;
+
+        g2d.drawImage(image, x, y, imgW, imgH, this);
     }
 
     @Override
