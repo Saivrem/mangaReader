@@ -16,7 +16,21 @@ public class ImageComponent extends JComponent {
     private double scale = 1.0;
     private FitMode fitMode = FitMode.FIT_HEIGHT;
 
-    public void setImage(BufferedImage image) {
+    public void setImageAndCenter(BufferedImage img, JScrollPane scrollPane) {
+        setImage(img);
+
+        SwingUtilities.invokeLater(() -> {
+            Dimension viewSize = scrollPane.getViewport().getExtentSize();
+            Dimension imgSize = getPreferredSize();
+
+            int x = Math.max(0, (imgSize.width - viewSize.width) / 2);
+            int y = Math.max(0, (imgSize.height - viewSize.height) / 2);
+
+            scrollPane.getViewport().setViewPosition(new Point(x, y));
+        });
+    }
+
+    private void setImage(BufferedImage image) {
         this.image = image;
         updateScale();
         revalidate();

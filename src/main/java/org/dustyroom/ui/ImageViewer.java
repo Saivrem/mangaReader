@@ -52,15 +52,6 @@ public class ImageViewer extends JFrame {
 
         imageComponent = new ImageComponent();
         scrollPane = new JScrollPane(imageComponent);
-        SwingUtilities.invokeLater(() -> {
-            Dimension viewSize = scrollPane.getViewport().getExtentSize();
-            Dimension imgSize = imageComponent.getPreferredSize();
-
-            int x = Math.max(0, (imgSize.width - viewSize.width) / 2);
-            int y = Math.max(0, (imgSize.height - viewSize.height) / 2);
-
-            scrollPane.getViewport().setViewPosition(new Point(x, y));
-        });
 
         menuBar = new MenuBar(
                 ImageViewer.this::chooseFile,
@@ -269,7 +260,7 @@ public class ImageViewer extends JFrame {
         currentDir = metadata.dir();
         setTitle(String.format("%s - %s", metadata.fileName(), metadata.name()));
         scrollPane.getViewport().setViewPosition(new Point(0, 0));
-        imageComponent.setImage(picture.image());
+        imageComponent.setImageAndCenter(picture.image(), scrollPane);
     }
 
     private void toggleFullscreen() {
