@@ -8,7 +8,7 @@ import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ZipIterator;
 import org.dustyroom.be.models.Picture;
 import org.dustyroom.be.models.PictureMetadata;
-import org.dustyroom.ui.components.ImagePanel;
+import org.dustyroom.ui.components.ImageComponent;
 import org.dustyroom.ui.components.MenuBar;
 import org.dustyroom.ui.components.NavigationPanel;
 import org.dustyroom.ui.components.listeners.ThemeChangeListener;
@@ -37,7 +37,7 @@ public class ImageViewer extends JFrame {
     private final GraphicsDevice graphicsDevice = graphicsEnvironment.getDefaultScreenDevice();
     private final MenuBar menuBar;
     private final NavigationPanel navigationPanel;
-    private final ImagePanel imagePanel;
+    private final ImageComponent imageComponent;
     private final JScrollPane scrollPane;
     @Setter
     private ImageIterator imageIterator;
@@ -50,15 +50,15 @@ public class ImageViewer extends JFrame {
         setPreferredSize(new Dimension(800, 600));
         setDarkTheme();
 
-        imagePanel = new ImagePanel();
-        scrollPane = new JScrollPane(imagePanel);
+        imageComponent = new ImageComponent();
+        scrollPane = new JScrollPane(imageComponent);
 
         menuBar = new MenuBar(
                 ImageViewer.this::chooseFile,
-                ImageViewer.this.imagePanel::fitImageToHeight,
-                ImageViewer.this.imagePanel::fitImageToWidth,
-                ImageViewer.this.imagePanel::zoomIn,
-                ImageViewer.this.imagePanel::zoomOut,
+                () -> ImageViewer.this.imageComponent.setFitMode(ImageComponent.FitMode.FIT_HEIGHT),
+                () -> ImageViewer.this.imageComponent.setFitMode(ImageComponent.FitMode.FIT_WIDTH),
+                ImageViewer.this.imageComponent::zoomIn,
+                ImageViewer.this.imageComponent::zoomOut,
                 ImageViewer.this::showNextImage,
                 ImageViewer.this::showPreviousImage,
                 ImageViewer.this::showFirstImage,
@@ -112,10 +112,10 @@ public class ImageViewer extends JFrame {
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                if (imagePanel.isFitToHeightEnabled()) {
-                    imagePanel.fitImageToHeight();
-                } else if (imagePanel.isFitToWidthEnabled()) {
-                    imagePanel.fitImageToWidth();
+                if (imageComponent.getFitMode() != ImageComponent.FitMode.ORIGINAL) {
+                    imageComponent.updateScale();
+                    imageComponent.revalidate();
+                    imageComponent.repaint();
                 }
             }
         });
@@ -161,17 +161,17 @@ public class ImageViewer extends JFrame {
                         chooseFile();
                         break;
                     case KeyEvent.VK_H:
-                        imagePanel.fitImageToHeight();
+                        imageComponent.setFitMode(ImageComponent.FitMode.FIT_HEIGHT);
                         break;
                     case KeyEvent.VK_W:
-                        imagePanel.fitImageToWidth();
+                        imageComponent.setFitMode(ImageComponent.FitMode.FIT_WIDTH);
                         break;
                     case KeyEvent.VK_PLUS:
                     case KeyEvent.VK_EQUALS:
-                        imagePanel.zoomIn();
+                        imageComponent.zoomIn();
                         break;
                     case KeyEvent.VK_MINUS:
-                        imagePanel.zoomOut();
+                        imageComponent.zoomOut();
                         break;
                     case KeyEvent.VK_UP:
                         showPrevVolume();
@@ -260,7 +260,7 @@ public class ImageViewer extends JFrame {
         currentDir = metadata.dir();
         setTitle(String.format("%s - %s", metadata.fileName(), metadata.name()));
         scrollPane.getViewport().setViewPosition(new Point(0, 0));
-        imagePanel.drawImage(picture.image());
+        imageComponent.setImage(picture.image());
     }
 
     private void toggleFullscreen() {
