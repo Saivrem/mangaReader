@@ -24,7 +24,7 @@ public class ImageComponent extends JComponent {
             Dimension imgSize = getPreferredSize();
 
             int x = Math.max(0, (imgSize.width - viewSize.width) / 2);
-            int y = Math.max(0, (imgSize.height - viewSize.height) / 2);
+            int y = 0;
 
             scrollPane.getViewport().setViewPosition(new Point(x, y));
         });
