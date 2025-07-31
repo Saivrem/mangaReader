@@ -4,9 +4,12 @@ import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.ui.LookSettings;
+import org.dustyroom.ui.components.listeners.CustomListener;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.util.Map;
 
 import static org.dustyroom.ui.LookSettings.*;
 
@@ -49,5 +52,12 @@ public class UiUtils {
 
     public static void redrawComponent(Component component) {
         SwingUtilities.updateComponentTreeUI(component);
+    }
+
+    public static <T> void performAction(ActionEvent e, Component c, Map<T, CustomListener> listenerMap) {
+        T clicked = (T) e.getSource();
+        CustomListener customListener = listenerMap.get(clicked);
+        if (customListener != null) customListener.performAction();
+        SwingUtilities.getWindowAncestor(c).requestFocus();
     }
 }

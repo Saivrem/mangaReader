@@ -10,6 +10,8 @@ import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.dustyroom.ui.utils.UiUtils.performAction;
+
 @Accessors(chain = true)
 public class NavigationPanel extends JPanel implements ActionListener {
     private final Map<JButton, CustomListener> listenerMap = new HashMap<>();
@@ -23,48 +25,28 @@ public class NavigationPanel extends JPanel implements ActionListener {
             CustomListener nextVolumeListener,
             CustomListener prevVolumeListener
     ) {
-        JButton openButton = new JButton("\uD83D\uDCC2");
-        JButton nextButton = new JButton("→");
-        JButton prevButton = new JButton("←");
-        JButton firstButton = new JButton("⇤");
-        JButton lastButton = new JButton("⇥");
-        JButton nextVolumeButton = new JButton("⇥\uD83D\uDCC2");
-        JButton prevVolumeButton = new JButton("\uD83D\uDCC2⇤");
-
-        nextButton.addActionListener(this);
-        prevButton.addActionListener(this);
-        firstButton.addActionListener(this);
-        lastButton.addActionListener(this);
-        openButton.addActionListener(this);
-        nextVolumeButton.addActionListener(this);
-        prevVolumeButton.addActionListener(this);
-
         setLayout(new FlowLayout());
-        add(prevVolumeButton);
-        add(firstButton);
-        add(prevButton);
-        add(openButton);
-        add(nextButton);
-        add(lastButton);
-        add(nextVolumeButton);
 
-        listenerMap.put(nextButton, nextFileListener);
-        listenerMap.put(prevButton, prevFileListener);
-        listenerMap.put(firstButton, firstFileListener);
-        listenerMap.put(lastButton, lastFileListener);
-        listenerMap.put(openButton, openFileListener);
-        listenerMap.put(prevVolumeButton, prevVolumeListener);
-        listenerMap.put(nextVolumeButton, nextVolumeListener);
+        // @formatter:off
+        addButton("\uD83D\uDCC2⇤"         , prevVolumeListener);
+        addButton("⇤"                     , firstFileListener);
+        addButton("←"                     , prevFileListener);
+        addButton("\uD83D\uDCC2"          , openFileListener);
+        addButton("→"                     , nextFileListener);
+        addButton("⇥"                     , lastFileListener);
+        addButton("⇥\uD83D\uDCC2"         , nextVolumeListener);
+        // @formatter: on
+    }
+
+    private void addButton(String text, CustomListener listener) {
+        JButton button = new JButton(text);
+        button.addActionListener(this);
+        listenerMap.put(button, listener);
+        add(button);
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        JButton clicked = (JButton) e.getSource();
-        listenerMap.keySet()
-                .stream()
-                .filter(k -> k == clicked)
-                .findFirst()
-                .ifPresent(pressed -> listenerMap.get(pressed).performAction());
-        SwingUtilities.getWindowAncestor(this).requestFocus();
+        performAction(e, this, listenerMap);
     }
 }
