@@ -1,6 +1,5 @@
 package org.dustyroom.ui.components;
 
-import lombok.experimental.Accessors;
 import org.dustyroom.ui.components.listeners.CustomListener;
 
 import javax.swing.*;
@@ -12,11 +11,10 @@ import java.util.Map;
 
 import static org.dustyroom.ui.utils.UiUtils.performAction;
 
-@Accessors(chain = true)
 public class NavigationPanel extends JPanel implements ActionListener {
     private final Map<JButton, CustomListener> listenerMap = new HashMap<>();
 
-    public NavigationPanel(
+    public NavigationPanel init(
             CustomListener nextFileListener,
             CustomListener prevFileListener,
             CustomListener firstFileListener,
@@ -36,6 +34,8 @@ public class NavigationPanel extends JPanel implements ActionListener {
         addButton("⇥"                     , lastFileListener);
         addButton("⇥\uD83D\uDCC2"         , nextVolumeListener);
         // @formatter: on
+
+        return this;
     }
 
     private void addButton(String text, CustomListener listener) {

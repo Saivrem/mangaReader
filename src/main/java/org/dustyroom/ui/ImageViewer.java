@@ -53,7 +53,7 @@ public class ImageViewer extends JFrame {
         imageComponent = new ImageComponent();
         scrollPane = new JScrollPane(imageComponent);
 
-        menuBar = new MenuBar(
+        menuBar = new MenuBar().init(
                 ImageViewer.this::chooseFile,
                 () -> ImageViewer.this.imageComponent.setFitMode(ImageComponent.FitMode.FIT_HEIGHT),
                 () -> ImageViewer.this.imageComponent.setFitMode(ImageComponent.FitMode.FIT_WIDTH),
@@ -88,7 +88,7 @@ public class ImageViewer extends JFrame {
                 () -> showAboutDialog(ImageViewer.this)
         );
 
-        navigationPanel = new NavigationPanel(
+        navigationPanel = new NavigationPanel().init(
                 ImageViewer.this::showNextImage,
                 ImageViewer.this::showPreviousImage,
                 ImageViewer.this::showFirstImage,
