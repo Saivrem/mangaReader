@@ -31,48 +31,42 @@ public class MenuBar extends JMenuBar implements ActionListener {
                         ThemeChangeListener themeChangeListener,
                         CustomListener showAboutListener) {
         JMenu fileMenu = new JMenu("File");
-        // @formatter:off
-        addMenuItem(fileMenu, "Open (O)" , openFileListener);
-        addMenuItem(fileMenu, "Exit (Q)" , exitListener);
-        // @formatter:on
-        add(fileMenu);
-
         JMenu viewMenu = new JMenu("View");
-        // @formatter:off
-        addMenuItem(viewMenu, "Fit height mode (h)" , fitHeightModeListener);
-        addMenuItem(viewMenu, "Fit width mode (w)"  , fitWidthModeListener);
-        addMenuItem(viewMenu, "Zoom In (+)"         , zoomInListener);
-        addMenuItem(viewMenu, "Zoom out (-)"        , zoomOutListener);
-        // @formatter:on
-        add(viewMenu);
-
         JMenu navigationMenu = new JMenu("Navigation");
-        // @formatter:off
-        addMenuItem(navigationMenu, "Next (→)"      , nextFileListener);
-        addMenuItem(navigationMenu, "Prev (←)"      , prevFileListener);
-        addMenuItem(navigationMenu, "First (⇱)"     , firstFileListener);
-        addMenuItem(navigationMenu, "Last (⇲)"      , lastFileListener);
-        addMenuItem(navigationMenu, "Prev volume"   , prevVolumeListener);
-        addMenuItem(navigationMenu, "Next volume"   , nextVolumeListener);
-        // @formatter:on
-        add(navigationMenu);
-
+        JMenu helpMenu = new JMenu("Help");
         JMenu optionsMenu = new JMenu("Options");
         JMenu colorSchemeMenu = new JMenu("Color scheme");
+
         // @formatter:off
-        addThemeMenuItem(colorSchemeMenu, "Nimbus theme"     , themeChangeListener::setNimbusTheme);
-        addThemeMenuItem(colorSchemeMenu, "Metal theme"      , themeChangeListener::setMetalTheme);
-        addThemeMenuItem(colorSchemeMenu, "System theme"     , themeChangeListener::setSystemTheme);
+        addMenuItem(fileMenu, "Open (O)"                 , openFileListener);
+        addMenuItem(fileMenu, "Exit (Q)"                 , exitListener);
+
+        addMenuItem(viewMenu, "Fit height mode (h)"      , fitHeightModeListener);
+        addMenuItem(viewMenu, "Fit width mode (w)"       , fitWidthModeListener);
+        addMenuItem(viewMenu, "Zoom In (+)"              , zoomInListener);
+        addMenuItem(viewMenu, "Zoom out (-)"             , zoomOutListener);
+
+        addMenuItem(navigationMenu, "Next (→)"           , nextFileListener);
+        addMenuItem(navigationMenu, "Prev (←)"           , prevFileListener);
+        addMenuItem(navigationMenu, "First (⇱)"          , firstFileListener);
+        addMenuItem(navigationMenu, "Last (⇲)"           , lastFileListener);
+        addMenuItem(navigationMenu, "Prev volume"        , prevVolumeListener);
+        addMenuItem(navigationMenu, "Next volume"        , nextVolumeListener);
+
+        addMenuItem(colorSchemeMenu, "Nimbus theme"      , themeChangeListener::setNimbusTheme);
+        addMenuItem(colorSchemeMenu, "Metal theme"       , themeChangeListener::setMetalTheme);
+        addMenuItem(colorSchemeMenu, "System theme"      , themeChangeListener::setSystemTheme);
 
         addMenuItem(optionsMenu, "Toggle Fullscreen (F)" , toggleFullscreenListener);
-        // @formatter:on
-        optionsMenu.add(colorSchemeMenu);
-        add(optionsMenu);
-
-        JMenu helpMenu = new JMenu("Help");
-        // @formatter:off
         addMenuItem(helpMenu, "About" , showAboutListener);
         // @formatter:on
+
+        optionsMenu.add(colorSchemeMenu);
+
+        add(fileMenu);
+        add(viewMenu);
+        add(navigationMenu);
+        add(optionsMenu);
         add(helpMenu);
 
         listenerMap.keySet().forEach(k -> k.addActionListener(this));
@@ -83,12 +77,6 @@ public class MenuBar extends JMenuBar implements ActionListener {
     private void addMenuItem(JMenu menu, String itemName, CustomListener listener) {
         JMenuItem item = new JMenuItem(itemName);
         listenerMap.put(item, listener);
-        menu.add(item);
-    }
-
-    private void addThemeMenuItem(JMenu menu, String title, Runnable themeAction) {
-        JMenuItem item = new JMenuItem(title);
-        item.addActionListener(e -> themeAction.run());
         menu.add(item);
     }
 
