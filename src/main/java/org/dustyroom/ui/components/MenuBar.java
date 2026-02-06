@@ -12,6 +12,7 @@ public class MenuBar extends JMenuBar {
         JMenu helpMenu = new JMenu("Help");
         JMenu optionsMenu = new JMenu("Options");
         JMenu colorSchemeMenu = new JMenu("Color scheme");
+        JMenu readingModeMenu = new JMenu("Reading mode");
 
         // @formatter:off
         addMenuItem(fileMenu, "Open (O)"                 , actions.openFile());
@@ -20,6 +21,7 @@ public class MenuBar extends JMenuBar {
         addMenuItem(viewMenu, "Fit height mode (h)"      , actions.fitHeight());
         addMenuItem(viewMenu, "Fit width mode (w)"       , actions.fitWidth());
         addMenuItem(viewMenu, "Fit screen mode (s)"      , actions.fitScreen());
+        addMenuItem(viewMenu, "Toggle two-page mode"     , actions.toggleTwoPageMode());
         addMenuItem(viewMenu, "Zoom In (+)"              , actions.zoomIn());
         addMenuItem(viewMenu, "Zoom out (-)"             , actions.zoomOut());
 
@@ -33,12 +35,15 @@ public class MenuBar extends JMenuBar {
         addMenuItem(colorSchemeMenu, "Nimbus theme"      , actions.setNimbusTheme());
         addMenuItem(colorSchemeMenu, "Metal theme"       , actions.setMetalTheme());
         addMenuItem(colorSchemeMenu, "System theme"      , actions.setSystemTheme());
+        addMenuItem(readingModeMenu, "Comics (left to right)", actions.setComicsReadingMode());
+        addMenuItem(readingModeMenu, "Manga (right to left)" , actions.setMangaReadingMode());
 
         addMenuItem(optionsMenu, "Toggle Fullscreen (F)" , actions.toggleFullscreen());
         addMenuItem(helpMenu, "About" , actions.showAbout());
         // @formatter:on
 
         optionsMenu.add(colorSchemeMenu);
+        optionsMenu.add(readingModeMenu);
 
         add(fileMenu);
         add(viewMenu);

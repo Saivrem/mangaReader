@@ -31,6 +31,12 @@ public interface ViewerActions {
 
     Action toggleFullscreen();
 
+    Action toggleTwoPageMode();
+
+    Action setComicsReadingMode();
+
+    Action setMangaReadingMode();
+
     Action setNimbusTheme();
 
     Action setMetalTheme();

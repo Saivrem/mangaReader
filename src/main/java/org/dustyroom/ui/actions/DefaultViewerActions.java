@@ -20,6 +20,9 @@ public class DefaultViewerActions implements ViewerActions {
     private final Action nextVolume;
     private final Action prevVolume;
     private final Action toggleFullscreen;
+    private final Action toggleTwoPageMode;
+    private final Action setComicsReadingMode;
+    private final Action setMangaReadingMode;
     private final Action setNimbusTheme;
     private final Action setMetalTheme;
     private final Action setSystemTheme;
@@ -40,6 +43,9 @@ public class DefaultViewerActions implements ViewerActions {
         this.nextVolume = action(controller::showNextVolume);
         this.prevVolume = action(controller::showPrevVolume);
         this.toggleFullscreen = action(controller::toggleFullscreen);
+        this.toggleTwoPageMode = action(controller::toggleTwoPageMode);
+        this.setComicsReadingMode = action(controller::setComicsReadingMode);
+        this.setMangaReadingMode = action(controller::setMangaReadingMode);
         this.setNimbusTheme = action(controller::setNimbusTheme);
         this.setMetalTheme = action(controller::setMetalTheme);
         this.setSystemTheme = action(controller::setSystemTheme);
@@ -114,6 +120,21 @@ public class DefaultViewerActions implements ViewerActions {
     @Override
     public Action toggleFullscreen() {
         return toggleFullscreen;
+    }
+
+    @Override
+    public Action toggleTwoPageMode() {
+        return toggleTwoPageMode;
+    }
+
+    @Override
+    public Action setComicsReadingMode() {
+        return setComicsReadingMode;
+    }
+
+    @Override
+    public Action setMangaReadingMode() {
+        return setMangaReadingMode;
     }
 
     @Override
