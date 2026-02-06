@@ -16,6 +16,7 @@ import static org.dustyroom.be.models.Direction.NEXT;
 import static org.dustyroom.be.models.Direction.PREV;
 import static org.dustyroom.be.utils.FileUtils.isSupported;
 import static org.dustyroom.be.utils.FileUtils.isZipFile;
+import static org.dustyroom.be.utils.NaturalOrderComparator.INSTANCE;
 
 @Slf4j
 public class ZipIterator implements ImageIterator {
@@ -46,7 +47,7 @@ public class ZipIterator implements ImageIterator {
                 }
             }
 
-            entryList.sort(Comparator.comparing(ZipEntry::getName, String::compareTo));
+            entryList.sort(Comparator.comparing(ZipEntry::getName, INSTANCE));
             listSize = entryList.size();
             listIterator = entryList.listIterator();
         } catch (Exception e) {
