@@ -1,6 +1,5 @@
 package org.dustyroom.ui;
 
-import lombok.Setter;
 import org.dustyroom.be.iterators.DirImageIterator;
 import org.dustyroom.be.iterators.FileImageIterator;
 import org.dustyroom.be.iterators.ImageIterator;
@@ -41,9 +40,8 @@ public class ViewerController {
     private boolean twoPageMode;
     private ReadingMode readingMode = ReadingMode.MANGA;
 
-    private final List<Spread> history = new ArrayList<>();
-    private int historyIndex = -1;
-    private Picture bufferedNext;
+    private final List<Picture> pageHistory = new ArrayList<>();
+    private int pageIndex = -1;
 
     public ViewerController(JFrame frame, GraphicsDevice graphicsDevice, ImageComponent imageComponent, JScrollPane scrollPane) {
         this.frame = frame;
@@ -104,56 +102,102 @@ public class ViewerController {
     public void showNextImage() {
         if (imageIterator == null) return;
 
-        if (historyIndex + 1 < history.size()) {
-            historyIndex++;
-            renderSpread(history.get(historyIndex));
+        if (pageHistory.isEmpty()) {
+            Picture next = imageIterator.next();
+            if (next == null) return;
+            resetToSinglePage(next);
+            renderCurrentPage();
             return;
         }
 
-        Spread spread = createNextSpread();
-        if (spread == null) return;
+        int step = getSpreadStepForIndex(pageIndex, true);
+        int targetIndex = pageIndex + step;
 
-        if (historyIndex + 1 < history.size()) {
-            history.subList(historyIndex + 1, history.size()).clear();
-        }
-        history.add(spread);
-        historyIndex = history.size() - 1;
-        renderSpread(spread);
+        if (!ensurePageLoaded(targetIndex)) return;
+        pageIndex = targetIndex;
+        renderCurrentPage();
     }
 
     public void showPreviousImage() {
-        if (historyIndex <= 0) return;
-        historyIndex--;
-        renderSpread(history.get(historyIndex));
+        if (imageIterator == null) return;
+
+        if (pageHistory.isEmpty()) {
+            Picture prev = imageIterator.prev();
+            if (prev == null) return;
+            resetToSinglePage(prev);
+            renderCurrentPage();
+            return;
+        }
+
+        if (pageIndex > 0) {
+            int targetIndex = findPreviousAnchorIndex(pageIndex);
+            pageIndex = Math.max(0, targetIndex);
+            renderCurrentPage();
+            return;
+        }
+
+        Picture current = pageHistory.get(pageIndex);
+        Picture prev = imageIterator.prev();
+        if (prev == null) return;
+
+        if (isSamePage(prev, current)) {
+            prev = imageIterator.prev();
+            if (prev == null || isSamePage(prev, current)) {
+                return;
+            }
+        }
+
+        // Crossing the left boundary resets navigation history to a clean baseline.
+        resetToSinglePage(prev);
+        renderCurrentPage();
     }
 
     public void showFirstImage() {
         if (imageIterator == null) return;
         resetNavigationState();
-        addAndRenderSpreadFromAnchor(imageIterator.first());
+        Picture first = imageIterator.first();
+        if (first == null) return;
+        pageHistory.add(first);
+        pageIndex = 0;
+        renderCurrentPage();
     }
 
     public void showLastImage() {
         if (imageIterator == null) return;
         resetNavigationState();
-        addAndRenderSpreadFromAnchor(imageIterator.last());
+        Picture last = imageIterator.last();
+        if (last == null) return;
+        pageHistory.add(last);
+        pageIndex = 0;
+        renderCurrentPage();
     }
 
     public void showNextVolume() {
         if (imageIterator == null) return;
         resetNavigationState();
-        addAndRenderSpreadFromAnchor(imageIterator.nextVol());
+        Picture nextVol = imageIterator.nextVol();
+        if (nextVol == null) return;
+        pageHistory.add(nextVol);
+        pageIndex = 0;
+        renderCurrentPage();
     }
 
     public void showPrevVolume() {
         if (imageIterator == null) return;
         resetNavigationState();
-        addAndRenderSpreadFromAnchor(imageIterator.prevVol());
+        Picture prevVol = imageIterator.prevVol();
+        if (prevVol == null) return;
+        pageHistory.add(prevVol);
+        pageIndex = 0;
+        renderCurrentPage();
     }
 
     public void processPicture(Picture picture) {
         resetNavigationState();
-        addAndRenderSpreadFromAnchor(picture);
+        if (picture == null) return;
+        pageHistory.add(picture);
+        pageIndex = 0;
+        renderCurrentPage();
     }
 
     public void fitHeight() {
@@ -178,20 +222,17 @@ public class ViewerController {
 
     public void toggleTwoPageMode() {
         twoPageMode = !twoPageMode;
-        if (twoPageMode) {
-            tryPromoteCurrentSpreadToTwoPage();
-        }
-        rerenderCurrentSpread();
+        renderCurrentPage();
     }
 
     public void setComicsReadingMode() {
         readingMode = ReadingMode.COMICS;
-        rerenderCurrentSpread();
+        renderCurrentPage();
     }
 
     public void setMangaReadingMode() {
         readingMode = ReadingMode.MANGA;
-        rerenderCurrentSpread();
+        renderCurrentPage();
     }
 
     public void setNimbusTheme() {
@@ -240,75 +281,117 @@ public class ViewerController {
         frame.requestFocusInWindow();
     }
 
-    private void addAndRenderSpreadFromAnchor(Picture anchor) {
-        if (anchor == null) return;
-        Spread spread = buildSpreadFromAnchor(anchor);
-        if (spread == null) return;
-        history.add(spread);
-        historyIndex = history.size() - 1;
-        renderSpread(spread);
+    private void renderCurrentPage() {
+        if (pageIndex < 0 || pageIndex >= pageHistory.size()) return;
+
+        Picture current = pageHistory.get(pageIndex);
+        Picture nextForSpread = resolveNextForSpread(pageIndex, true);
+
+        PictureMetadata metadata = current.metadata();
+        currentDir = metadata.dir();
+        frame.setTitle(buildTitle(metadata, nextForSpread));
+        scrollPane.getViewport().setViewPosition(new Point(0, 0));
+
+        BufferedImage imageToRender = composeDisplayImage(
+                current.image(),
+                nextForSpread == null ? null : nextForSpread.image()
+        );
+        imageComponent.setImageAndCenter(imageToRender, scrollPane);
     }
 
-    private Spread createNextSpread() {
-        Picture anchor = fetchNextPicture();
-        return buildSpreadFromAnchor(anchor);
+    private Picture resolveNextForSpread(int anchorIndex, boolean allowPrefetch) {
+        if (!twoPageMode || anchorIndex < 0 || anchorIndex >= pageHistory.size()) {
+            return null;
+        }
+
+        Picture current = pageHistory.get(anchorIndex);
+        if (!isPortrait(current.image())) {
+            return null;
+        }
+
+        int nextIndex = anchorIndex + 1;
+        if (!ensurePageLoaded(nextIndex, allowPrefetch)) {
+            return null;
+        }
+
+        Picture next = pageHistory.get(nextIndex);
+        if (!isPortrait(next.image())) {
+            return null;
+        }
+
+        return next;
     }
 
-    private Spread buildSpreadFromAnchor(Picture anchor) {
-        if (anchor == null) return null;
+    private int getSpreadStepForIndex(int anchorIndex, boolean allowPrefetch) {
+        return resolveNextForSpread(anchorIndex, allowPrefetch) == null ? 1 : 2;
+    }
 
-        Picture second = null;
-        if (shouldRenderTwoPages(anchor)) {
-            Picture candidate = fetchNextPicture();
-            if (canBePaired(anchor, candidate)) {
-                second = candidate;
-            } else if (candidate != null) {
-                bufferedNext = candidate;
+    private int findPreviousAnchorIndex(int currentAnchorIndex) {
+        for (int candidate = currentAnchorIndex - 1; candidate >= 0; candidate--) {
+            int candidateStep = getSpreadStepForIndex(candidate, false);
+            if (candidate + candidateStep == currentAnchorIndex) {
+                return candidate;
             }
         }
-
-        return new Spread(anchor, second);
+        return currentAnchorIndex - 1;
     }
 
-    private boolean shouldRenderTwoPages(Picture anchor) {
-        if (!twoPageMode || imageIterator == null || anchor == null) {
+    private boolean ensurePageLoaded(int pageIndexToLoad) {
+        return ensurePageLoaded(pageIndexToLoad, true);
+    }
+
+    private boolean ensurePageLoaded(int pageIndexToLoad, boolean allowPrefetch) {
+        if (pageIndexToLoad < pageHistory.size()) {
+            return true;
+        }
+        if (!allowPrefetch || imageIterator == null) {
             return false;
         }
-        return isPortrait(anchor.image());
+
+        while (pageHistory.size() <= pageIndexToLoad) {
+            Picture lastLoaded = pageHistory.isEmpty() ? null : pageHistory.get(pageHistory.size() - 1);
+            Picture next = imageIterator.next();
+            if (next == null) {
+                return false;
+            }
+
+            // Guard against iterator no-op on boundaries.
+            if (lastLoaded != null && isSamePage(next, lastLoaded)) {
+                next = imageIterator.next();
+                if (next == null || isSamePage(next, lastLoaded)) {
+                    return false;
+                }
+            }
+            pageHistory.add(next);
+        }
+        return true;
     }
 
-    private boolean canBePaired(Picture first, Picture second) {
+    private void resetToSinglePage(Picture picture) {
+        if (picture == null) return;
+        pageHistory.clear();
+        pageHistory.add(picture);
+        pageIndex = 0;
+    }
+
+    private boolean isSamePage(Picture first, Picture second) {
         if (first == null || second == null) return false;
-        return isPortrait(first.image()) && isPortrait(second.image());
+        PictureMetadata firstMeta = first.metadata();
+        PictureMetadata secondMeta = second.metadata();
+        if (firstMeta == null || secondMeta == null) return false;
+
+        File firstDir = firstMeta.dir();
+        File secondDir = secondMeta.dir();
+        String firstDirPath = firstDir == null ? "" : firstDir.getAbsolutePath();
+        String secondDirPath = secondDir == null ? "" : secondDir.getAbsolutePath();
+
+        return firstMeta.fileName().equals(secondMeta.fileName())
+                && firstMeta.name().equals(secondMeta.name())
+                && firstDirPath.equals(secondDirPath);
     }
 
     private boolean isPortrait(BufferedImage image) {
         return image != null && image.getHeight() >= image.getWidth();
-    }
-
-    private Picture fetchNextPicture() {
-        if (bufferedNext != null) {
-            Picture picture = bufferedNext;
-            bufferedNext = null;
-            return picture;
-        }
-        if (imageIterator == null) return null;
-        return imageIterator.next();
-    }
-
-    private void renderSpread(Spread spread) {
-        if (spread == null || spread.anchor() == null) return;
-
-        Picture anchor = spread.anchor();
-        Picture second = twoPageMode ? spread.second() : null;
-
-        PictureMetadata metadata = anchor.metadata();
-        currentDir = metadata.dir();
-        frame.setTitle(buildTitle(metadata, second));
-        scrollPane.getViewport().setViewPosition(new Point(0, 0));
-
-        BufferedImage imageToRender = composeDisplayImage(anchor.image(), second == null ? null : second.image());
-        imageComponent.setImageAndCenter(imageToRender, scrollPane);
     }
 
     private String buildTitle(PictureMetadata metadata, Picture second) {
@@ -346,40 +429,12 @@ public class ViewerController {
     }
 
     private void resetNavigationState() {
-        history.clear();
-        historyIndex = -1;
-        bufferedNext = null;
-    }
-
-    private void rerenderCurrentSpread() {
-        if (historyIndex < 0 || historyIndex >= history.size()) return;
-        renderSpread(history.get(historyIndex));
-    }
-
-    private void tryPromoteCurrentSpreadToTwoPage() {
-        if (historyIndex < 0 || historyIndex >= history.size()) return;
-        if (historyIndex != history.size() - 1) return;
-
-        Spread current = history.get(historyIndex);
-        if (current.second() != null) return;
-        if (!isPortrait(current.anchor().image())) return;
-
-        Picture candidate = fetchNextPicture();
-        if (canBePaired(current.anchor(), candidate)) {
-            history.set(historyIndex, new Spread(current.anchor(), candidate));
-            return;
-        }
-
-        if (candidate != null) {
-            bufferedNext = candidate;
-        }
+        pageHistory.clear();
+        pageIndex = -1;
     }
 
     private enum ReadingMode {
         COMICS,
         MANGA
-    }
-
-    private record Spread(Picture anchor, Picture second) {
     }
 }
