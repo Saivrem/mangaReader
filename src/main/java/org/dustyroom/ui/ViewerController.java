@@ -7,6 +7,7 @@ import org.dustyroom.be.iterators.ZipIterator;
 import org.dustyroom.be.models.Picture;
 import org.dustyroom.be.models.PictureMetadata;
 import org.dustyroom.ui.components.ImageComponent;
+import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.navigation.ViewerNavigationState;
 import org.dustyroom.ui.rendering.SpreadRenderer;
@@ -23,6 +24,8 @@ import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.be.utils.FileUtils.isZipFile;
 import static org.dustyroom.ui.LookSettings.SYSTEM;
+import static org.dustyroom.ui.navigation.ReadingMode.COMICS;
+import static org.dustyroom.ui.navigation.ReadingMode.MANGA;
 import static org.dustyroom.ui.utils.DialogUtils.showAbout;
 import static org.dustyroom.ui.utils.UiUtils.redrawComponent;
 
@@ -42,7 +45,7 @@ public class ViewerController {
     private boolean fullscreen;
 
     private boolean twoPageMode;
-    private ReadingMode readingMode = ReadingMode.MANGA;
+    private ReadingMode readingMode = MANGA;
     private ViewerNavigationState state = new ViewerNavigationState();
 
     public ViewerController(JFrame frame, GraphicsDevice graphicsDevice, ImageComponent imageComponent, JScrollPane scrollPane) {
@@ -115,11 +118,11 @@ public class ViewerController {
         }
 
         Picture current = pageHistory().get(pageIndex());
-        Picture secondForSpread = resolveNextForSpread(pageIndex(), true);
+        Picture secondForSpread = resolveNextForSpread(pageIndex());
         int step = spreadPlanner.resolveStep(current, secondForSpread);
         int targetIndex = pageIndex() + step;
 
-        if (!ensurePageLoaded(targetIndex)) return;
+        if (pageNotLoaded(targetIndex)) return;
         state.setPageIndex(targetIndex);
         renderCurrentPage();
     }
@@ -232,12 +235,12 @@ public class ViewerController {
     }
 
     public void setComicsReadingMode() {
-        readingMode = ReadingMode.COMICS;
+        readingMode = COMICS;
         renderCurrentPage();
     }
 
     public void setMangaReadingMode() {
-        readingMode = ReadingMode.MANGA;
+        readingMode = MANGA;
         renderCurrentPage();
     }
 
@@ -291,7 +294,7 @@ public class ViewerController {
         if (pageIndex() < 0 || pageIndex() >= pageHistory().size()) return;
 
         Picture current = pageHistory().get(pageIndex());
-        Picture nextForSpread = resolveNextForSpread(pageIndex(), true);
+        Picture nextForSpread = resolveNextForSpread(pageIndex());
 
         PictureMetadata metadata = current.metadata();
         currentDir = metadata.dir();
@@ -301,19 +304,19 @@ public class ViewerController {
         BufferedImage imageToRender = spreadRenderer.compose(
                 current.image(),
                 nextForSpread == null ? null : nextForSpread.image(),
-                readingMode == ReadingMode.MANGA
+                readingMode == MANGA
         );
         imageComponent.setImageAndCenter(imageToRender, scrollPane);
     }
 
-    private Picture resolveNextForSpread(int anchorIndex, boolean allowPrefetch) {
+    private Picture resolveNextForSpread(int anchorIndex) {
         if (anchorIndex < 0 || anchorIndex >= pageHistory().size()) {
             return null;
         }
 
         Picture current = pageHistory().get(anchorIndex);
         int nextIndex = anchorIndex + 1;
-        if (!ensurePageLoaded(nextIndex, allowPrefetch)) {
+        if (pageNotLoaded(nextIndex)) {
             return null;
         }
 
@@ -321,35 +324,31 @@ public class ViewerController {
         return spreadPlanner.resolveSecondPage(current, next, twoPageMode);
     }
 
-    private boolean ensurePageLoaded(int pageIndexToLoad) {
-        return ensurePageLoaded(pageIndexToLoad, true);
-    }
-
-    private boolean ensurePageLoaded(int pageIndexToLoad, boolean allowPrefetch) {
+    private boolean pageNotLoaded(int pageIndexToLoad) {
         if (pageIndexToLoad < pageHistory().size()) {
-            return true;
-        }
-        if (!allowPrefetch || imageIterator == null) {
             return false;
+        }
+        if (imageIterator == null) {
+            return true;
         }
 
         while (pageHistory().size() <= pageIndexToLoad) {
             Picture lastLoaded = pageHistory().isEmpty() ? null : pageHistory().get(pageHistory().size() - 1);
             Picture next = imageIterator.next();
             if (next == null) {
-                return false;
+                return true;
             }
 
             // Guard against iterator no-op on boundaries.
             if (lastLoaded != null && isSamePage(next, lastLoaded)) {
                 next = imageIterator.next();
                 if (next == null || isSamePage(next, lastLoaded)) {
-                    return false;
+                    return true;
                 }
             }
             pageHistory().add(next);
         }
-        return true;
+        return false;
     }
 
     private void resetToSinglePage(Picture picture) {
@@ -385,10 +384,5 @@ public class ViewerController {
 
     private int pageIndex() {
         return state.pageIndex();
-    }
-
-    private enum ReadingMode {
-        COMICS,
-        MANGA
     }
 }
