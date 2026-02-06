@@ -39,12 +39,7 @@ public class FileUtils {
                 .filter(Objects::nonNull)
                 .flatMap(Arrays::stream)
                 .filter(predicate)
-                .sorted((o1, o2) -> {
-                    String o1Name = o1.getName();
-                    String o2Name = o2.getName();
-
-                    return String.CASE_INSENSITIVE_ORDER.compare(o1Name, o2Name);
-                })
+                .sorted((o1, o2) -> NaturalOrderComparator.INSTANCE.compare(o1.getName(), o2.getName()))
                 .toList();
     }
 }

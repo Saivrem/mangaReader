@@ -1,35 +1,11 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.components.listeners.CustomListener;
-import org.dustyroom.ui.components.listeners.ThemeChangeListener;
+import org.dustyroom.ui.actions.ViewerActions;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.HashMap;
-import java.util.Map;
 
-import static org.dustyroom.ui.utils.UiUtils.performAction;
-
-public class MenuBar extends JMenuBar implements ActionListener {
-    private final CustomListener exitListener = () -> System.exit(0);
-
-    private final Map<JMenuItem, CustomListener> listenerMap = new HashMap<>();
-
-    public MenuBar init(CustomListener openFileListener,
-                        CustomListener fitHeightModeListener,
-                        CustomListener fitWidthModeListener,
-                        CustomListener zoomInListener,
-                        CustomListener zoomOutListener,
-                        CustomListener nextFileListener,
-                        CustomListener prevFileListener,
-                        CustomListener firstFileListener,
-                        CustomListener lastFileListener,
-                        CustomListener nextVolumeListener,
-                        CustomListener prevVolumeListener,
-                        CustomListener toggleFullscreenListener,
-                        ThemeChangeListener themeChangeListener,
-                        CustomListener showAboutListener) {
+public class MenuBar extends JMenuBar {
+    public MenuBar (ViewerActions actions) {
         JMenu fileMenu = new JMenu("File");
         JMenu viewMenu = new JMenu("View");
         JMenu navigationMenu = new JMenu("Navigation");
@@ -38,27 +14,27 @@ public class MenuBar extends JMenuBar implements ActionListener {
         JMenu colorSchemeMenu = new JMenu("Color scheme");
 
         // @formatter:off
-        addMenuItem(fileMenu, "Open (O)"                 , openFileListener);
-        addMenuItem(fileMenu, "Exit (Q)"                 , exitListener);
+        addMenuItem(fileMenu, "Open (O)"                 , actions.openFile());
+        addMenuItem(fileMenu, "Exit (Q)"                 , actions.exit());
 
-        addMenuItem(viewMenu, "Fit height mode (h)"      , fitHeightModeListener);
-        addMenuItem(viewMenu, "Fit width mode (w)"       , fitWidthModeListener);
-        addMenuItem(viewMenu, "Zoom In (+)"              , zoomInListener);
-        addMenuItem(viewMenu, "Zoom out (-)"             , zoomOutListener);
+        addMenuItem(viewMenu, "Fit height mode (h)"      , actions.fitHeight());
+        addMenuItem(viewMenu, "Fit width mode (w)"       , actions.fitWidth());
+        addMenuItem(viewMenu, "Zoom In (+)"              , actions.zoomIn());
+        addMenuItem(viewMenu, "Zoom out (-)"             , actions.zoomOut());
 
-        addMenuItem(navigationMenu, "Next (→)"           , nextFileListener);
-        addMenuItem(navigationMenu, "Prev (←)"           , prevFileListener);
-        addMenuItem(navigationMenu, "First (⇱)"          , firstFileListener);
-        addMenuItem(navigationMenu, "Last (⇲)"           , lastFileListener);
-        addMenuItem(navigationMenu, "Prev volume"        , prevVolumeListener);
-        addMenuItem(navigationMenu, "Next volume"        , nextVolumeListener);
+        addMenuItem(navigationMenu, "Next (→)"           , actions.nextImage());
+        addMenuItem(navigationMenu, "Prev (←)"           , actions.prevImage());
+        addMenuItem(navigationMenu, "First (⇱)"          , actions.firstImage());
+        addMenuItem(navigationMenu, "Last (⇲)"           , actions.lastImage());
+        addMenuItem(navigationMenu, "Prev volume"        , actions.prevVolume());
+        addMenuItem(navigationMenu, "Next volume"        , actions.nextVolume());
 
-        addMenuItem(colorSchemeMenu, "Nimbus theme"      , themeChangeListener::setNimbusTheme);
-        addMenuItem(colorSchemeMenu, "Metal theme"       , themeChangeListener::setMetalTheme);
-        addMenuItem(colorSchemeMenu, "System theme"      , themeChangeListener::setSystemTheme);
+        addMenuItem(colorSchemeMenu, "Nimbus theme"      , actions.setNimbusTheme());
+        addMenuItem(colorSchemeMenu, "Metal theme"       , actions.setMetalTheme());
+        addMenuItem(colorSchemeMenu, "System theme"      , actions.setSystemTheme());
 
-        addMenuItem(optionsMenu, "Toggle Fullscreen (F)" , toggleFullscreenListener);
-        addMenuItem(helpMenu, "About" , showAboutListener);
+        addMenuItem(optionsMenu, "Toggle Fullscreen (F)" , actions.toggleFullscreen());
+        addMenuItem(helpMenu, "About" , actions.showAbout());
         // @formatter:on
 
         optionsMenu.add(colorSchemeMenu);
@@ -68,20 +44,11 @@ public class MenuBar extends JMenuBar implements ActionListener {
         add(navigationMenu);
         add(optionsMenu);
         add(helpMenu);
-
-        listenerMap.keySet().forEach(k -> k.addActionListener(this));
-
-        return this;
     }
 
-    private void addMenuItem(JMenu menu, String itemName, CustomListener listener) {
-        JMenuItem item = new JMenuItem(itemName);
-        listenerMap.put(item, listener);
+    private void addMenuItem(JMenu menu, String itemName, Action action) {
+        JMenuItem item = new JMenuItem(action);
+        item.setText(itemName);
         menu.add(item);
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        performAction(e, this, listenerMap);
     }
 }
