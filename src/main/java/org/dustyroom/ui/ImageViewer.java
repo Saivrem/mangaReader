@@ -51,13 +51,14 @@ public class ImageViewer extends JFrame {
         viewerController.attachPanels(menuBar, navigationPanel);
 
         initializeUI();
+        viewerController.syncThemeSurfaces();
         setVisible(true);
     }
 
     private void initializeUI() {
         setLayout(new BorderLayout());
 
-        add(menuBar, BorderLayout.NORTH);
+        setJMenuBar(menuBar);
         add(scrollPane, BorderLayout.CENTER);
         add(navigationPanel, BorderLayout.SOUTH);
 

@@ -14,6 +14,7 @@ import org.dustyroom.ui.rendering.SpreadRenderer;
 import org.dustyroom.ui.utils.UiUtils;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -23,6 +24,7 @@ import java.util.List;
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.be.utils.FileUtils.isZipFile;
+import static org.dustyroom.ui.LookSettings.NIMBUS;
 import static org.dustyroom.ui.LookSettings.SYSTEM;
 import static org.dustyroom.ui.navigation.ReadingMode.COMICS;
 import static org.dustyroom.ui.navigation.ReadingMode.MANGA;
@@ -247,16 +249,19 @@ public class ViewerController {
     public void setNimbusTheme() {
         UiUtils.setDarkTheme();
         redrawComponent(frame);
+        syncThemeSurfaces();
     }
 
     public void setMetalTheme() {
         UiUtils.setMetalTheme();
         redrawComponent(frame);
+        syncThemeSurfaces();
     }
 
     public void setSystemTheme() {
         UiUtils.setSystemTheme();
         redrawComponent(frame);
+        syncThemeSurfaces();
     }
 
     public void showAboutDialog() {
@@ -288,6 +293,46 @@ public class ViewerController {
 
         fullscreen = !fullscreen;
         frame.requestFocusInWindow();
+    }
+
+    public void syncThemeSurfaces() {
+        Color background = resolveThemeBackground();
+
+        Container contentPane = frame.getContentPane();
+        contentPane.setBackground(background);
+
+        Border empty = BorderFactory.createEmptyBorder();
+        scrollPane.setBorder(empty);
+        scrollPane.setViewportBorder(empty);
+        scrollPane.setOpaque(true);
+        if (background == null) {
+            background = new Color(34, 40, 49);
+        }
+
+        imageComponent.setOpaque(true);
+        imageComponent.setBackground(background);
+        scrollPane.setBackground(background);
+
+        JViewport viewport = scrollPane.getViewport();
+        viewport.setOpaque(true);
+        viewport.setBackground(background);
+    }
+
+    private Color resolveThemeBackground() {
+        if (UiUtils.getCurrent() == NIMBUS) {
+            Color nimbusBackground = UIManager.getColor("background");
+            if (nimbusBackground != null) {
+                return nimbusBackground;
+            }
+            return new Color(34, 40, 49);
+        }
+
+        Color panelBackground = UIManager.getColor("Panel.background");
+        if (panelBackground != null) {
+            return panelBackground;
+        }
+
+        return UIManager.getColor("control");
     }
 
     private void renderCurrentPage() {

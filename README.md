@@ -5,7 +5,7 @@ Supported file formats `jpg, jpeg, png, gif, zip` (`gif` is not animated yet);
 ## Feature list TODO:
 
 Features that must be supported:
-- [ ] file sorting !!!
+- [x] file sorting !!!
 - [x] image zoom 
 - [x] scroll support
 - [x] image fit by width
