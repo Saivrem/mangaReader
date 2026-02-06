@@ -7,6 +7,9 @@ import org.dustyroom.be.iterators.ZipIterator;
 import org.dustyroom.be.models.Picture;
 import org.dustyroom.be.models.PictureMetadata;
 import org.dustyroom.ui.components.ImageComponent;
+import org.dustyroom.ui.navigation.SpreadPlanner;
+import org.dustyroom.ui.navigation.ViewerNavigationState;
+import org.dustyroom.ui.rendering.SpreadRenderer;
 import org.dustyroom.ui.utils.UiUtils;
 
 import javax.swing.*;
@@ -14,7 +17,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
@@ -29,6 +31,8 @@ public class ViewerController {
     private final GraphicsDevice graphicsDevice;
     private final ImageComponent imageComponent;
     private final JScrollPane scrollPane;
+    private final SpreadPlanner spreadPlanner;
+    private final SpreadRenderer spreadRenderer;
 
     private ImageIterator imageIterator;
 
@@ -39,15 +43,15 @@ public class ViewerController {
 
     private boolean twoPageMode;
     private ReadingMode readingMode = ReadingMode.MANGA;
-
-    private final List<Picture> pageHistory = new ArrayList<>();
-    private int pageIndex = -1;
+    private ViewerNavigationState state = new ViewerNavigationState();
 
     public ViewerController(JFrame frame, GraphicsDevice graphicsDevice, ImageComponent imageComponent, JScrollPane scrollPane) {
         this.frame = frame;
         this.graphicsDevice = graphicsDevice;
         this.imageComponent = imageComponent;
         this.scrollPane = scrollPane;
+        this.spreadPlanner = new SpreadPlanner();
+        this.spreadRenderer = new SpreadRenderer();
     }
 
     public void attachPanels(JComponent menuBar, JComponent navigationPanel) {
@@ -102,7 +106,7 @@ public class ViewerController {
     public void showNextImage() {
         if (imageIterator == null) return;
 
-        if (pageHistory.isEmpty()) {
+        if (pageHistory().isEmpty()) {
             Picture next = imageIterator.next();
             if (next == null) return;
             resetToSinglePage(next);
@@ -110,18 +114,20 @@ public class ViewerController {
             return;
         }
 
-        int step = getSpreadStepForIndex(pageIndex, true);
-        int targetIndex = pageIndex + step;
+        Picture current = pageHistory().get(pageIndex());
+        Picture secondForSpread = resolveNextForSpread(pageIndex(), true);
+        int step = spreadPlanner.resolveStep(current, secondForSpread);
+        int targetIndex = pageIndex() + step;
 
         if (!ensurePageLoaded(targetIndex)) return;
-        pageIndex = targetIndex;
+        state.setPageIndex(targetIndex);
         renderCurrentPage();
     }
 
     public void showPreviousImage() {
         if (imageIterator == null) return;
 
-        if (pageHistory.isEmpty()) {
+        if (pageHistory().isEmpty()) {
             Picture prev = imageIterator.prev();
             if (prev == null) return;
             resetToSinglePage(prev);
@@ -129,14 +135,14 @@ public class ViewerController {
             return;
         }
 
-        if (pageIndex > 0) {
-            int targetIndex = findPreviousAnchorIndex(pageIndex);
-            pageIndex = Math.max(0, targetIndex);
+        if (pageIndex() > 0) {
+            int targetIndex = spreadPlanner.findPreviousAnchorIndex(pageHistory(), pageIndex(), twoPageMode);
+            state.setPageIndex(Math.max(0, targetIndex));
             renderCurrentPage();
             return;
         }
 
-        Picture current = pageHistory.get(pageIndex);
+        Picture current = pageHistory().get(pageIndex());
         Picture prev = imageIterator.prev();
         if (prev == null) return;
 
@@ -157,8 +163,8 @@ public class ViewerController {
         resetNavigationState();
         Picture first = imageIterator.first();
         if (first == null) return;
-        pageHistory.add(first);
-        pageIndex = 0;
+        pageHistory().add(first);
+        state.setPageIndex(0);
         renderCurrentPage();
     }
 
@@ -167,8 +173,8 @@ public class ViewerController {
         resetNavigationState();
         Picture last = imageIterator.last();
         if (last == null) return;
-        pageHistory.add(last);
-        pageIndex = 0;
+        pageHistory().add(last);
+        state.setPageIndex(0);
         renderCurrentPage();
     }
 
@@ -177,8 +183,8 @@ public class ViewerController {
         resetNavigationState();
         Picture nextVol = imageIterator.nextVol();
         if (nextVol == null) return;
-        pageHistory.add(nextVol);
-        pageIndex = 0;
+        pageHistory().add(nextVol);
+        state.setPageIndex(0);
         renderCurrentPage();
     }
 
@@ -187,16 +193,16 @@ public class ViewerController {
         resetNavigationState();
         Picture prevVol = imageIterator.prevVol();
         if (prevVol == null) return;
-        pageHistory.add(prevVol);
-        pageIndex = 0;
+        pageHistory().add(prevVol);
+        state.setPageIndex(0);
         renderCurrentPage();
     }
 
     public void processPicture(Picture picture) {
         resetNavigationState();
         if (picture == null) return;
-        pageHistory.add(picture);
-        pageIndex = 0;
+        pageHistory().add(picture);
+        state.setPageIndex(0);
         renderCurrentPage();
     }
 
@@ -282,58 +288,37 @@ public class ViewerController {
     }
 
     private void renderCurrentPage() {
-        if (pageIndex < 0 || pageIndex >= pageHistory.size()) return;
+        if (pageIndex() < 0 || pageIndex() >= pageHistory().size()) return;
 
-        Picture current = pageHistory.get(pageIndex);
-        Picture nextForSpread = resolveNextForSpread(pageIndex, true);
+        Picture current = pageHistory().get(pageIndex());
+        Picture nextForSpread = resolveNextForSpread(pageIndex(), true);
 
         PictureMetadata metadata = current.metadata();
         currentDir = metadata.dir();
-        frame.setTitle(buildTitle(metadata, nextForSpread));
+        frame.setTitle(spreadRenderer.buildTitle(metadata, nextForSpread));
         scrollPane.getViewport().setViewPosition(new Point(0, 0));
 
-        BufferedImage imageToRender = composeDisplayImage(
+        BufferedImage imageToRender = spreadRenderer.compose(
                 current.image(),
-                nextForSpread == null ? null : nextForSpread.image()
+                nextForSpread == null ? null : nextForSpread.image(),
+                readingMode == ReadingMode.MANGA
         );
         imageComponent.setImageAndCenter(imageToRender, scrollPane);
     }
 
     private Picture resolveNextForSpread(int anchorIndex, boolean allowPrefetch) {
-        if (!twoPageMode || anchorIndex < 0 || anchorIndex >= pageHistory.size()) {
+        if (anchorIndex < 0 || anchorIndex >= pageHistory().size()) {
             return null;
         }
 
-        Picture current = pageHistory.get(anchorIndex);
-        if (!isPortrait(current.image())) {
-            return null;
-        }
-
+        Picture current = pageHistory().get(anchorIndex);
         int nextIndex = anchorIndex + 1;
         if (!ensurePageLoaded(nextIndex, allowPrefetch)) {
             return null;
         }
 
-        Picture next = pageHistory.get(nextIndex);
-        if (!isPortrait(next.image())) {
-            return null;
-        }
-
-        return next;
-    }
-
-    private int getSpreadStepForIndex(int anchorIndex, boolean allowPrefetch) {
-        return resolveNextForSpread(anchorIndex, allowPrefetch) == null ? 1 : 2;
-    }
-
-    private int findPreviousAnchorIndex(int currentAnchorIndex) {
-        for (int candidate = currentAnchorIndex - 1; candidate >= 0; candidate--) {
-            int candidateStep = getSpreadStepForIndex(candidate, false);
-            if (candidate + candidateStep == currentAnchorIndex) {
-                return candidate;
-            }
-        }
-        return currentAnchorIndex - 1;
+        Picture next = pageHistory().get(nextIndex);
+        return spreadPlanner.resolveSecondPage(current, next, twoPageMode);
     }
 
     private boolean ensurePageLoaded(int pageIndexToLoad) {
@@ -341,15 +326,15 @@ public class ViewerController {
     }
 
     private boolean ensurePageLoaded(int pageIndexToLoad, boolean allowPrefetch) {
-        if (pageIndexToLoad < pageHistory.size()) {
+        if (pageIndexToLoad < pageHistory().size()) {
             return true;
         }
         if (!allowPrefetch || imageIterator == null) {
             return false;
         }
 
-        while (pageHistory.size() <= pageIndexToLoad) {
-            Picture lastLoaded = pageHistory.isEmpty() ? null : pageHistory.get(pageHistory.size() - 1);
+        while (pageHistory().size() <= pageIndexToLoad) {
+            Picture lastLoaded = pageHistory().isEmpty() ? null : pageHistory().get(pageHistory().size() - 1);
             Picture next = imageIterator.next();
             if (next == null) {
                 return false;
@@ -362,16 +347,16 @@ public class ViewerController {
                     return false;
                 }
             }
-            pageHistory.add(next);
+            pageHistory().add(next);
         }
         return true;
     }
 
     private void resetToSinglePage(Picture picture) {
         if (picture == null) return;
-        pageHistory.clear();
-        pageHistory.add(picture);
-        pageIndex = 0;
+        state = new ViewerNavigationState();
+        pageHistory().add(picture);
+        state.setPageIndex(0);
     }
 
     private boolean isSamePage(Picture first, Picture second) {
@@ -390,47 +375,16 @@ public class ViewerController {
                 && firstDirPath.equals(secondDirPath);
     }
 
-    private boolean isPortrait(BufferedImage image) {
-        return image != null && image.getHeight() >= image.getWidth();
-    }
-
-    private String buildTitle(PictureMetadata metadata, Picture second) {
-        if (second == null) {
-            return String.format("%s - %s", metadata.fileName(), metadata.name());
-        }
-        return String.format("%s - %s + %s", metadata.fileName(), metadata.name(), second.metadata().name());
-    }
-
-    private BufferedImage composeDisplayImage(BufferedImage firstImage, BufferedImage secondImage) {
-        if (secondImage == null) return firstImage;
-
-        BufferedImage leftImage = firstImage;
-        BufferedImage rightImage = secondImage;
-        if (readingMode == ReadingMode.MANGA) {
-            leftImage = secondImage;
-            rightImage = firstImage;
-        }
-
-        int width = leftImage.getWidth() + rightImage.getWidth();
-        int height = Math.max(leftImage.getHeight(), rightImage.getHeight());
-
-        BufferedImage canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D graphics = canvas.createGraphics();
-        graphics.setColor(Color.BLACK);
-        graphics.fillRect(0, 0, width, height);
-
-        int leftY = (height - leftImage.getHeight()) / 2;
-        int rightY = (height - rightImage.getHeight()) / 2;
-        graphics.drawImage(leftImage, 0, leftY, null);
-        graphics.drawImage(rightImage, leftImage.getWidth(), rightY, null);
-        graphics.dispose();
-
-        return canvas;
-    }
-
     private void resetNavigationState() {
-        pageHistory.clear();
-        pageIndex = -1;
+        state = new ViewerNavigationState();
+    }
+
+    private List<Picture> pageHistory() {
+        return state.pageHistory();
+    }
+
+    private int pageIndex() {
+        return state.pageIndex();
     }
 
     private enum ReadingMode {
