@@ -19,6 +19,7 @@ public class MenuBar extends JMenuBar {
 
         addMenuItem(viewMenu, "Fit height mode (h)"      , actions.fitHeight());
         addMenuItem(viewMenu, "Fit width mode (w)"       , actions.fitWidth());
+        addMenuItem(viewMenu, "Fit screen mode (s)"      , actions.fitScreen());
         addMenuItem(viewMenu, "Zoom In (+)"              , actions.zoomIn());
         addMenuItem(viewMenu, "Zoom out (-)"             , actions.zoomOut());
 

@@ -25,6 +25,7 @@ public class KeyBindings {
 
         bind(inputMap, actionMap, "fitHeight", KeyStroke.getKeyStroke(KeyEvent.VK_H, 0), actions.fitHeight());
         bind(inputMap, actionMap, "fitWidth", KeyStroke.getKeyStroke(KeyEvent.VK_W, 0), actions.fitWidth());
+        bind(inputMap, actionMap, "fitScreen", KeyStroke.getKeyStroke(KeyEvent.VK_S, 0), actions.fitScreen());
 
         bind(inputMap, actionMap, "zoomInPlus", KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, 0), actions.zoomIn());
         bind(inputMap, actionMap, "zoomInEquals", KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, 0), actions.zoomIn());

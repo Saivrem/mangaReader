@@ -19,6 +19,8 @@ import static org.dustyroom.ui.utils.UiUtils.setDarkTheme;
 
 @Slf4j
 public class ImageViewer extends JFrame {
+    private static final int RESIZE_RENDER_DELAY_MS = 80;
+
     private final GraphicsEnvironment graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
     private final GraphicsDevice graphicsDevice = graphicsEnvironment.getDefaultScreenDevice();
     private final ViewerController viewerController;
@@ -28,6 +30,7 @@ public class ImageViewer extends JFrame {
     private final NavigationPanel navigationPanel;
     private final ImageComponent imageComponent;
     private final JScrollPane scrollPane;
+    private final Timer resizeRenderTimer;
 
     public ImageViewer() {
         setTitle("Image Viewer");
@@ -40,6 +43,8 @@ public class ImageViewer extends JFrame {
         viewerController = new ViewerController(this, graphicsDevice, imageComponent, scrollPane);
         viewerActions = new DefaultViewerActions(viewerController);
         keyBindings = new KeyBindings();
+        resizeRenderTimer = new Timer(RESIZE_RENDER_DELAY_MS, e -> applyResizeRender());
+        resizeRenderTimer.setRepeats(false);
 
         menuBar = new MenuBar(viewerActions);
         navigationPanel = new NavigationPanel(viewerActions);
@@ -60,9 +65,7 @@ public class ImageViewer extends JFrame {
             @Override
             public void componentResized(ComponentEvent e) {
                 if (imageComponent.getFitMode() != ImageComponent.FitMode.ORIGINAL) {
-                    imageComponent.updateScale();
-                    imageComponent.revalidate();
-                    imageComponent.repaint();
+                    resizeRenderTimer.restart();
                 }
             }
         });
@@ -81,6 +84,12 @@ public class ImageViewer extends JFrame {
 
     private void setupKeyBindings() {
         keyBindings.init(getRootPane(), viewerActions);
+    }
+
+    private void applyResizeRender() {
+        imageComponent.updateScale();
+        imageComponent.revalidate();
+        imageComponent.repaint();
     }
 
     public void setImageIterator(ImageIterator imageIterator) {

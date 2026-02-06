@@ -14,7 +14,7 @@ import java.awt.image.BufferedImage;
 public class ImageComponent extends JComponent {
     private BufferedImage image;
     private double scale = 1.0;
-    private FitMode fitMode = FitMode.FIT_HEIGHT;
+    private FitMode fitMode = FitMode.FIT_SCREEN;
 
     public void setImageAndCenter(BufferedImage img, JScrollPane scrollPane) {
         setImage(img);
@@ -54,6 +54,10 @@ public class ImageComponent extends JComponent {
         switch (fitMode) {
             case FIT_WIDTH -> scale = parentSize.getWidth() / image.getWidth();
             case FIT_HEIGHT -> scale = parentSize.getHeight() / image.getHeight();
+            case FIT_SCREEN -> scale = Math.min(
+                    parentSize.getWidth() / image.getWidth(),
+                    parentSize.getHeight() / image.getHeight()
+            );
             case ORIGINAL -> scale = 1.0;
         }
     }
@@ -101,6 +105,7 @@ public class ImageComponent extends JComponent {
     public enum FitMode {
         ORIGINAL,
         FIT_WIDTH,
-        FIT_HEIGHT
+        FIT_HEIGHT,
+        FIT_SCREEN
     }
 }

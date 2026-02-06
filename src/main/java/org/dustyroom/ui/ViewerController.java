@@ -143,6 +143,10 @@ public class ViewerController {
         imageComponent.setFitMode(ImageComponent.FitMode.FIT_WIDTH);
     }
 
+    public void fitScreen() {
+        imageComponent.setFitMode(ImageComponent.FitMode.FIT_SCREEN);
+    }
+
     public void zoomIn() {
         imageComponent.zoomIn();
     }

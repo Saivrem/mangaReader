@@ -10,6 +10,7 @@ public class DefaultViewerActions implements ViewerActions {
     private final Action exit;
     private final Action fitHeight;
     private final Action fitWidth;
+    private final Action fitScreen;
     private final Action zoomIn;
     private final Action zoomOut;
     private final Action nextImage;
@@ -29,6 +30,7 @@ public class DefaultViewerActions implements ViewerActions {
         this.exit = action(controller::exit);
         this.fitHeight = action(controller::fitHeight);
         this.fitWidth = action(controller::fitWidth);
+        this.fitScreen = action(controller::fitScreen);
         this.zoomIn = action(controller::zoomIn);
         this.zoomOut = action(controller::zoomOut);
         this.nextImage = action(controller::showNextImage);
@@ -62,6 +64,11 @@ public class DefaultViewerActions implements ViewerActions {
     @Override
     public Action fitWidth() {
         return fitWidth;
+    }
+
+    @Override
+    public Action fitScreen() {
+        return fitScreen;
     }
 
     @Override

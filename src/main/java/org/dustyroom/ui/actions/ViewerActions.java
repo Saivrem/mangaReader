@@ -11,6 +11,8 @@ public interface ViewerActions {
 
     Action fitWidth();
 
+    Action fitScreen();
+
     Action zoomIn();
 
     Action zoomOut();
