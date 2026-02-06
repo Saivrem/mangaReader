@@ -31,7 +31,6 @@ public class ViewerController {
     private final ImageComponent imageComponent;
     private final JScrollPane scrollPane;
 
-    @Setter
     private ImageIterator imageIterator;
 
     private JComponent menuBar;
@@ -40,7 +39,7 @@ public class ViewerController {
     private boolean fullscreen;
 
     private boolean twoPageMode;
-    private ReadingMode readingMode = ReadingMode.COMICS;
+    private ReadingMode readingMode = ReadingMode.MANGA;
 
     private final List<Spread> history = new ArrayList<>();
     private int historyIndex = -1;

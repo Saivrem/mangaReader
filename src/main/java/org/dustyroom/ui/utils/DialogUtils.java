@@ -9,7 +9,7 @@ import javax.swing.*;
 public class DialogUtils {
     public static void showAbout(JFrame parent) {
         JOptionPane.showMessageDialog(parent,
-                Constants.ABOUT.formatted("0.5.1"),
+                Constants.ABOUT.formatted("0.6"),
                 "About", JOptionPane.INFORMATION_MESSAGE);
     }
 
