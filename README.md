@@ -19,7 +19,7 @@ Run the full verification and build an executable fat JAR:
 The resulting application is written to:
 
 ```text
-build/libs/mangaReader-0.6.jar
+build/libs/mangaReader-0.7.jar
 ```
 
 ## Run
@@ -27,15 +27,15 @@ build/libs/mangaReader-0.6.jar
 Open the application without an initial file:
 
 ```bash
-java -jar build/libs/mangaReader-0.6.jar
+java -jar build/libs/mangaReader-0.7.jar
 ```
 
 Open an image, a directory of images, or a ZIP archive immediately:
 
 ```bash
-java -jar build/libs/mangaReader-0.6.jar /path/to/page.jpg
-java -jar build/libs/mangaReader-0.6.jar /path/to/chapter
-java -jar build/libs/mangaReader-0.6.jar /path/to/volume.zip
+java -jar build/libs/mangaReader-0.7.jar /path/to/page.jpg
+java -jar build/libs/mangaReader-0.7.jar /path/to/chapter
+java -jar build/libs/mangaReader-0.7.jar /path/to/volume.zip
 ```
 
 ## Supported content
