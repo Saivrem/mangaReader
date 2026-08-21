@@ -7,6 +7,8 @@ public interface ViewerActions {
 
     Action exit();
 
+    Action escapeFullscreen();
+
     Action fitHeight();
 
     Action fitWidth();
@@ -37,11 +39,9 @@ public interface ViewerActions {
 
     Action setMangaReadingMode();
 
-    Action setNimbusTheme();
+    Action setDarkTheme();
 
-    Action setMetalTheme();
-
-    Action setSystemTheme();
+    Action setLightTheme();
 
     Action showAbout();
 }

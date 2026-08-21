@@ -1,39 +1,37 @@
 package org.dustyroom.ui;
 
 import org.dustyroom.ui.components.ImageComponent;
+import org.dustyroom.ui.actions.ViewerCommandPort;
 import org.dustyroom.ui.loading.AsyncViewerSession;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.loading.ViewerView;
-import org.dustyroom.ui.utils.UiUtils;
+import org.dustyroom.ui.theme.ThemeManager;
+import org.dustyroom.ui.window.WindowStateController;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import java.util.Objects;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
-import static org.dustyroom.ui.LookSettings.NIMBUS;
-import static org.dustyroom.ui.LookSettings.SYSTEM;
+import static org.dustyroom.ui.LookSettings.MANGA_READER_DARK;
+import static org.dustyroom.ui.LookSettings.MANGA_READER_LIGHT;
 import static org.dustyroom.ui.utils.DialogUtils.showAbout;
-import static org.dustyroom.ui.utils.UiUtils.redrawComponent;
 
-public class ViewerController {
+public class ViewerController implements ViewerCommandPort {
     private final JFrame frame;
-    private final GraphicsDevice graphicsDevice;
     private final ImageComponent imageComponent;
     private final JScrollPane scrollPane;
     private final AsyncViewerSession session;
 
-    private JComponent menuBar;
-    private JComponent navigationPanel;
+    private WindowStateController windowStateController;
     private File currentDir;
-    private boolean fullscreen;
 
-    public ViewerController(JFrame frame, GraphicsDevice graphicsDevice, ImageComponent imageComponent, JScrollPane scrollPane) {
+    public ViewerController(JFrame frame, ImageComponent imageComponent, JScrollPane scrollPane) {
         this.frame = frame;
-        this.graphicsDevice = graphicsDevice;
         this.imageComponent = imageComponent;
         this.scrollPane = scrollPane;
         this.session = new AsyncViewerSession(new ViewerView() {
@@ -55,9 +53,11 @@ public class ViewerController {
         });
     }
 
-    public void attachPanels(JComponent menuBar, JComponent navigationPanel) {
-        this.menuBar = menuBar;
-        this.navigationPanel = navigationPanel;
+    public void attachWindowStateController(WindowStateController windowStateController) {
+        if (this.windowStateController != null) {
+            throw new IllegalStateException("Window state controller is already attached");
+        }
+        this.windowStateController = Objects.requireNonNull(windowStateController);
     }
 
     public void openFile(File file) {
@@ -65,32 +65,24 @@ public class ViewerController {
     }
 
     public void chooseFile() {
-        if (fullscreen) {
-            graphicsDevice.setFullScreenWindow(null);
-        }
-
         String root = currentDir == null ? System.getProperty("user.home") : currentDir.toString();
         JFileChooser fileChooser = new JFileChooser(root);
         fileChooser.setPreferredSize(new Dimension(800, 600));
+        fileChooser.setAcceptAllFileFilterUsed(false);
 
-        if (UiUtils.getCurrent() != SYSTEM) {
-            Action details = fileChooser.getActionMap().get("viewTypeDetails");
-            if (details != null) {
-                details.actionPerformed(null);
-            }
+        Action details = fileChooser.getActionMap().get("viewTypeDetails");
+        if (details != null) {
+            details.actionPerformed(null);
         }
 
         fileChooser.setFileFilter(new FileNameExtensionFilter("Supported Files", SUPPORTED_FORMATS));
         fileChooser.setFileSelectionMode(FILES_ONLY);
 
-        int result = fileChooser.showOpenDialog(frame);
+        int result = windowState().withFullscreenSuspended(() -> fileChooser.showOpenDialog(frame));
         if (result == JFileChooser.APPROVE_OPTION) {
             openFile(fileChooser.getSelectedFile());
         }
 
-        if (fullscreen) {
-            graphicsDevice.setFullScreenWindow(frame);
-        }
         frame.requestFocus();
     }
 
@@ -150,22 +142,14 @@ public class ViewerController {
         session.setMangaReadingMode();
     }
 
-    public void setNimbusTheme() {
-        UiUtils.setDarkTheme();
-        redrawComponent(frame);
-        syncThemeSurfaces();
+    @Override
+    public boolean setDarkTheme() {
+        return applyTheme(MANGA_READER_DARK);
     }
 
-    public void setMetalTheme() {
-        UiUtils.setMetalTheme();
-        redrawComponent(frame);
-        syncThemeSurfaces();
-    }
-
-    public void setSystemTheme() {
-        UiUtils.setSystemTheme();
-        redrawComponent(frame);
-        syncThemeSurfaces();
+    @Override
+    public boolean setLightTheme() {
+        return applyTheme(MANGA_READER_LIGHT);
     }
 
     public void showAboutDialog() {
@@ -173,38 +157,40 @@ public class ViewerController {
     }
 
     public void exit() {
-        session.close(() -> System.exit(0));
+        session.close(() -> {
+            if (windowStateController != null) {
+                windowStateController.close();
+            }
+            frame.dispose();
+            System.exit(0);
+        });
     }
 
     public void close() {
-        session.close();
+        session.close(() -> {
+            if (windowStateController != null) {
+                windowStateController.close();
+            }
+        });
     }
 
     public void toggleFullscreen() {
-        if (fullscreen) {
-            frame.setVisible(false);
-            frame.dispose();
-            frame.setUndecorated(false);
-            graphicsDevice.setFullScreenWindow(null);
-            if (navigationPanel != null) navigationPanel.setVisible(true);
-            if (menuBar != null) menuBar.setVisible(true);
-            frame.setVisible(true);
-        } else {
-            frame.setVisible(false);
-            frame.dispose();
-            frame.setUndecorated(true);
-            graphicsDevice.setFullScreenWindow(frame);
-            if (navigationPanel != null) navigationPanel.setVisible(false);
-            if (menuBar != null) menuBar.setVisible(false);
-            frame.setVisible(true);
-        }
-
-        fullscreen = !fullscreen;
+        windowState().toggleFullscreen();
         frame.requestFocusInWindow();
+    }
+
+    public void escapeFullscreen() {
+        if (windowStateController != null && windowStateController.isFullscreen()) {
+            windowStateController.exitFullscreen();
+            frame.requestFocusInWindow();
+        }
     }
 
     public void syncThemeSurfaces() {
         Color background = resolveThemeBackground();
+        if (background == null) {
+            background = new Color(34, 40, 49);
+        }
 
         Container contentPane = frame.getContentPane();
         contentPane.setBackground(background);
@@ -213,9 +199,6 @@ public class ViewerController {
         scrollPane.setBorder(empty);
         scrollPane.setViewportBorder(empty);
         scrollPane.setOpaque(true);
-        if (background == null) {
-            background = new Color(34, 40, 49);
-        }
 
         imageComponent.setOpaque(true);
         imageComponent.setBackground(background);
@@ -235,12 +218,26 @@ public class ViewerController {
     }
 
     private Color resolveThemeBackground() {
-        if (UiUtils.getCurrent() == NIMBUS) {
-            Color nimbusBackground = UIManager.getColor("background");
-            return nimbusBackground == null ? new Color(34, 40, 49) : nimbusBackground;
+        Color applicationCanvas = UIManager.getColor("MangaReader.canvasBackground");
+        if (applicationCanvas != null) {
+            return applicationCanvas;
         }
-
         Color panelBackground = UIManager.getColor("Panel.background");
         return panelBackground == null ? UIManager.getColor("control") : panelBackground;
+    }
+
+    private boolean applyTheme(LookSettings theme) {
+        if (!ThemeManager.applyToOpenWindows(theme)) {
+            return false;
+        }
+        syncThemeSurfaces();
+        return true;
+    }
+
+    private WindowStateController windowState() {
+        if (windowStateController == null) {
+            throw new IllegalStateException("Window state controller is not attached");
+        }
+        return windowStateController;
     }
 }

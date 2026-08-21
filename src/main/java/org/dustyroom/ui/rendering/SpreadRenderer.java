@@ -3,7 +3,7 @@ package org.dustyroom.ui.rendering;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.PictureMetadata;
 
-import java.awt.*;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 public class SpreadRenderer {
@@ -30,14 +30,14 @@ public class SpreadRenderer {
 
         BufferedImage canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = canvas.createGraphics();
-        graphics.setColor(Color.BLACK);
-        graphics.fillRect(0, 0, width, height);
-
-        int leftY = (height - leftImage.getHeight()) / 2;
-        int rightY = (height - rightImage.getHeight()) / 2;
-        graphics.drawImage(leftImage, 0, leftY, null);
-        graphics.drawImage(rightImage, leftImage.getWidth(), rightY, null);
-        graphics.dispose();
+        try {
+            int leftY = (height - leftImage.getHeight()) / 2;
+            int rightY = (height - rightImage.getHeight()) / 2;
+            graphics.drawImage(leftImage, 0, leftY, null);
+            graphics.drawImage(rightImage, leftImage.getWidth(), rightY, null);
+        } finally {
+            graphics.dispose();
+        }
 
         return canvas;
     }

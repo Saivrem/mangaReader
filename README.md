@@ -19,7 +19,7 @@ Run the full verification and build an executable fat JAR:
 The resulting application is written to:
 
 ```text
-build/libs/mangaReader-0.7.jar
+build/libs/mangaReader-0.9.jar
 ```
 
 ## Run
@@ -27,15 +27,15 @@ build/libs/mangaReader-0.7.jar
 Open the application without an initial file:
 
 ```bash
-java -jar build/libs/mangaReader-0.7.jar
+java -jar build/libs/mangaReader-0.9.jar
 ```
 
 Open an image, a directory of images, or a ZIP archive immediately:
 
 ```bash
-java -jar build/libs/mangaReader-0.7.jar /path/to/page.jpg
-java -jar build/libs/mangaReader-0.7.jar /path/to/chapter
-java -jar build/libs/mangaReader-0.7.jar /path/to/volume.zip
+java -jar build/libs/mangaReader-0.9.jar /path/to/page.jpg
+java -jar build/libs/mangaReader-0.9.jar /path/to/chapter
+java -jar build/libs/mangaReader-0.9.jar /path/to/volume.zip
 ```
 
 ## Supported content
@@ -47,6 +47,7 @@ java -jar build/libs/mangaReader-0.7.jar /path/to/volume.zip
 - Single-page and two-page spreads
 - Left-to-right comics and right-to-left manga reading modes
 - Fit-to-screen, fit-width, fit-height, zoom, scrolling, and fullscreen modes
+- Cross-platform Manga Reader dark (default) and light themes with application-drawn chrome, macOS traffic lights, Windows controls, and a neutral Linux fallback
 - Background image decoding with stale-request protection
 - Bounded image caching and next-page prefetch
 
@@ -66,7 +67,8 @@ GIF files are currently displayed as static images.
 | `P` | Toggle two-page mode |
 | `M`, `C` | Manga or comics reading mode |
 | `F` | Toggle fullscreen |
-| `Q`, `Escape` | Exit |
+| `Escape` | Leave fullscreen |
+| `Q` | Exit |
 
 ## Project structure
 
@@ -80,6 +82,9 @@ The main entry point is `org.dustyroom.Main`.
 
 - The file chooser accepts files only; directories can be passed on the command line.
 - Image rotation is not supported.
+- The custom window chrome follows macOS, Windows, and Linux conventions, but its controls are application-drawn rather than native.
+- Native snap layouts, system shadows, and platform window menus are not emulated by the custom window chrome.
+- File chooser and message dialogs retain their platform-provided window decorations.
 
 ## Development notes
 

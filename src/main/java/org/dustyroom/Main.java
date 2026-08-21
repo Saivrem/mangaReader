@@ -1,6 +1,8 @@
 package org.dustyroom;
 
 import org.dustyroom.ui.ImageViewer;
+import org.dustyroom.ui.theme.ThemeManager;
+import org.dustyroom.ui.window.platform.DesktopPlatform;
 
 import javax.swing.*;
 import java.io.File;
@@ -9,8 +11,10 @@ public class Main {
 
     public static void main(String[] args) {
         configurePlatformUi();
+        ThemeManager.installDefault();
         SwingUtilities.invokeLater(() -> {
             ImageViewer imageViewer = new ImageViewer();
+            imageViewer.showWindow();
             if (args.length > 0) {
                 imageViewer.openFile(new File(String.join(" ", args)));
             }
@@ -18,10 +22,8 @@ public class Main {
     }
 
     private static void configurePlatformUi() {
-        String osName = System.getProperty("os.name", "").toLowerCase();
-        if (osName.contains("mac")) {
+        if (DesktopPlatform.current() == DesktopPlatform.MACOS) {
             System.setProperty("apple.awt.application.appearance", "system");
-            System.setProperty("apple.laf.useScreenMenuBar", "true");
             System.setProperty("apple.awt.application.name", "Manga Reader");
         }
     }
