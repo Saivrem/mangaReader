@@ -1,24 +1,86 @@
-# Manga viewer
+# Manga Reader
 
-Supported file formats `jpg, jpeg, png, gif, zip` (`gif` is not animated yet);
+A lightweight desktop manga and image viewer built with Java Swing.
 
-## Feature list TODO:
+## Requirements
 
-Features that must be supported:
-- [ ] file sorting !!!
-- [x] image zoom 
-- [x] scroll support
-- [x] image fit by width
-- [x] image fit by height
-- [x] image fill in case size is too small
-- [ ] two image view side-by-side with possibility to define left-to-right or right-to-left view
-- [x] zip archives support
+- JDK 17
 
-features that would be nice to have:
-- [ ] image rotation
-- [x] Nested directories support
-  - [x] zip archive contains 10 directories with volumes, 
-  - [x] each volume contains directories with chapters,
-  - [x] images are in chapter directories. 
-  - [x] Viewer should understand this structure and read files in natural order from vol1 chapter1 to vol10 chapter 10)
+The Gradle wrapper is included, and the build uses a Java 17 toolchain. A separate Gradle installation is not required.
 
+## Build and test
+
+Run the full verification and build an executable fat JAR:
+
+```bash
+./gradlew clean test fatJar
+```
+
+The resulting application is written to:
+
+```text
+build/libs/mangaReader-0.6.jar
+```
+
+## Run
+
+Open the application without an initial file:
+
+```bash
+java -jar build/libs/mangaReader-0.6.jar
+```
+
+Open an image, a directory of images, or a ZIP archive immediately:
+
+```bash
+java -jar build/libs/mangaReader-0.6.jar /path/to/page.jpg
+java -jar build/libs/mangaReader-0.6.jar /path/to/chapter
+java -jar build/libs/mangaReader-0.6.jar /path/to/volume.zip
+```
+
+## Supported content
+
+- Images: `jpg`, `jpeg`, `png`, and `gif`
+- Archives: `zip`
+- Natural file ordering, for example `page2` before `page10`
+- Nested image paths inside ZIP archives
+- Single-page and two-page spreads
+- Left-to-right comics and right-to-left manga reading modes
+- Fit-to-screen, fit-width, fit-height, zoom, scrolling, and fullscreen modes
+- Background image decoding with stale-request protection
+- Bounded image caching and next-page prefetch
+
+GIF files are currently displayed as static images.
+
+## Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| `O` | Open a file |
+| `Right`, `Page Down` | Next page |
+| `Left`, `Page Up` | Previous page |
+| `Home`, `End` | First or last page |
+| `Up`, `Down` | Previous or next volume |
+| `H`, `W`, `S` | Fit height, width, or screen |
+| `+`, `-` | Zoom in or out |
+| `P` | Toggle two-page mode |
+| `M`, `C` | Manga or comics reading mode |
+| `F` | Toggle fullscreen |
+| `Q`, `Escape` | Exit |
+
+## Project structure
+
+- `src/main/java/org/dustyroom/be` — file discovery, ordering, models, and image iterators
+- `src/main/java/org/dustyroom/ui` — Swing window, actions, components, navigation, and rendering
+- `src/test/java` — automated tests
+
+The main entry point is `org.dustyroom.Main`.
+
+## Known limitations
+
+- The file chooser accepts files only; directories can be passed on the command line.
+- Image rotation is not supported.
+
+## Development notes
+
+Repository-specific guidance for coding agents and contributors is available in [`AGENTS.md`](AGENTS.md).

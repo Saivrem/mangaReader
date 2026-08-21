@@ -21,7 +21,6 @@ public class MenuBar extends JMenuBar {
         addMenuItem(viewMenu, "Fit height mode (h)"               , actions.fitHeight());
         addMenuItem(viewMenu, "Fit width mode (w)"                , actions.fitWidth());
         addMenuItem(viewMenu, "Fit screen mode (s)"               , actions.fitScreen());
-        addMenuItem(viewMenu, "Toggle two-page mode (p)"          , actions.toggleTwoPageMode());
         addMenuItem(viewMenu, "Zoom In (+)"                       , actions.zoomIn());
         addMenuItem(viewMenu, "Zoom out (-)"                      , actions.zoomOut());
 
@@ -35,8 +34,10 @@ public class MenuBar extends JMenuBar {
         addMenuItem(colorSchemeMenu, "Nimbus theme"               , actions.setNimbusTheme());
         addMenuItem(colorSchemeMenu, "Metal theme"                , actions.setMetalTheme());
         addMenuItem(colorSchemeMenu, "System theme"               , actions.setSystemTheme());
+
         addMenuItem(readingModeMenu, "Comics (left to right) (c)" , actions.setComicsReadingMode());
         addMenuItem(readingModeMenu, "Manga (right to left) (m)"  , actions.setMangaReadingMode());
+        addMenuItem(readingModeMenu, "Toggle two-page mode (p)"   , actions.toggleTwoPageMode());
 
         addMenuItem(optionsMenu, "Toggle Fullscreen (F)"          , actions.toggleFullscreen());
         addMenuItem(helpMenu, "About"                             , actions.showAbout());
