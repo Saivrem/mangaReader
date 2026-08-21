@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.dustyroom.be.iterators.ImageTestFixtures.jpegWithConflictingColorMarkers;
 import static org.dustyroom.be.iterators.ImageTestFixtures.pngBytes;
 import static org.dustyroom.be.iterators.ImageTestFixtures.writeZip;
 
@@ -75,6 +76,22 @@ class ZipIteratorTest {
 
         try (ZipIterator iterator = new ZipIterator(corruptImage.toFile())) {
             assertThrows(ImageIteratorException.class, iterator::next);
+        }
+    }
+
+    @Test
+    void decodesJfifWithConflictingAdobeColorMarkerInsideZip() throws Exception {
+        Path zip = writeZip(
+                tempDir.resolve("volume.zip"),
+                Map.of("page.jpg", jpegWithConflictingColorMarkers())
+        );
+
+        try (ZipIterator iterator = new ZipIterator(zip.toFile())) {
+            Picture picture = iterator.next();
+            int rgb = picture.image().getRGB(1, 1);
+            assertTrue((rgb >>> 16 & 0xff) < 20);
+            assertTrue((rgb >>> 8 & 0xff) < 20);
+            assertTrue((rgb & 0xff) > 200);
         }
     }
 

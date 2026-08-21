@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.dustyroom.be.iterators.ImageTestFixtures.jpegWithConflictingColorMarkers;
 import static org.dustyroom.be.iterators.ImageTestFixtures.writeImage;
 
 class FileImageIteratorTest {
@@ -66,6 +67,15 @@ class FileImageIteratorTest {
         FileImageIterator iterator = new FileImageIterator(broken.toFile());
         ImageIteratorException error = assertThrows(ImageIteratorException.class, iterator::next);
         assertEquals(broken.toFile(), error.getSource());
+    }
+
+    @Test
+    void decodesJfifWithConflictingAdobeColorMarker() throws Exception {
+        Path page = Files.write(tempDir.resolve("page.jpg"), jpegWithConflictingColorMarkers());
+
+        Picture picture = new FileImageIterator(page.toFile()).next();
+
+        assertBlue(picture);
     }
 
     @Test
@@ -158,5 +168,12 @@ class FileImageIteratorTest {
     private static void assertName(String expected, Picture picture) {
         assertNotNull(picture);
         assertEquals(expected, picture.metadata().name());
+    }
+
+    private static void assertBlue(Picture picture) {
+        int rgb = picture.image().getRGB(1, 1);
+        assertTrue((rgb >>> 16 & 0xff) < 20);
+        assertTrue((rgb >>> 8 & 0xff) < 20);
+        assertTrue((rgb & 0xff) > 200);
     }
 }

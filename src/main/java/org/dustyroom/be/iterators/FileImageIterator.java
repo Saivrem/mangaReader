@@ -6,7 +6,6 @@ import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.Picture;
 import org.dustyroom.be.models.PictureMetadata;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -121,7 +120,7 @@ public class FileImageIterator implements ImageIterator {
             throw new ImageIteratorException("Page does not belong to the current image source", imageFile);
         }
         try (InputStream input = Files.newInputStream(imageFile.toPath())) {
-            BufferedImage read = ImageIO.read(input);
+            BufferedImage read = ImageDecoder.read(input);
             if (read == null) {
                 throw new ImageIteratorException("Unsupported or corrupt image: " + imageFile.getName(), imageFile);
             }

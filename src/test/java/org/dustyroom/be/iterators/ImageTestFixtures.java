@@ -30,6 +30,32 @@ final class ImageTestFixtures {
         }
     }
 
+    static byte[] jpegWithConflictingColorMarkers() throws IOException {
+        byte[] jpeg;
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            ImageIO.write(image(), "jpeg", output);
+            jpeg = output.toByteArray();
+        }
+
+        int app0Length = (jpeg[4] & 0xff) << 8 | jpeg[5] & 0xff;
+        int insertionOffset = 4 + app0Length;
+        byte[] adobeApp14 = {
+                (byte) 0xff, (byte) 0xee, 0, 14,
+                'A', 'd', 'o', 'b', 'e', 0, 100, 0, 0, 0, 0, 0
+        };
+        byte[] conflicting = new byte[jpeg.length + adobeApp14.length];
+        System.arraycopy(jpeg, 0, conflicting, 0, insertionOffset);
+        System.arraycopy(adobeApp14, 0, conflicting, insertionOffset, adobeApp14.length);
+        System.arraycopy(
+                jpeg,
+                insertionOffset,
+                conflicting,
+                insertionOffset + adobeApp14.length,
+                jpeg.length - insertionOffset
+        );
+        return conflicting;
+    }
+
     static Path writeZip(Path target, String... imageEntries) throws IOException {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         for (String entry : imageEntries) {
