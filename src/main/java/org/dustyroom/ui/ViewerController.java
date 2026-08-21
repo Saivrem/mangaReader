@@ -428,6 +428,6 @@ public class ViewerController {
     }
 
     private int pageIndex() {
-        return state.pageIndex();
+        return state.getPageIndex();
     }
 }
