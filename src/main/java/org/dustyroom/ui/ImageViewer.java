@@ -1,8 +1,6 @@
 package org.dustyroom.ui;
 
 import lombok.extern.slf4j.Slf4j;
-import org.dustyroom.be.iterators.ImageIterator;
-import org.dustyroom.be.models.Picture;
 import org.dustyroom.ui.actions.DefaultViewerActions;
 import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.components.ImageComponent;
@@ -14,6 +12,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
 
 import static org.dustyroom.ui.utils.UiUtils.setDarkTheme;
 
@@ -34,7 +35,7 @@ public class ImageViewer extends JFrame {
 
     public ImageViewer() {
         setTitle("Image Viewer");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setPreferredSize(new Dimension(800, 600));
         setDarkTheme();
 
@@ -70,6 +71,12 @@ public class ImageViewer extends JFrame {
                 }
             }
         });
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                viewerController.exit();
+            }
+        });
 
         setupControls();
 
@@ -93,11 +100,7 @@ public class ImageViewer extends JFrame {
         imageComponent.repaint();
     }
 
-    public void setImageIterator(ImageIterator imageIterator) {
-        viewerController.setImageIterator(imageIterator);
-    }
-
-    public void processPicture(Picture picture) {
-        viewerController.processPicture(picture);
+    public void openFile(File file) {
+        viewerController.openFile(file);
     }
 }

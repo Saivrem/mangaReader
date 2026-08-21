@@ -30,10 +30,11 @@ Open the application without an initial file:
 java -jar build/libs/mangaReader-0.6.jar
 ```
 
-Open an image or ZIP archive immediately:
+Open an image, a directory of images, or a ZIP archive immediately:
 
 ```bash
 java -jar build/libs/mangaReader-0.6.jar /path/to/page.jpg
+java -jar build/libs/mangaReader-0.6.jar /path/to/chapter
 java -jar build/libs/mangaReader-0.6.jar /path/to/volume.zip
 ```
 
@@ -46,6 +47,8 @@ java -jar build/libs/mangaReader-0.6.jar /path/to/volume.zip
 - Single-page and two-page spreads
 - Left-to-right comics and right-to-left manga reading modes
 - Fit-to-screen, fit-width, fit-height, zoom, scrolling, and fullscreen modes
+- Background image decoding with stale-request protection
+- Bounded image caching and next-page prefetch
 
 GIF files are currently displayed as static images.
 
@@ -75,10 +78,7 @@ The main entry point is `org.dustyroom.Main`.
 
 ## Known limitations
 
-- Opening a directory directly is not implemented yet; open an image in that directory instead.
-- File extension detection is currently case-sensitive.
-- Image and archive decoding is synchronous and can briefly block the UI for large files.
-- Loaded pages are retained in navigation history, so very large volumes can use significant memory.
+- The file chooser accepts files only; directories can be passed on the command line.
 - Image rotation is not supported.
 
 ## Development notes

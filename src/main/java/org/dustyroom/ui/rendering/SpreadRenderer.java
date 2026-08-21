@@ -1,6 +1,6 @@
 package org.dustyroom.ui.rendering;
 
-import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.PictureMetadata;
 
 import java.awt.*;
@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
 
 public class SpreadRenderer {
 
-    public String buildTitle(PictureMetadata metadata, Picture secondPage) {
+    public String buildTitle(PictureMetadata metadata, PageRef secondPage) {
         if (secondPage == null) {
             return String.format("%s - %s", metadata.fileName(), metadata.name());
         }
