@@ -1,5 +1,7 @@
 package org.dustyroom.be.iterators;
 
+import org.dustyroom.be.animation.gif.GifDecoder;
+
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;

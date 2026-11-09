@@ -1,21 +1,28 @@
 package org.dustyroom.ui.components;
 
+import org.dustyroom.persistence.BookState;
 import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.loading.RecentBook;
 import org.dustyroom.ui.theme.ViewerTheme;
 import org.dustyroom.ui.utils.UiUtils;
 
 import javax.swing.*;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import java.awt.event.KeyEvent;
+import java.io.File;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class MenuBar extends JMenuBar {
     private final JMenu recentMenu = menu("Open Recent", KeyEvent.VK_R);
     private final JMenuItem home;
-    private java.util.function.Consumer<String> openRecent = id -> {
+    private Consumer<String> openRecent = id -> {
     };
-    private java.util.List<org.dustyroom.ui.loading.RecentBook> recentBooks = java.util.List.of();
+    private List<RecentBook> recentBooks = List.of();
 
     public MenuBar(ViewerActions actions, Predicate<ViewerTheme> selectTheme) {
         home = new JMenuItem(actions.home());
@@ -32,7 +39,7 @@ public class MenuBar extends JMenuBar {
         fileMenu.add(home);
         fileMenu.addSeparator();
         addActions(fileMenu, actions.exit());
-        showRecentBooks(java.util.List.of());
+        showRecentBooks(List.of());
 
         viewMenu.add(item(new JCheckBoxMenuItem(actions.toggleThumbnails())));
         viewMenu.addSeparator();
@@ -131,23 +138,23 @@ public class MenuBar extends JMenuBar {
         }
     }
 
-    public void setRecentHandlers(java.util.function.Consumer<String> open, Runnable refresh) {
+    public void setRecentHandlers(Consumer<String> open, Runnable refresh) {
         openRecent = open;
 
-        recentMenu.addMenuListener(new javax.swing.event.MenuListener() {
-            public void menuSelected(javax.swing.event.MenuEvent event) {
+        recentMenu.addMenuListener(new MenuListener() {
+            public void menuSelected(MenuEvent event) {
                 refresh.run();
             }
 
-            public void menuDeselected(javax.swing.event.MenuEvent event) {
+            public void menuDeselected(MenuEvent event) {
             }
 
-            public void menuCanceled(javax.swing.event.MenuEvent event) {
+            public void menuCanceled(MenuEvent event) {
             }
         });
     }
 
-    public void showRecentBooks(java.util.List<org.dustyroom.ui.loading.RecentBook> books) {
+    public void showRecentBooks(List<RecentBook> books) {
         boolean unchanged = books.size() == recentBooks.size();
         for (int i = 0; unchanged && i < books.size(); i++) {
             unchanged = books.get(i).state().equals(recentBooks.get(i).state())
@@ -155,14 +162,14 @@ public class MenuBar extends JMenuBar {
                     && books.get(i).chapters().equals(recentBooks.get(i).chapters());
         }
         if (unchanged && recentMenu.getItemCount() > 0) return;
-        recentBooks = java.util.List.copyOf(books);
+        recentBooks = List.copyOf(books);
         recentMenu.removeAll();
         if (books.isEmpty()) {
             JMenuItem empty = new JMenuItem("No recently read books");
             empty.setEnabled(false);
             recentMenu.add(empty);
         }
-        for (var book : books) {
+        for (RecentBook book : books) {
             JMenuItem item = new JMenuItem();
             item.putClientProperty("html.disable", true);
             item.setText(book.title() + " — " + book.progress() + (book.available() ? "" : " (unavailable)"));
@@ -173,13 +180,13 @@ public class MenuBar extends JMenuBar {
                 JMenu group = new JMenu();
                 group.putClientProperty("html.disable", true);
                 group.setText(book.title() + " (" + book.chapters().size() + " chapters)");
-                item.setText("Continue — " + new java.io.File(book.state().sourceId()).getName());
+                item.setText("Continue — " + new File(book.state().sourceId()).getName());
                 group.add(item);
                 group.addSeparator();
-                for (var chapter : book.chapters().stream().limit(20).toList()) {
+                for (BookState chapter : book.chapters().stream().limit(20).toList()) {
                     JMenuItem entry = new JMenuItem();
                     entry.putClientProperty("html.disable", true);
-                    entry.setText(new java.io.File(chapter.sourceId()).getName());
+                    entry.setText(new File(chapter.sourceId()).getName());
                     entry.setToolTipText(chapter.sourceId());
                     entry.addActionListener(event -> openRecent.accept(chapter.sourceId()));
                     group.add(entry);

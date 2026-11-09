@@ -12,7 +12,7 @@ class UiUtilsTest {
     @Test
     void switchesBothThemesAndUpdatesExistingComponents() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
-            var previous = UIManager.getLookAndFeel();
+            LookAndFeel previous = UIManager.getLookAndFeel();
             boolean frameDecorated = JFrame.isDefaultLookAndFeelDecorated();
             boolean dialogDecorated = JDialog.isDefaultLookAndFeelDecorated();
             ViewerTheme previousTheme = UiUtils.currentTheme();

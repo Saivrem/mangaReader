@@ -1,17 +1,23 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.be.models.AnimationClip;
+import org.dustyroom.be.animation.AnimationClip;
+import org.dustyroom.be.animation.AnimationDecoder;
+import org.dustyroom.be.animation.AnimationFrame;
+
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-/** Two queued frames per visible page. All decoding and resource cleanup run off the EDT. */
+/**
+ * Two queued frames per visible page. All decoding and resource cleanup run off the EDT.
+ */
 public final class BufferedAnimation implements AutoCloseable {
-    private final ArrayBlockingQueue<AnimationClip.Frame> frames = new ArrayBlockingQueue<>(2);
-    private final java.util.concurrent.Semaphore capacity = new java.util.concurrent.Semaphore(2);
+    private final ArrayBlockingQueue<AnimationFrame> frames = new ArrayBlockingQueue<>(2);
+    private final Semaphore capacity = new Semaphore(2);
     private final Thread worker;
     private volatile boolean closed, complete;
-    private AnimationClip.Frame current;
+    private AnimationFrame current;
     private long deadline;
 
     public BufferedAnimation(AnimationClip source, Consumer<Exception> errorHandler) {
@@ -20,13 +26,16 @@ public final class BufferedAnimation implements AutoCloseable {
                 int pass = 0;
                 while (!closed) {
                     int count = 0, loops;
-                    try (var decoder = source.opener().open()) {
+                    try (AnimationDecoder decoder = source.opener().open()) {
                         while (!closed) {
                             // Reserve room before decoding, so a full buffer never triggers more I/O.
                             capacity.acquire();
                             if (closed) return;
-                            var frame = decoder.next();
-                            if (frame == null) { capacity.release(); break; }
+                            AnimationFrame frame = decoder.next();
+                            if (frame == null) {
+                                capacity.release();
+                                break;
+                            }
                             if (closed) return;
                             frames.put(frame);
                             count++;
@@ -49,11 +58,13 @@ public final class BufferedAnimation implements AutoCloseable {
         worker.start();
     }
 
-    /** Called only by the UI thread. An underrun holds the current frame, never blocks or skips. */
-    public AnimationClip.Frame advance(long nowNanos) {
+    /**
+     * Called only by the UI thread. An underrun holds the current frame, never blocks or skips.
+     */
+    public AnimationFrame advance(long nowNanos) {
         if (closed) return null;
         if (current == null || nowNanos >= deadline) {
-            var next = frames.poll();
+            AnimationFrame next = frames.poll();
             if (next != null) {
                 capacity.release();
                 current = next;
@@ -67,9 +78,12 @@ public final class BufferedAnimation implements AutoCloseable {
         return complete && frames.isEmpty() && (current == null || nowNanos >= deadline);
     }
 
-    public int bufferedFrames() { return frames.size(); }
+    public int bufferedFrames() {
+        return frames.size();
+    }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         closed = true;
         worker.interrupt();
         frames.clear();

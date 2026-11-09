@@ -1,6 +1,8 @@
 package org.dustyroom.ui.components;
 
 import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.theme.ViewerTheme;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
@@ -8,6 +10,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -35,7 +39,7 @@ class MenuBarTest {
         assertFalse(allMenuLabels(menuBar).anyMatch("Color scheme"::equals));
         assertFalse(allMenuLabels(menuBar).anyMatch(label -> label.endsWith(" theme")));
 
-        javax.swing.JMenu themeMenu = (javax.swing.JMenu) menuBar.getMenu(3).getItem(2);
+        JMenu themeMenu = (JMenu) menuBar.getMenu(3).getItem(2);
         assertEquals("Theme", themeMenu.getText());
         assertEquals(2, themeMenu.getItemCount());
         assertEquals("Ayu Dark", themeMenu.getItem(0).getText());
@@ -49,28 +53,28 @@ class MenuBarTest {
 
     @Test
     void themeSelectionIsExclusiveAndRestoredAfterFailure() throws Exception {
-        javax.swing.SwingUtilities.invokeAndWait(() -> {
-            java.util.concurrent.atomic.AtomicBoolean accept = new java.util.concurrent.atomic.AtomicBoolean(true);
-            java.util.concurrent.atomic.AtomicReference<org.dustyroom.ui.theme.ViewerTheme> requested =
-                    new java.util.concurrent.atomic.AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> {
+            AtomicBoolean accept = new AtomicBoolean(true);
+            AtomicReference<ViewerTheme> requested =
+                    new AtomicReference<>();
             MenuBar menuBar = new MenuBar(new NoOpViewerActions(), theme -> {
                 requested.set(theme);
                 return accept.get();
             });
-            javax.swing.JMenu themes = (javax.swing.JMenu) menuBar.getMenu(3).getItem(2);
-            javax.swing.JMenuItem dark = themes.getItem(0);
-            javax.swing.JMenuItem light = themes.getItem(1);
+            JMenu themes = (JMenu) menuBar.getMenu(3).getItem(2);
+            JMenuItem dark = themes.getItem(0);
+            JMenuItem light = themes.getItem(1);
             light.doClick(0);
-            assertEquals(org.dustyroom.ui.theme.ViewerTheme.LIGHT, requested.get());
-            org.junit.jupiter.api.Assertions.assertTrue(light.isSelected());
+            assertEquals(ViewerTheme.LIGHT, requested.get());
+            Assertions.assertTrue(light.isSelected());
             assertFalse(dark.isSelected());
             accept.set(false);
             dark.doClick(0);
-            org.junit.jupiter.api.Assertions.assertTrue(light.isSelected());
+            Assertions.assertTrue(light.isSelected());
             assertFalse(dark.isSelected());
             accept.set(true);
             dark.doClick(0);
-            org.junit.jupiter.api.Assertions.assertTrue(dark.isSelected());
+            Assertions.assertTrue(dark.isSelected());
             assertFalse(light.isSelected());
         });
     }

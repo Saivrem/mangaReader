@@ -5,11 +5,9 @@ import org.dustyroom.be.models.PageRef;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 /**
@@ -18,7 +16,7 @@ import java.util.function.IntConsumer;
 public final class ThumbnailPanel extends JPanel {
     private static final int PREFETCH_MARGIN = 10;
     private final JList<PageRef> list = new JList<>();
-    private final Loader loader;
+    private final ThumbnailLoader loader;
     private final JPanel header = new JPanel(new BorderLayout());
     private final JScrollPane scroll = new JScrollPane(list);
     private final JButton handle = new JButton() {
@@ -44,7 +42,7 @@ public final class ThumbnailPanel extends JPanel {
     private boolean pending;
     private int first = -1, last = -1;
 
-    public ThumbnailPanel(Loader loader, IntConsumer navigate, Runnable hide) {
+    public ThumbnailPanel(ThumbnailLoader loader, IntConsumer navigate, Runnable hide) {
         super(new BorderLayout());
         this.loader = loader;
 
@@ -207,8 +205,5 @@ public final class ThumbnailPanel extends JPanel {
         return true;
     }
 
-    @FunctionalInterface
-    public interface Loader {
-        void load(int index, PageRef page, Consumer<BufferedImage> result);
-    }
+
 }

@@ -68,7 +68,7 @@ public class ImageViewer extends JFrame {
         scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                if (imageComponent.getFitMode() != ImageComponent.FitMode.ORIGINAL) {
+                if (imageComponent.getFitMode() != FitMode.ORIGINAL) {
                     resizeRenderTimer.restart();
                 }
             }

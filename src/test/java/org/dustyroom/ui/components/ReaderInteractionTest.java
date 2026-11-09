@@ -21,7 +21,7 @@ class ReaderInteractionTest {
             JScrollPane scroll = new JScrollPane(image);
             scroller[0] = scroll;
             scroll.setSize(600, 400);
-            image.restoreView(ImageComponent.FitMode.ORIGINAL, 1);
+            image.restoreView(FitMode.ORIGINAL, 1);
             image.setImageAndCenter(new BufferedImage(1200, 800, BufferedImage.TYPE_INT_RGB), scroll);
             scroll.getViewport().setViewPosition(new Point(11, 90));
             image.setImageAndCenter(new BufferedImage(1000, 800, BufferedImage.TYPE_INT_RGB), scroll);
@@ -37,7 +37,7 @@ class ReaderInteractionTest {
             ImageComponent image = new ImageComponent();
             JScrollPane scroll = new JScrollPane(image);
             scroll.setSize(600, 400);
-            image.restoreView(ImageComponent.FitMode.ORIGINAL, 1);
+            image.restoreView(FitMode.ORIGINAL, 1);
             image.setImageAndCenter(new BufferedImage(1200, 1000, BufferedImage.TYPE_INT_RGB), scroll);
             scroll.getViewport().setViewPosition(new Point(200, 150));
             Point anchor = new Point(100, 100);
@@ -57,11 +57,11 @@ class ReaderInteractionTest {
             ImageComponent image = new ImageComponent();
             JScrollPane scroll = new JScrollPane(image);
             scroll.setSize(600, 400);
-            image.restoreView(ImageComponent.FitMode.ORIGINAL, 1);
+            image.restoreView(FitMode.ORIGINAL, 1);
             image.setImageAndCenter(new BufferedImage(1200, 1000, BufferedImage.TYPE_INT_RGB), scroll);
             ReaderGestures.install(image, scroll, () -> {
             });
-            var wheel = new MouseWheelEvent(scroll, MouseEvent.MOUSE_WHEEL, 0, 0, 100, 100,
+            MouseWheelEvent wheel = new MouseWheelEvent(scroll, MouseEvent.MOUSE_WHEEL, 0, 0, 100, 100,
                     100, 100, 0, false, MouseWheelEvent.WHEEL_UNIT_SCROLL, 3, 1, 0.25);
             scroll.dispatchEvent(wheel);
             assertEquals(36, scroll.getViewport().getViewPosition().y);

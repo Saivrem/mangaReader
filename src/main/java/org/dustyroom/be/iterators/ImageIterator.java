@@ -1,5 +1,6 @@
 package org.dustyroom.be.iterators;
 
+import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.models.Direction;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.Picture;
@@ -35,7 +36,7 @@ public interface ImageIterator extends AutoCloseable {
 
     Picture load(PageRef page);
 
-    default org.dustyroom.be.models.AnimationClip animation(PageRef page) {
+    default AnimationClip animation(PageRef page) {
         return null;
     }
 

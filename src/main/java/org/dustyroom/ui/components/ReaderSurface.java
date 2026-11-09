@@ -71,7 +71,7 @@ public final class ReaderSurface extends JPanel {
     private static JButton openButton(Action open) {
         JButton button = new JButton(open);
         button.setText("Open a book");
-        button.setIcon(new ReaderIcon(ReaderIcon.Kind.OPEN));
+        button.setIcon(new ReaderIcon(ReaderIconKind.OPEN));
         button.putClientProperty("JButton.buttonType", "roundRect");
         button.putClientProperty("FlatLaf.style", "background: $Component.accentColor; foreground: #0D1017");
         button.setMaximumSize(new Dimension(190, 44));
@@ -80,7 +80,7 @@ public final class ReaderSurface extends JPanel {
         return button;
     }
 
-    public void setRecentGrouping(boolean grouped, java.util.function.Consumer<Boolean> change) {
+    public void setRecentGrouping(boolean grouped, Consumer<Boolean> change) {
         recent.setGrouping(grouped, change);
     }
 

@@ -1,5 +1,6 @@
 package org.dustyroom.persistence;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,8 +40,8 @@ public interface ReaderStore extends AutoCloseable {
 
     void saveBook(BookState state);
 
-    default java.util.List<BookState> recentBooks(int limit) {
-        return java.util.List.of();
+    default List<BookState> recentBooks(int limit) {
+        return List.of();
     }
 
     default void hideRecent(String sourceId) {

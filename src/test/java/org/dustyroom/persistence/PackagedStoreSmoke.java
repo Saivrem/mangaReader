@@ -1,6 +1,6 @@
 package org.dustyroom.persistence;
 
-import org.dustyroom.ui.components.ImageComponent.FitMode;
+import org.dustyroom.ui.components.FitMode;
 import org.dustyroom.ui.theme.ViewerTheme;
 
 import java.nio.file.Path;

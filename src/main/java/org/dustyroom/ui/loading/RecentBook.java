@@ -4,17 +4,18 @@ import org.dustyroom.persistence.BookState;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.List;
 
 /**
  * Immutable snapshot shared by the welcome view and Open Recent menu.
  */
-public record RecentBook(BookState state, boolean available, BufferedImage cover, java.util.List<BookState> chapters) {
+public record RecentBook(BookState state, boolean available, BufferedImage cover, List<BookState> chapters) {
     public RecentBook {
-        chapters = java.util.List.copyOf(chapters);
+        chapters = List.copyOf(chapters);
     }
 
     public RecentBook(BookState state, boolean available, BufferedImage cover) {
-        this(state, available, cover, java.util.List.of(state));
+        this(state, available, cover, List.of(state));
     }
 
     public String title() {

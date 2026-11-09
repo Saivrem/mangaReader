@@ -6,7 +6,9 @@ import java.awt.*;
 import java.awt.image.BaseMultiResolutionImage;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Decode and resize once on the startup thread, before creating Swing windows.
@@ -20,7 +22,7 @@ public final class BrandAssets {
     }
 
     public static void load() {
-        try (var stream = BrandAssets.class.getResourceAsStream("/org/dustyroom/ui/branding/yonaka-original.png")) {
+        try (InputStream stream = BrandAssets.class.getResourceAsStream("/org/dustyroom/ui/branding/yonaka-original.png")) {
             if (stream == null) throw new IOException("Missing Yonaka icon");
             BufferedImage source = ImageIO.read(stream);
             if (source == null) throw new IOException("Invalid Yonaka icon");
@@ -29,7 +31,7 @@ public final class BrandAssets {
             welcomeIcon = multiResolutionIcon(source, 96);
         } catch (IOException exception) {
             // Branding must never prevent opening a book.
-            java.util.logging.Logger.getLogger(BrandAssets.class.getName()).warning(exception.getMessage());
+            Logger.getLogger(BrandAssets.class.getName()).warning(exception.getMessage());
         }
     }
 

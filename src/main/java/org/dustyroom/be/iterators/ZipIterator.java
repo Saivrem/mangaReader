@@ -1,6 +1,8 @@
 package org.dustyroom.be.iterators;
 
 import lombok.extern.slf4j.Slf4j;
+import org.dustyroom.be.animation.AnimationClip;
+import org.dustyroom.be.animation.gif.GifDecoder;
 import org.dustyroom.be.models.PageKey;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.Picture;
@@ -8,6 +10,7 @@ import org.dustyroom.be.models.PictureMetadata;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -132,24 +135,33 @@ public class ZipIterator implements ImageIterator {
     }
 
     @Override
-    public org.dustyroom.be.models.AnimationClip animation(PageRef page) {
+    public AnimationClip animation(PageRef page) {
         ensureOpen();
         if (!page.key().sourceId().equals(sourceId(zipFilePath))) throw new IllegalArgumentException("Wrong source");
         // Playback owns an independent archive handle, including after switching volumes.
         File archive = zipFilePath;
         String entryName = page.key().pageId();
         return GifDecoder.read(() -> {
-            var zip = new java.util.zip.ZipFile(archive);
+            ZipFile zip = new ZipFile(archive);
             try {
                 ZipEntry entry = zip.getEntry(entryName);
                 if (entry == null) throw new IOException("Missing GIF entry: " + entryName);
-                return new java.io.FilterInputStream(zip.getInputStream(entry)) {
-                    @Override public void close() throws IOException {
-                        try { super.close(); } finally { zip.close(); }
+                return new FilterInputStream(zip.getInputStream(entry)) {
+                    @Override
+                    public void close() throws IOException {
+                        try {
+                            super.close();
+                        } finally {
+                            zip.close();
+                        }
                     }
                 };
             } catch (IOException | RuntimeException error) {
-                try { zip.close(); } catch (IOException suppressed) { error.addSuppressed(suppressed); }
+                try {
+                    zip.close();
+                } catch (IOException suppressed) {
+                    error.addSuppressed(suppressed);
+                }
                 throw error;
             }
         });

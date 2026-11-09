@@ -7,8 +7,8 @@ import java.awt.geom.Path2D;
 /**
  * Original vector icons, drawn in logical coordinates for HiDPI displays.
  */
-public record ReaderIcon(Kind kind, int size) implements Icon {
-    public ReaderIcon(Kind kind) {
+public record ReaderIcon(ReaderIconKind kind, int size) implements Icon {
+    public ReaderIcon(ReaderIconKind kind) {
         this(kind, 20);
     }
 
@@ -36,8 +36,8 @@ public record ReaderIcon(Kind kind, int size) implements Icon {
             g.translate(x, y);
             g.scale(size / 24.0, size / 24.0);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            var color = component.isEnabled() ? component.getForeground() : UIManager.getColor("Label.disabledForeground");
-            if (component.isEnabled() && component instanceof javax.swing.AbstractButton button && button.isSelected()) {
+            Color color = component.isEnabled() ? component.getForeground() : UIManager.getColor("Label.disabledForeground");
+            if (component.isEnabled() && component instanceof AbstractButton button && button.isSelected()) {
                 color = UIManager.getColor("ToggleButton.selectedForeground");
             }
             g.setColor(color == null ? component.getForeground() : color);
@@ -59,7 +59,7 @@ public record ReaderIcon(Kind kind, int size) implements Icon {
                 }
                 case SPREAD, BOOK -> {
                     line(g, 12, 6, 8, 4, 3, 4, 3, 19, 8, 19, 12, 21, 16, 19, 21, 19, 21, 4, 16, 4, 12, 6, 12, 21);
-                    if (kind == Kind.BOOK) {
+                    if (kind == ReaderIconKind.BOOK) {
                         line(g, 6, 9, 9, 10);
                         line(g, 15, 10, 18, 9);
                     }
@@ -76,5 +76,5 @@ public record ReaderIcon(Kind kind, int size) implements Icon {
         }
     }
 
-    public enum Kind {OPEN, PREVIOUS, NEXT, PREVIOUS_VOLUME, NEXT_VOLUME, SPREAD, FULLSCREEN, BOOK}
+
 }

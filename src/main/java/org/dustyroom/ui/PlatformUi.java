@@ -2,7 +2,10 @@ package org.dustyroom.ui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 /**
  * Configures UI behavior which must be decided before AWT is initialized.
@@ -42,10 +45,10 @@ public final class PlatformUi {
         }
     }
 
-    static void openFiles(java.util.List<java.io.File> files, java.util.function.Consumer<java.io.File> open) {
+    static void openFiles(List<File> files, Consumer<File> open) {
         // The reader displays one book at a time. Finder may send a batch; open its first item.
         if (!files.isEmpty()) {
-            java.io.File file = files.get(0);
+            File file = files.get(0);
             SwingUtilities.invokeLater(() -> open.accept(file));
         }
     }

@@ -3,6 +3,7 @@ package org.dustyroom.ui;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.MultiResolutionImage;
 
@@ -12,15 +13,15 @@ class BrandAssetsTest {
     @Test
     void iconsKeepLogicalDimensionsAndProvideRetinaPixels() {
         BrandAssets.load();
-        for (var icon : new javax.swing.Icon[]{BrandAssets.aboutIcon(), BrandAssets.welcomeIcon()}) {
+        for (Icon icon : new Icon[]{BrandAssets.aboutIcon(), BrandAssets.welcomeIcon()}) {
             assertNotNull(icon);
-            var image = assertInstanceOf(MultiResolutionImage.class, ((ImageIcon) icon).getImage());
+            MultiResolutionImage image = assertInstanceOf(MultiResolutionImage.class, ((ImageIcon) icon).getImage());
             int size = icon.getIconWidth();
             assertEquals(size, icon.getIconHeight());
             assertEquals(size * 2, image.getResolutionVariant(size * 2, size * 2).getWidth(null));
             assertEquals(size * 3, image.getResolutionVariant(size * 3, size * 3).getWidth(null));
             BufferedImage screen = new BufferedImage(size * 2, size * 2, BufferedImage.TYPE_INT_ARGB);
-            var graphics = screen.createGraphics();
+            Graphics2D graphics = screen.createGraphics();
             try {
                 graphics.scale(2, 2);
                 icon.paintIcon(null, graphics, 0, 0);

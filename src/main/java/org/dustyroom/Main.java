@@ -4,6 +4,7 @@ import org.dustyroom.persistence.ReaderSettings;
 import org.dustyroom.persistence.ReaderStore;
 import org.dustyroom.persistence.SqliteReaderStore;
 import org.dustyroom.persistence.StoragePaths;
+import org.dustyroom.ui.BrandAssets;
 import org.dustyroom.ui.ImageViewer;
 import org.dustyroom.ui.PlatformUi;
 import org.dustyroom.ui.utils.DialogUtils;
@@ -16,7 +17,7 @@ public class Main {
 
     public static void main(String[] args) {
         PlatformUi.configure();
-        org.dustyroom.ui.BrandAssets.load();
+        BrandAssets.load();
         ReaderStore candidate = ReaderStore.disabled();
         ReaderSettings loaded = ReaderSettings.defaults();
         String error = null;

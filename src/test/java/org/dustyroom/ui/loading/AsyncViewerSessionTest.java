@@ -1,22 +1,33 @@
 package org.dustyroom.ui.loading;
 
+import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ImageIteratorException;
 import org.dustyroom.be.models.PageKey;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.Picture;
 import org.dustyroom.be.models.PictureMetadata;
+import org.dustyroom.persistence.BookState;
+import org.dustyroom.persistence.ReaderSettings;
+import org.dustyroom.persistence.ReaderStore;
+import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,7 +43,7 @@ class AsyncViewerSessionTest {
     }
 
     private static AsyncViewerSession session(
-            java.util.function.Function<File, ImageIterator> factory,
+            Function<File, ImageIterator> factory,
             ViewerTaskExecutor tasks,
             Executor ui,
             RecordingView view,
@@ -71,7 +82,9 @@ class AsyncViewerSessionTest {
     @Test
     void animatedPagesFollowSpreadOrderAndStaleResultsAreDiscarded() {
         FakeImageIterator source = FakeImageIterator.portraits("book", "one.gif", "two.gif", "three.png");
-        source.animation = new org.dustyroom.be.models.AnimationClip(() -> { throw new java.io.IOException("Not opened by session"); });
+        source.animation = new AnimationClip(() -> {
+            throw new IOException("Not opened by session");
+        });
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         QueuedExecutor ui = new QueuedExecutor();
         RecordingView view = new RecordingView();
@@ -82,14 +95,14 @@ class AsyncViewerSessionTest {
         session.toggleTwoPageMode();
         tasks.runAll();
         ui.runAll();
-        var manga = view.animations.get(view.animations.size() - 1);
+        List<AnimatedPage> manga = view.animations.get(view.animations.size() - 1);
         assertEquals(2, manga.size());
         assertEquals(4, manga.get(0).x());
         assertEquals(0, manga.get(1).x());
         session.setComicsReadingMode();
         tasks.runAll();
         ui.runAll();
-        var comics = view.animations.get(view.animations.size() - 1);
+        List<AnimatedPage> comics = view.animations.get(view.animations.size() - 1);
         assertEquals(0, comics.get(0).x());
         assertEquals(4, comics.get(1).x());
         session.first();
@@ -159,15 +172,15 @@ class AsyncViewerSessionTest {
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         RecordingView view = new RecordingView();
         MemoryStore store = new MemoryStore();
-        store.books.put("source", new org.dustyroom.persistence.BookState("source", "two", 2, 3,
-                true, org.dustyroom.ui.navigation.ReadingMode.COMICS));
+        store.books.put("source", new BookState("source", "two", 2, 3,
+                true, ReadingMode.COMICS));
         AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(new File("source"));
         tasks.runAll();
         assertEquals(3, lastFrame(view).firstPage()); // identify page by name, not the old index
         assertTrue(lastFrame(view).twoPageMode());
-        assertEquals(org.dustyroom.ui.navigation.ReadingMode.COMICS, lastFrame(view).readingMode());
+        assertEquals(ReadingMode.COMICS, lastFrame(view).readingMode());
         session.remember(lastFrame(view));
         assertEquals(2, store.books.get("source").pageNumber()); // still queued, no disk work in caller
         session.close();
@@ -182,8 +195,8 @@ class AsyncViewerSessionTest {
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         RecordingView view = new RecordingView();
         MemoryStore store = new MemoryStore();
-        store.books.put("source", new org.dustyroom.persistence.BookState("source", "deleted", 50, 100,
-                false, org.dustyroom.ui.navigation.ReadingMode.MANGA));
+        store.books.put("source", new BookState("source", "deleted", 50, 100,
+                false, ReadingMode.MANGA));
         AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(new File("source"));
@@ -194,15 +207,15 @@ class AsyncViewerSessionTest {
     }
 
     @Test
-    void explicitImageOverridesSavedFolderPosition(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory) throws Exception {
-        java.nio.file.Path selected = directory.resolve("one.png");
-        java.nio.file.Files.write(selected, new byte[]{0}); // fake decoder below, real file-kind check
+    void explicitImageOverridesSavedFolderPosition(@TempDir Path directory) throws Exception {
+        Path selected = directory.resolve("one.png");
+        Files.write(selected, new byte[]{0}); // fake decoder below, real file-kind check
         FakeImageIterator source = FakeImageIterator.portraits("source", "one", "two");
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         RecordingView view = new RecordingView();
         MemoryStore store = new MemoryStore();
-        store.books.put("source", new org.dustyroom.persistence.BookState("source", "two", 2, 2,
-                false, org.dustyroom.ui.navigation.ReadingMode.MANGA));
+        store.books.put("source", new BookState("source", "two", 2, 2,
+                false, ReadingMode.MANGA));
         AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(selected.toFile());
@@ -236,12 +249,12 @@ class AsyncViewerSessionTest {
         };
         MemoryStore store = new MemoryStore() {
             @Override
-            public java.util.Optional<org.dustyroom.persistence.BookState> book(String id) {
+            public Optional<BookState> book(String id) {
                 throw new IllegalStateException("unavailable");
             }
 
             @Override
-            public void saveBook(org.dustyroom.persistence.BookState state) {
+            public void saveBook(BookState state) {
                 throw new IllegalStateException("read only");
             }
         };
@@ -271,7 +284,7 @@ class AsyncViewerSessionTest {
         tasks.runAll();
         ViewerFrame oldFrame = lastFrame(view);
         session.remember(oldFrame);
-        java.util.concurrent.atomic.AtomicBoolean finished = new java.util.concurrent.atomic.AtomicBoolean();
+        AtomicBoolean finished = new AtomicBoolean();
         session.resetAndClose(() -> finished.set(true), message -> fail(message));
         session.remember(oldFrame);
         session.open(new File("source"));
@@ -315,8 +328,8 @@ class AsyncViewerSessionTest {
         QueuedExecutor ui = new QueuedExecutor();
         List<List<RecentBook>> published = new ArrayList<>();
         MemoryStore store = new MemoryStore();
-        store.books.put("missing.zip", new org.dustyroom.persistence.BookState("missing.zip", "p", 2, 5,
-                false, org.dustyroom.ui.navigation.ReadingMode.COMICS));
+        store.books.put("missing.zip", new BookState("missing.zip", "p", 2, 5,
+                false, ReadingMode.COMICS));
         ViewerView view = new ViewerView() {
             public void showLoading() {
             }
@@ -375,7 +388,7 @@ class AsyncViewerSessionTest {
         assertEquals(2, lastFrame(view).firstPage());
         assertEquals(3, lastFrame(view).lastPage());
         assertTrue(lastFrame(view).twoPageMode());
-        assertEquals(org.dustyroom.ui.navigation.ReadingMode.COMICS, lastFrame(view).readingMode());
+        assertEquals(ReadingMode.COMICS, lastFrame(view).readingMode());
         int frameCount = view.frames.size();
         session.goToPage(0);
         tasks.runAll();
@@ -790,12 +803,12 @@ class AsyncViewerSessionTest {
         assertTrue(view.frames.isEmpty());
     }
 
-    private static class MemoryStore implements org.dustyroom.persistence.ReaderStore {
-        final Map<String, org.dustyroom.persistence.BookState> books = new HashMap<>();
-        final java.util.Set<String> hidden = new java.util.HashSet<>();
+    private static class MemoryStore implements ReaderStore {
+        final Map<String, BookState> books = new HashMap<>();
+        final Set<String> hidden = new HashSet<>();
         boolean closed;
 
-        public List<org.dustyroom.persistence.BookState> recentBooks(int limit) {
+        public List<BookState> recentBooks(int limit) {
             assertFalse(closed);
             return books.values().stream().filter(book -> !hidden.contains(book.sourceId())).limit(limit).toList();
         }
@@ -808,18 +821,18 @@ class AsyncViewerSessionTest {
             hidden.remove(id);
         }
 
-        public org.dustyroom.persistence.ReaderSettings settings() {
-            return org.dustyroom.persistence.ReaderSettings.defaults();
+        public ReaderSettings settings() {
+            return ReaderSettings.defaults();
         }
 
-        public void saveSettings(org.dustyroom.persistence.ReaderSettings settings) {
+        public void saveSettings(ReaderSettings settings) {
         }
 
-        public java.util.Optional<org.dustyroom.persistence.BookState> book(String id) {
-            return java.util.Optional.ofNullable(books.get(id));
+        public Optional<BookState> book(String id) {
+            return Optional.ofNullable(books.get(id));
         }
 
-        public void saveBook(org.dustyroom.persistence.BookState state) {
+        public void saveBook(BookState state) {
             assertFalse(closed);
             books.put(state.sourceId(), state);
         }
@@ -921,12 +934,13 @@ class AsyncViewerSessionTest {
         private final Map<String, BufferedImage> images;
         private final Map<String, Integer> loadCounts = new HashMap<>();
         private final List<String> failures = new ArrayList<>();
-        private org.dustyroom.be.models.AnimationClip animation;
+        private AnimationClip animation;
         private volatile String blockedPage;
         private volatile CountDownLatch blockedLoadStarted;
         private volatile CountDownLatch releaseBlockedLoad;
         private int cursor;
         private int closeCount;
+
         private FakeImageIterator(String sourceId, List<PageRef> pages, Map<String, BufferedImage> images) {
             this.sourceId = sourceId;
             this.pages = pages;
@@ -944,7 +958,7 @@ class AsyncViewerSessionTest {
         }
 
         @Override
-        public org.dustyroom.be.models.AnimationClip animation(PageRef page) {
+        public AnimationClip animation(PageRef page) {
             return animation;
         }
 

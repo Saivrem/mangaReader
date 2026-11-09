@@ -1,5 +1,6 @@
 package org.dustyroom.ui.components;
 
+import org.dustyroom.ui.PlatformUi;
 import org.dustyroom.ui.actions.ViewerActions;
 import org.junit.jupiter.api.Test;
 
@@ -7,6 +8,7 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +20,7 @@ class KeyBindingsTest {
 
     private static Map<String, Action> actionsByMethod() {
         Map<String, Action> actions = new HashMap<>();
-        for (var method : ViewerActions.class.getMethods()) {
+        for (Method method : ViewerActions.class.getMethods()) {
             String id = method.getName();
             Action action = new AbstractAction(id) {
                 @Override
@@ -60,7 +62,7 @@ class KeyBindingsTest {
         assertEquals("openFileLegacy", inputMap.get(KeyStroke.getKeyStroke(KeyEvent.VK_O, 0)));
         assertSame(actionsByMethod.get("openFile"), rootPane.getActionMap().get("openFileLegacy"));
         assertEquals("nextImagePage", inputMap.get(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0)));
-        if (!org.dustyroom.ui.PlatformUi.usesScreenMenuBar()) {
+        if (!PlatformUi.usesScreenMenuBar()) {
             assertEquals("fullscreenF11", inputMap.get(KeyStroke.getKeyStroke(KeyEvent.VK_F11, 0)));
         }
     }

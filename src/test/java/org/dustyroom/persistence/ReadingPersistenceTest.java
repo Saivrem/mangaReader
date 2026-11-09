@@ -2,6 +2,7 @@ package org.dustyroom.persistence;
 
 import org.dustyroom.be.iterators.ImageIteratorFactory;
 import org.dustyroom.ui.loading.*;
+import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
 import org.junit.jupiter.api.Test;
@@ -82,7 +83,7 @@ class ReadingPersistenceTest {
             assertEquals(2, shown.get().firstPage());
             assertEquals(3, shown.get().lastPage());
             assertTrue(shown.get().twoPageMode());
-            assertEquals(org.dustyroom.ui.navigation.ReadingMode.COMICS, shown.get().readingMode());
+            assertEquals(ReadingMode.COMICS, shown.get().readingMode());
             reopened.close();
         }
     }

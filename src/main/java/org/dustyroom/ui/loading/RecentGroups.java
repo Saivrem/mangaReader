@@ -3,10 +3,7 @@ package org.dustyroom.ui.loading;
 import org.dustyroom.persistence.BookState;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * Explicit folder grouping, not guessing series names from filenames.
@@ -16,7 +13,7 @@ public final class RecentGroups {
     }
 
     public static List<List<BookState>> select(List<BookState> history, boolean grouped, int limit) {
-        var groups = new LinkedHashMap<String, List<BookState>>();
+        Map<String, List<BookState>> groups = new LinkedHashMap<String, List<BookState>>();
         for (BookState book : history) {
             String key = "book:" + book.sourceId();
             if (grouped && book.sourceId().toLowerCase(Locale.ROOT).endsWith(".zip")) {
@@ -25,7 +22,7 @@ public final class RecentGroups {
             }
             if (groups.containsKey(key)) groups.get(key).add(book);
             else if (groups.size() < limit) {
-                var books = new ArrayList<BookState>();
+                List<BookState> books = new ArrayList<BookState>();
                 books.add(book);
                 groups.put(key, books);
             }

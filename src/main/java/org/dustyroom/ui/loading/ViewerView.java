@@ -1,13 +1,18 @@
 package org.dustyroom.ui.loading;
 
+import org.dustyroom.be.models.PageKey;
+import org.dustyroom.be.models.PageRef;
+
+import java.util.List;
+
 public interface ViewerView {
-    default void showPages(java.util.List<org.dustyroom.be.models.PageRef> pages) {
+    default void showPages(List<PageRef> pages) {
     }
 
-    default void showRecentBooks(java.util.List<RecentBook> books) {
+    default void showRecentBooks(List<RecentBook> books) {
     }
 
-    default void showAnimations(org.dustyroom.be.models.PageKey page, java.util.List<AnimatedPage> animations) {
+    default void showAnimations(PageKey page, List<AnimatedPage> animations) {
     }
 
     void showLoading();

@@ -1,9 +1,17 @@
 package org.dustyroom.ui.components;
 
+import org.dustyroom.be.models.PageKey;
+import org.dustyroom.be.models.PageRef;
+import org.dustyroom.be.models.PictureMetadata;
+import org.dustyroom.be.utils.Constants;
+import org.dustyroom.persistence.BookState;
+import org.dustyroom.ui.BrandAssets;
 import org.dustyroom.ui.actions.ViewerActionState;
 import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.loading.RecentBook;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.navigation.ReadingMode;
+import org.dustyroom.ui.rendering.ThumbnailRenderer;
 import org.dustyroom.ui.theme.ViewerTheme;
 import org.dustyroom.ui.utils.UiUtils;
 
@@ -13,9 +21,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 /**
  * Headless visual fixture; writes previews only when explicitly run.
@@ -24,7 +35,7 @@ public final class ReaderUiPreview {
     public static void main(String[] args) throws Exception {
         File output = new File("build/ui-preview");
         if (!output.isDirectory() && !output.mkdirs()) throw new IllegalStateException("Cannot create " + output);
-        org.dustyroom.ui.BrandAssets.load();
+        BrandAssets.load();
         SwingUtilities.invokeAndWait(() -> {
             for (ViewerTheme theme : ViewerTheme.values()) {
                 if (!UiUtils.installTheme(theme)) throw new IllegalStateException("Cannot install " + theme);
@@ -38,9 +49,9 @@ public final class ReaderUiPreview {
     }
 
     private static void renderAbout(File output, ViewerTheme theme) {
-        JOptionPane pane = new JOptionPane(org.dustyroom.be.utils.Constants.ABOUT.formatted("0.9.0"),
+        JOptionPane pane = new JOptionPane(Constants.ABOUT.formatted("0.9.0"),
                 JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION,
-                org.dustyroom.ui.BrandAssets.aboutIcon());
+                BrandAssets.aboutIcon());
         pane.setSize(520, 240);
         layout(pane);
         BufferedImage screenshot = new BufferedImage(1040, 480, BufferedImage.TYPE_INT_RGB);
@@ -53,7 +64,7 @@ public final class ReaderUiPreview {
         }
         try {
             ImageIO.write(screenshot, "png", new File(output, theme.name().toLowerCase() + "-about.png"));
-        } catch (java.io.IOException exception) {
+        } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
     }
@@ -62,7 +73,7 @@ public final class ReaderUiPreview {
         ViewerActions actions = actions();
         ViewerFrame frame = loaded ? new ViewerFrame(samplePage(), "Sample book", null,
                 24, 25, 180, true, ReadingMode.MANGA, null) : null;
-        ViewerActionState.apply(actions, frame, ImageComponent.FitMode.FIT_SCREEN, false);
+        ViewerActionState.apply(actions, frame, FitMode.FIT_SCREEN, false);
         ImageComponent image = new ImageComponent();
         image.setOpaque(true);
         image.setBackground(UIManager.getColor("Viewer.background"));
@@ -70,19 +81,19 @@ public final class ReaderUiPreview {
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(UIManager.getColor("Viewer.background"));
         ReaderSurface surface = new ReaderSurface(scroll, actions.openFile());
-        if (!loaded) surface.showRecentBooks(java.util.stream.IntStream.range(0, 6).mapToObj(i ->
-                new org.dustyroom.ui.loading.RecentBook(new org.dustyroom.persistence.BookState(
+        if (!loaded) surface.showRecentBooks(IntStream.range(0, 6).mapToObj(i ->
+                new RecentBook(new BookState(
                         "/books/" + (i == 0 ? "夜中/Chapter 03.zip" : "Volume " + (i + 1) + ".zip"),
                         "page-24", 24 + i, 180, true, ReadingMode.MANGA), i != 2,
-                        i == 2 ? null : org.dustyroom.ui.rendering.ThumbnailRenderer.render(samplePage()),
-                        i == 0 ? java.util.stream.IntStream.range(1, 4).mapToObj(chapter ->
-                                new org.dustyroom.persistence.BookState("/books/夜中/Chapter 0" + chapter + ".zip", "page", 24, 180, true, ReadingMode.MANGA)).toList()
-                                : java.util.List.of(new org.dustyroom.persistence.BookState("/books/Volume " + (i + 1) + ".zip", "page", 24 + i, 180, true, ReadingMode.MANGA)))).toList());
+                        i == 2 ? null : ThumbnailRenderer.render(samplePage()),
+                        i == 0 ? IntStream.range(1, 4).mapToObj(chapter ->
+                                new BookState("/books/夜中/Chapter 0" + chapter + ".zip", "page", 24, 180, true, ReadingMode.MANGA)).toList()
+                                : List.of(new BookState("/books/Volume " + (i + 1) + ".zip", "page", 24 + i, 180, true, ReadingMode.MANGA)))).toList());
         NavigationPanel navigation = new NavigationPanel(actions);
-        navigation.updateState(frame, ImageComponent.FitMode.FIT_SCREEN);
+        navigation.updateState(frame, FitMode.FIT_SCREEN);
         JPanel content = new JPanel(new BorderLayout());
         ThumbnailPanel thumbnails = new ThumbnailPanel((index, page, result) ->
-                result.accept(org.dustyroom.ui.rendering.ThumbnailRenderer.render(samplePage())), page -> {
+                result.accept(ThumbnailRenderer.render(samplePage())), page -> {
         }, () -> {
         });
         if (loaded) content.add(thumbnails, BorderLayout.WEST);
@@ -98,9 +109,9 @@ public final class ReaderUiPreview {
         if (loaded) surface.showReading();
         if (loaded) {
             host.addNotify();
-            thumbnails.showPages(java.util.stream.IntStream.range(0, 180).mapToObj(i ->
-                    new org.dustyroom.be.models.PageRef(new org.dustyroom.be.models.PageKey("preview", "page" + i),
-                            new org.dustyroom.be.models.PictureMetadata("page" + i, "preview", new File(".")))).toList());
+            thumbnails.showPages(IntStream.range(0, 180).mapToObj(i ->
+                    new PageRef(new PageKey("preview", "page" + i),
+                            new PictureMetadata("page" + i, "preview", new File(".")))).toList());
         }
         layout(root);
         if (loaded) thumbnails.showSpread(24, 25);
@@ -119,7 +130,7 @@ public final class ReaderUiPreview {
         try {
             ImageIO.write(screenshot, "png", new File(output,
                     theme.name().toLowerCase() + (loaded ? "-reading-" : "-welcome-") + width + ".png"));
-        } catch (java.io.IOException exception) {
+        } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
         if (loaded) host.removeNotify();

@@ -5,7 +5,10 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.function.DoubleConsumer;
+import java.util.logging.Logger;
 
 /**
  * Precise wheel scrolling, pointer-anchored zoom and grab-to-pan, without image I/O.
@@ -78,12 +81,12 @@ public final class ReaderGestures {
         });
     }
 
-    private static void installMacMagnification(JComponent component, java.util.function.DoubleConsumer zoom) {
+    private static void installMacMagnification(JComponent component, DoubleConsumer zoom) {
         if (!System.getProperty("os.name", "").startsWith("Mac")) return;
         try {
             Class<?> listener = Class.forName("com.apple.eawt.event.MagnificationListener");
             Class<?> eventClass = Class.forName("com.apple.eawt.event.MagnificationEvent");
-            var magnification = eventClass.getMethod("getMagnification");
+            Method magnification = eventClass.getMethod("getMagnification");
             Object proxy = Proxy.newProxyInstance(listener.getClassLoader(), new Class<?>[]{listener}, (self, method, args) -> {
                 if (method.getName().equals("magnify")) {
                     double factor = Math.max(0.01, 1 + ((Number) magnification.invoke(args[0])).doubleValue());
@@ -102,7 +105,7 @@ public final class ReaderGestures {
                     .getMethod("addGestureListenerTo", JComponent.class, Class.forName("com.apple.eawt.event.GestureListener"))
                     .invoke(null, component, proxy);
         } catch (ReflectiveOperationException | RuntimeException exception) {
-            java.util.logging.Logger.getLogger(ReaderGestures.class.getName())
+            Logger.getLogger(ReaderGestures.class.getName())
                     .fine("Native pinch unavailable; Ctrl/Command-wheel zoom remains available: " + exception);
         }
     }

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,11 +14,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RecentGroupsTest {
     @Test
     void manyChaptersDoNotCrowdOutOtherSeriesAndUngroupingPreservesOrder() {
-        var books = new ArrayList<BookState>();
+        List<BookState> books = new ArrayList<BookState>();
         for (int i = 0; i < 40; i++) books.add(book("series-a", "chapter-" + i + ".zip"));
         books.add(book("series-b", "chapter-1.zip"));
         books.add(book("series-a", "images"));
-        var groups = RecentGroups.select(books, true, 12);
+        List<List<BookState>> groups = RecentGroups.select(books, true, 12);
         assertEquals(3, groups.size());
         assertEquals(40, groups.get(0).size());
         assertEquals(books.get(0), groups.get(0).get(0));

@@ -1,6 +1,6 @@
 package org.dustyroom.ui.actions;
 
-import org.dustyroom.ui.components.ImageComponent.FitMode;
+import org.dustyroom.ui.components.FitMode;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.navigation.ReadingMode;
 

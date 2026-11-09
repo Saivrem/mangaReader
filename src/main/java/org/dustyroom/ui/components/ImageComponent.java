@@ -1,14 +1,21 @@
 package org.dustyroom.ui.components;
 
+import org.dustyroom.be.animation.AnimationFrame;
+import org.dustyroom.ui.loading.AnimatedPage;
+import org.dustyroom.ui.loading.BufferedAnimation;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ImageComponent extends JComponent {
     private final Timer animationTimer = new Timer(20, event -> animate());
     private BufferedImage image;
-    private java.util.List<org.dustyroom.ui.loading.AnimatedPage> animations = java.util.List.of();
-    private java.util.List<org.dustyroom.ui.loading.BufferedAnimation> players = java.util.List.of();
+    private List<AnimatedPage> animations = List.of();
+    private List<BufferedAnimation> players = List.of();
     private double scale = 1.0;
     private FitMode fitMode = FitMode.FIT_SCREEN;
 
@@ -28,21 +35,21 @@ public class ImageComponent extends JComponent {
 
     private void startAnimations() {
         if (!players.isEmpty() || animations.isEmpty()) return;
-        players = animations.stream().map(page -> new org.dustyroom.ui.loading.BufferedAnimation(page.clip(), error ->
-                java.util.logging.Logger.getLogger(ImageComponent.class.getName())
-                        .log(java.util.logging.Level.WARNING, "Cannot play GIF", error))).toList();
+        players = animations.stream().map(page -> new BufferedAnimation(page.clip(), error ->
+                Logger.getLogger(ImageComponent.class.getName())
+                        .log(Level.WARNING, "Cannot play GIF", error))).toList();
         animationTimer.start();
     }
 
     private void stopAnimations() {
         animationTimer.stop();
-        players.forEach(org.dustyroom.ui.loading.BufferedAnimation::close);
-        players = java.util.List.of();
+        players.forEach(BufferedAnimation::close);
+        players = List.of();
     }
 
-    public void setAnimations(java.util.List<org.dustyroom.ui.loading.AnimatedPage> pages) {
+    public void setAnimations(List<AnimatedPage> pages) {
         stopAnimations();
-        animations = java.util.List.copyOf(pages);
+        animations = List.copyOf(pages);
         if (isShowing()) startAnimations();
         repaint();
     }
@@ -71,7 +78,7 @@ public class ImageComponent extends JComponent {
 
     private void setImage(BufferedImage image) {
         stopAnimations();
-        animations = java.util.List.of();
+        animations = List.of();
         this.image = image;
         updateScale();
         revalidate();
@@ -173,9 +180,9 @@ public class ImageComponent extends JComponent {
 
         g2d.drawImage(image, x, y, imgW, imgH, this);
         for (int i = 0; i < players.size(); i++) {
-            var frame = players.get(i).advance(System.nanoTime());
+            AnimationFrame frame = players.get(i).advance(System.nanoTime());
             if (frame == null) continue;
-            var page = animations.get(i);
+            AnimatedPage page = animations.get(i);
             int px = x + (int) Math.round(page.x() * scale), py = y + (int) Math.round(page.y() * scale);
             int width = (int) Math.round(page.width() * scale), height = (int) Math.round(page.height() * scale);
             g2d.setColor(page.spread() ? Color.BLACK : getBackground());
@@ -193,10 +200,5 @@ public class ImageComponent extends JComponent {
         );
     }
 
-    public enum FitMode {
-        ORIGINAL,
-        FIT_WIDTH,
-        FIT_HEIGHT,
-        FIT_SCREEN
-    }
+
 }

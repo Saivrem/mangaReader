@@ -77,6 +77,5 @@ public final class BoundedImageCache {
         return Long.MAX_VALUE - left < right ? Long.MAX_VALUE : left + right;
     }
 
-    private record CacheEntry(BufferedImage image, long weight) {
-    }
+
 }

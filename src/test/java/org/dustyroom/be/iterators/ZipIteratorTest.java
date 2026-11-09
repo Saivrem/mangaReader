@@ -7,6 +7,7 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -197,7 +198,7 @@ class ZipIteratorTest {
         Path volume = writeZip(tempDir.resolve("volume.zip"), "page.png");
         try (ZipIterator iterator = new ZipIterator(volume.toFile())) {
             assertName("page.png", iterator.next());
-            assertThrows(java.nio.file.FileSystemException.class, () -> Files.delete(volume));
+            assertThrows(FileSystemException.class, () -> Files.delete(volume));
             assertTrue(Files.exists(volume));
             assertName("page.png", iterator.first());
         }
