@@ -1,28 +1,22 @@
 package org.dustyroom.ui.loading;
 
 import org.dustyroom.be.iterators.ImageIterator;
-import org.dustyroom.persistence.ReaderStore;
-import org.dustyroom.persistence.ReaderSettings;
-import org.dustyroom.persistence.BookState;
-import java.util.Optional;
 import org.dustyroom.be.iterators.ImageIteratorFactory;
 import org.dustyroom.be.models.PageKey;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.PageShape;
 import org.dustyroom.be.models.Picture;
+import org.dustyroom.persistence.BookState;
+import org.dustyroom.persistence.ReaderSettings;
+import org.dustyroom.persistence.ReaderStore;
 import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,7 +33,6 @@ public final class AsyncViewerSession implements AutoCloseable {
 
     private final ViewerView view;
     private final ReaderStore store;
-    private boolean persistenceWarningShown;
     private final Function<File, ImageIterator> sourceFactory;
     private final ViewerTaskExecutor tasks;
     private final Executor uiExecutor;
@@ -52,19 +45,19 @@ public final class AsyncViewerSession implements AutoCloseable {
     private final AtomicBoolean closed = new AtomicBoolean();
     private final Object closeMonitor = new Object();
     private final List<Runnable> closeCallbacks = new ArrayList<>();
+    private final Map<PageKey, PageShape> shapes = new HashMap<>();
+    private final AtomicLong recentRequest = new AtomicLong();
+    private boolean persistenceWarningShown;
     private boolean cleanupComplete;
     private boolean closeCallbackDrainScheduled;
-
     // The following state is owned by the serial task executor.
     private ImageIterator source;
     private List<PageRef> pages = List.of();
-    private final Map<PageKey, PageShape> shapes = new HashMap<>();
     private int pageIndex = -1;
     private boolean twoPageMode;
     private ReadingMode readingMode = MANGA;
     private String lastSourceError;
     private String lastRememberedSource;
-    private final AtomicLong recentRequest = new AtomicLong();
 
     public AsyncViewerSession(ViewerView view) {
         this(view, ReaderStore.disabled());
@@ -108,6 +101,13 @@ public final class AsyncViewerSession implements AutoCloseable {
         this.spreadRenderer = spreadRenderer;
     }
 
+    private static int restoredIndex(BookState saved, List<PageRef> pages) {
+        for (int index = 0; index < pages.size(); index++) {
+            if (pages.get(index).key().pageId().equals(saved.pageId())) return index;
+        }
+        return Math.max(0, Math.min(saved.pageNumber() - 1, pages.size() - 1));
+    }
+
     public void open(File file) {
         if (closed.get()) {
             return;
@@ -133,8 +133,11 @@ public final class AsyncViewerSession implements AutoCloseable {
                 return;
             }
             tasks.close();
-            try { closeOnWorker(); }
-            finally { uiExecutor.execute(afterReset); }
+            try {
+                closeOnWorker();
+            } finally {
+                uiExecutor.execute(afterReset);
+            }
         });
         if (!queued) {
             closed.set(false);
@@ -171,8 +174,12 @@ public final class AsyncViewerSession implements AutoCloseable {
         tasks.execute(INTERACTIVE, () -> {
             if (!recentActive(request)) return;
             List<RecentBook> books;
-            try { books = store.recentBooks(12).stream().map(RecentBookLoader::inspect).toList(); }
-            catch (RuntimeException exception) { warnPersistence(); return; }
+            try {
+                books = store.recentBooks(12).stream().map(RecentBookLoader::inspect).toList();
+            } catch (RuntimeException exception) {
+                warnPersistence();
+                return;
+            }
             var snapshots = new ArrayList<>(books);
             postRecent(request, snapshots);
             // One cover per low-priority task: page navigation can run between covers.
@@ -203,30 +210,34 @@ public final class AsyncViewerSession implements AutoCloseable {
     }
 
     private void persist(Runnable write) {
-        try { write.run(); } catch (RuntimeException exception) { warnPersistence(); }
+        try {
+            write.run();
+        } catch (RuntimeException exception) {
+            warnPersistence();
+        }
     }
 
     private Optional<BookState> savedBook(String sourceId) {
-        try { return store.book(sourceId); }
-        catch (RuntimeException exception) { warnPersistence(); return Optional.empty(); }
+        try {
+            return store.book(sourceId);
+        } catch (RuntimeException exception) {
+            warnPersistence();
+            return Optional.empty();
+        }
     }
 
     private void warnPersistence() {
         if (persistenceWarningShown) return;
         persistenceWarningShown = true;
         uiExecutor.execute(() -> {
-            if (!closed.get()) view.showPersistenceWarning("Reading can continue, but settings or progress could not be saved. Check the reader database location and available disk space.");
+            if (!closed.get())
+                view.showPersistenceWarning("Reading can continue, but settings or progress could not be saved. Check the reader database location and available disk space.");
         });
     }
 
-    private static int restoredIndex(BookState saved, List<PageRef> pages) {
-        for (int index = 0; index < pages.size(); index++) {
-            if (pages.get(index).key().pageId().equals(saved.pageId())) return index;
-        }
-        return Math.max(0, Math.min(saved.pageNumber() - 1, pages.size() - 1));
-    }
-
-    /** Uses the source only on its owning worker, below reading and prefetch priority. */
+    /**
+     * Uses the source only on its owning worker, below reading and prefetch priority.
+     */
     public void thumbnail(int index, PageRef expected, java.util.function.Consumer<BufferedImage> result) {
         long targetGeneration = generation.get();
         boolean queued = !closed.get() && tasks.execute(TaskPriority.THUMBNAIL, () -> {
@@ -336,7 +347,11 @@ public final class AsyncViewerSession implements AutoCloseable {
             cache.clear();
             pageIndex = -1;
             lastSourceError = null;
-            try { store.close(); } finally { completeClose(); }
+            try {
+                store.close();
+            } finally {
+                completeClose();
+            }
         }
     }
 

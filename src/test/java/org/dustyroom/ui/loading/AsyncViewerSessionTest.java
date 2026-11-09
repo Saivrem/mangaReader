@@ -12,11 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +21,53 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AsyncViewerSessionTest {
+    private static AsyncViewerSession session(
+            FakeImageIterator source,
+            ViewerTaskExecutor tasks,
+            Executor ui,
+            RecordingView view,
+            BoundedImageCache cache
+    ) {
+        return session(file -> source, tasks, ui, view, cache);
+    }
+
+    private static AsyncViewerSession session(
+            java.util.function.Function<File, ImageIterator> factory,
+            ViewerTaskExecutor tasks,
+            Executor ui,
+            RecordingView view,
+            BoundedImageCache cache
+    ) {
+        return new AsyncViewerSession(
+                view,
+                factory,
+                tasks,
+                ui,
+                cache,
+                new SpreadPlanner(),
+                new SpreadRenderer()
+        );
+    }
+
+    private static BoundedImageCache cache(int entries) {
+        return new BoundedImageCache(entries, 1024 * 1024);
+    }
+
+    private static ViewerFrame lastFrame(RecordingView view) {
+        return view.frames.get(view.frames.size() - 1);
+    }
+
+    private static PageRef page(String source, String name) {
+        return new PageRef(
+                new PageKey(source, name),
+                new PictureMetadata(name, source, new File(source))
+        );
+    }
+
+    private static BufferedImage image(int width, int height) {
+        return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+    }
+
     @Test
     void thumbnailsYieldToNavigationAndDoNotChangeTheDisplayedPage() {
         FakeImageIterator source = FakeImageIterator.portraits("source", "one", "two", "three", "four");
@@ -139,16 +182,29 @@ class AsyncViewerSessionTest {
         List<ViewerFrame> frames = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
         ViewerView view = new ViewerView() {
-            public void showLoading() {}
-            public void showFrame(ViewerFrame frame) { frames.add(frame); }
-            public void showError(String error) { fail(error); }
-            public void showPersistenceWarning(String warning) { warnings.add(warning); }
+            public void showLoading() {
+            }
+
+            public void showFrame(ViewerFrame frame) {
+                frames.add(frame);
+            }
+
+            public void showError(String error) {
+                fail(error);
+            }
+
+            public void showPersistenceWarning(String warning) {
+                warnings.add(warning);
+            }
         };
         MemoryStore store = new MemoryStore() {
-            @Override public java.util.Optional<org.dustyroom.persistence.BookState> book(String id) {
+            @Override
+            public java.util.Optional<org.dustyroom.persistence.BookState> book(String id) {
                 throw new IllegalStateException("unavailable");
             }
-            @Override public void saveBook(org.dustyroom.persistence.BookState state) {
+
+            @Override
+            public void saveBook(org.dustyroom.persistence.BookState state) {
                 throw new IllegalStateException("read only");
             }
         };
@@ -195,7 +251,10 @@ class AsyncViewerSessionTest {
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         RecordingView view = new RecordingView();
         MemoryStore store = new MemoryStore() {
-            @Override public void reset() { throw new IllegalStateException("locked"); }
+            @Override
+            public void reset() {
+                throw new IllegalStateException("locked");
+            }
         };
         AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
@@ -222,12 +281,23 @@ class AsyncViewerSessionTest {
         store.books.put("missing.zip", new org.dustyroom.persistence.BookState("missing.zip", "p", 2, 5,
                 false, org.dustyroom.ui.navigation.ReadingMode.COMICS));
         ViewerView view = new ViewerView() {
-            public void showLoading() {}
-            public void showFrame(ViewerFrame frame) {}
-            public void showError(String error) { fail(error); }
-            public void showRecentBooks(List<RecentBook> books) { published.add(books); }
+            public void showLoading() {
+            }
+
+            public void showFrame(ViewerFrame frame) {
+            }
+
+            public void showError(String error) {
+                fail(error);
+            }
+
+            public void showRecentBooks(List<RecentBook> books) {
+                published.add(books);
+            }
         };
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> { throw new AssertionError(); },
+        AsyncViewerSession session = new AsyncViewerSession(view, file -> {
+            throw new AssertionError();
+        },
                 tasks, ui, cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.refreshRecentBooks();
         tasks.runAll(); // Old result is queued for UI delivery.
@@ -241,29 +311,12 @@ class AsyncViewerSessionTest {
         session.refreshRecentBooks();
         tasks.runAll();
         int beforeReset = published.size();
-        session.resetAndClose(() -> {}, error -> fail(error));
+        session.resetAndClose(() -> {
+        }, error -> fail(error));
         tasks.runAll();
         ui.runAll();
         assertEquals(beforeReset, published.size());
         assertTrue(store.books.isEmpty());
-    }
-
-    private static class MemoryStore implements org.dustyroom.persistence.ReaderStore {
-        final Map<String, org.dustyroom.persistence.BookState> books = new HashMap<>();
-        boolean closed;
-        final java.util.Set<String> hidden = new java.util.HashSet<>();
-        public List<org.dustyroom.persistence.BookState> recentBooks(int limit) {
-            assertFalse(closed);
-            return books.values().stream().filter(book -> !hidden.contains(book.sourceId())).limit(limit).toList();
-        }
-        public void hideRecent(String id) { hidden.add(id); }
-        public void showRecent(String id) { hidden.remove(id); }
-        public org.dustyroom.persistence.ReaderSettings settings() { return org.dustyroom.persistence.ReaderSettings.defaults(); }
-        public void saveSettings(org.dustyroom.persistence.ReaderSettings settings) {}
-        public java.util.Optional<org.dustyroom.persistence.BookState> book(String id) { return java.util.Optional.ofNullable(books.get(id)); }
-        public void saveBook(org.dustyroom.persistence.BookState state) { assertFalse(closed); books.put(state.sourceId(), state); }
-        public void reset() { books.clear(); }
-        public void close() { closed = true; }
     }
 
     @Test
@@ -700,51 +753,47 @@ class AsyncViewerSessionTest {
         assertTrue(view.frames.isEmpty());
     }
 
-    private static AsyncViewerSession session(
-            FakeImageIterator source,
-            ViewerTaskExecutor tasks,
-            Executor ui,
-            RecordingView view,
-            BoundedImageCache cache
-    ) {
-        return session(file -> source, tasks, ui, view, cache);
-    }
+    private static class MemoryStore implements org.dustyroom.persistence.ReaderStore {
+        final Map<String, org.dustyroom.persistence.BookState> books = new HashMap<>();
+        final java.util.Set<String> hidden = new java.util.HashSet<>();
+        boolean closed;
 
-    private static AsyncViewerSession session(
-            java.util.function.Function<File, ImageIterator> factory,
-            ViewerTaskExecutor tasks,
-            Executor ui,
-            RecordingView view,
-            BoundedImageCache cache
-    ) {
-        return new AsyncViewerSession(
-                view,
-                factory,
-                tasks,
-                ui,
-                cache,
-                new SpreadPlanner(),
-                new SpreadRenderer()
-        );
-    }
+        public List<org.dustyroom.persistence.BookState> recentBooks(int limit) {
+            assertFalse(closed);
+            return books.values().stream().filter(book -> !hidden.contains(book.sourceId())).limit(limit).toList();
+        }
 
-    private static BoundedImageCache cache(int entries) {
-        return new BoundedImageCache(entries, 1024 * 1024);
-    }
+        public void hideRecent(String id) {
+            hidden.add(id);
+        }
 
-    private static ViewerFrame lastFrame(RecordingView view) {
-        return view.frames.get(view.frames.size() - 1);
-    }
+        public void showRecent(String id) {
+            hidden.remove(id);
+        }
 
-    private static PageRef page(String source, String name) {
-        return new PageRef(
-                new PageKey(source, name),
-                new PictureMetadata(name, source, new File(source))
-        );
-    }
+        public org.dustyroom.persistence.ReaderSettings settings() {
+            return org.dustyroom.persistence.ReaderSettings.defaults();
+        }
 
-    private static BufferedImage image(int width, int height) {
-        return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        public void saveSettings(org.dustyroom.persistence.ReaderSettings settings) {
+        }
+
+        public java.util.Optional<org.dustyroom.persistence.BookState> book(String id) {
+            return java.util.Optional.ofNullable(books.get(id));
+        }
+
+        public void saveBook(org.dustyroom.persistence.BookState state) {
+            assertFalse(closed);
+            books.put(state.sourceId(), state);
+        }
+
+        public void reset() {
+            books.clear();
+        }
+
+        public void close() {
+            closed = true;
+        }
     }
 
     private static final class RecordingView implements ViewerView {

@@ -4,19 +4,26 @@ import org.dustyroom.persistence.BookState;
 import org.dustyroom.ui.navigation.ReadingMode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class RecentBookLoaderTest {
-    @TempDir Path directory;
-    private BookState state(Path path) { return new BookState(path.toString(), "page", 2, 10, false, ReadingMode.MANGA); }
+    @TempDir
+    Path directory;
 
-    @Test void missingSourceRetainsProgressAndCanBecomeAvailableAgain() throws Exception {
+    private BookState state(Path path) {
+        return new BookState(path.toString(), "page", 2, 10, false, ReadingMode.MANGA);
+    }
+
+    @Test
+    void missingSourceRetainsProgressAndCanBecomeAvailableAgain() throws Exception {
         Path path = directory.resolve("moved");
         var missing = RecentBookLoader.inspect(state(path));
         assertFalse(missing.available());
@@ -25,7 +32,8 @@ class RecentBookLoaderTest {
         assertTrue(RecentBookLoader.inspect(state(path)).available());
     }
 
-    @Test void archiveCoverIsFirstPageAndHandleIsClosed() throws Exception {
+    @Test
+    void archiveCoverIsFirstPageAndHandleIsClosed() throws Exception {
         Path archive = directory.resolve("日本語 book.zip");
         BufferedImage image = new BufferedImage(40, 60, BufferedImage.TYPE_INT_RGB);
         image.setRGB(0, 0, 0xff123456);
@@ -42,7 +50,8 @@ class RecentBookLoaderTest {
         assertFalse(RecentBookLoader.inspect(book.state()).available());
     }
 
-    @Test void brokenCoverDoesNotDestroyHistory() throws Exception {
+    @Test
+    void brokenCoverDoesNotDestroyHistory() throws Exception {
         Path archive = Files.writeString(directory.resolve("broken.zip"), "invalid zip");
         var book = RecentBookLoader.cover(RecentBookLoader.inspect(state(archive)));
         assertEquals(state(archive), book.state());

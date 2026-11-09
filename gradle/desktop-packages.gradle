@@ -17,7 +17,7 @@ tasks.register('prepareDesktopInput', Sync) {
 }
 
 tasks.register('generateWindowsIcon', Exec) {
-    def source = file('src/main/resources/org/dustyroom/ui/branding/yonaka.png')
+    def source = file('src/main/resources/org/dustyroom/ui/branding/yonaka-original.png')
     def icon = root.map { it.file('Yonaka.ico') }
     inputs.files(source, file('packaging/tools/WindowsIcon.java'))
     outputs.file(icon)
@@ -54,7 +54,7 @@ tasks.register('compileDesktopSmoke', JavaCompile) {
         doFirst {
             requireHost()
             delete(directory.get().dir('image'), directory.get().dir('app-temp'))
-            def icon = windows ? root.get().file('Yonaka.ico').asFile : file('src/main/resources/org/dustyroom/ui/branding/yonaka.png')
+            def icon = windows ? root.get().file('Yonaka.ico').asFile : file('src/main/resources/org/dustyroom/ui/branding/yonaka-original.png')
             commandLine([packager(), '--type', 'app-image', '--name', appName,
                          '--app-version', project.version.toString(), '--vendor', 'Dustyroom',
                          '--description', 'Yonaka Reader - manga and image archive reader',

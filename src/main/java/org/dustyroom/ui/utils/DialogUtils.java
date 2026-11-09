@@ -3,9 +3,8 @@ package org.dustyroom.ui.utils;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.utils.Constants;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import java.awt.Component;
+import javax.swing.*;
+import java.awt.*;
 
 @UtilityClass
 public class DialogUtils {

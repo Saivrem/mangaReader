@@ -16,7 +16,7 @@ def requireMac = {
 }
 
 tasks.register('generateMacIcon') {
-    def source = file('src/main/resources/org/dustyroom/ui/branding/yonaka.png')
+    def source = file('src/main/resources/org/dustyroom/ui/branding/yonaka-original.png')
     def output = packageRoot.map { it.file('Yonaka.icns') }
     inputs.file(source)
     outputs.file(output)

@@ -244,7 +244,7 @@ by one, because jpackage requires it to be positive even for a 0.x release.
 Branding uses **Yonaka Reader ・ 夜中**. The existing `org.dustyroom.mangareader`
 bundle identifier and storage paths remain stable so renaming
 the app preserves reading history and preferences. The macOS icon is generated from
-`src/main/resources/org/dustyroom/ui/branding/yonaka.png` at standard and Retina sizes.
+`src/main/resources/org/dustyroom/ui/branding/yonaka-original.png` at standard and Retina sizes.
 The original crescent icon is preserved alongside it as `yonaka-original.png`.
 
 ### Windows packages

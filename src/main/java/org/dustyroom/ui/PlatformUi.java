@@ -1,8 +1,8 @@
 package org.dustyroom.ui;
 
+import javax.swing.*;
+import java.awt.*;
 import java.util.Locale;
-import java.awt.Desktop;
-import javax.swing.SwingUtilities;
 
 /**
  * Configures UI behavior which must be decided before AWT is initialized.

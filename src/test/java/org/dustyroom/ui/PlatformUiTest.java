@@ -14,8 +14,11 @@ class PlatformUiTest {
             assertTrue(javax.swing.SwingUtilities.isEventDispatchThread());
             opened.add(file);
         });
-        PlatformUi.openFiles(java.util.List.of(), file -> { throw new AssertionError("Empty event"); });
-        javax.swing.SwingUtilities.invokeAndWait(() -> {});
+        PlatformUi.openFiles(java.util.List.of(), file -> {
+            throw new AssertionError("Empty event");
+        });
+        javax.swing.SwingUtilities.invokeAndWait(() -> {
+        });
         org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of(first), opened);
     }
 
@@ -25,7 +28,9 @@ class PlatformUiTest {
         try (var paths = java.nio.file.Files.list(java.nio.file.Path.of("packaging/macos/associations"))) {
             for (var path : paths.toList()) {
                 var properties = new java.util.Properties();
-                try (var stream = java.nio.file.Files.newInputStream(path)) { properties.load(stream); }
+                try (var stream = java.nio.file.Files.newInputStream(path)) {
+                    properties.load(stream);
+                }
                 extensions.add(properties.getProperty("extension"));
             }
         }

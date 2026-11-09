@@ -3,19 +3,25 @@ package org.dustyroom.ui.loading;
 import org.dustyroom.be.iterators.ImageIteratorFactory;
 import org.dustyroom.persistence.BookState;
 import org.dustyroom.ui.rendering.ThumbnailRenderer;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Filesystem checks and decoding belong on a worker, never on Swing's EDT. */
+/**
+ * Filesystem checks and decoding belong on a worker, never on Swing's EDT.
+ */
 public final class RecentBookLoader {
-    private RecentBookLoader() {}
+    private RecentBookLoader() {
+    }
 
     public static RecentBook inspect(BookState state) {
         boolean available;
         try {
             Path path = Path.of(state.sourceId());
             available = Files.isReadable(path) && (Files.isDirectory(path) || Files.isRegularFile(path));
-        } catch (RuntimeException exception) { available = false; }
+        } catch (RuntimeException exception) {
+            available = false;
+        }
         return new RecentBook(state, available, null);
     }
 

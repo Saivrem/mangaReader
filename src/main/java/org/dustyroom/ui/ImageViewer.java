@@ -1,25 +1,15 @@
 package org.dustyroom.ui;
 
-import org.dustyroom.ui.actions.DefaultViewerActions;
-import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.components.ImageComponent;
-import org.dustyroom.ui.components.KeyBindings;
-import org.dustyroom.ui.components.MenuBar;
-import org.dustyroom.ui.components.NavigationPanel;
-import org.dustyroom.ui.components.ReaderSurface;
-import org.dustyroom.ui.components.FileDropHandler;
-import org.dustyroom.ui.utils.DialogUtils;
 import org.dustyroom.persistence.ReaderSettings;
 import org.dustyroom.persistence.ReaderStore;
+import org.dustyroom.ui.actions.DefaultViewerActions;
+import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.components.*;
+import org.dustyroom.ui.components.MenuBar;
+import org.dustyroom.ui.utils.DialogUtils;
 
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.Timer;
-import javax.swing.WindowConstants;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;

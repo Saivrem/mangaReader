@@ -1,39 +1,23 @@
 package org.dustyroom.ui;
 
-import org.dustyroom.ui.components.ImageComponent;
 import org.dustyroom.persistence.ReaderSettings;
 import org.dustyroom.persistence.ReaderStore;
+import org.dustyroom.ui.actions.ViewerActionState;
+import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.components.ImageComponent;
 import org.dustyroom.ui.components.NavigationPanel;
 import org.dustyroom.ui.components.ReaderSurface;
-import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.actions.ViewerActionState;
-import javax.swing.JOptionPane;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerNumberModel;
 import org.dustyroom.ui.loading.AsyncViewerSession;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.loading.ViewerView;
+import org.dustyroom.ui.theme.ViewerTheme;
 import org.dustyroom.ui.utils.DialogUtils;
 import org.dustyroom.ui.utils.UiUtils;
-import org.dustyroom.ui.theme.ViewerTheme;
-import javax.swing.SwingUtilities;
 
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.JComponent;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JViewport;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.Point;
+import java.awt.*;
 import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
@@ -74,12 +58,14 @@ public class ViewerController {
                 if (readerSurface != null) readerSurface.setLoading(true);
             }
 
-            @Override public void showRecentBooks(java.util.List<org.dustyroom.ui.loading.RecentBook> books) {
+            @Override
+            public void showRecentBooks(java.util.List<org.dustyroom.ui.loading.RecentBook> books) {
                 if (readerSurface != null) readerSurface.showRecentBooks(books);
                 if (menuBar instanceof org.dustyroom.ui.components.MenuBar menu) menu.showRecentBooks(books);
             }
 
-            @Override public void showPages(java.util.List<org.dustyroom.be.models.PageRef> pages) {
+            @Override
+            public void showPages(java.util.List<org.dustyroom.be.models.PageRef> pages) {
                 if (thumbnailPanel != null) thumbnailPanel.showPages(pages);
             }
 
@@ -133,7 +119,10 @@ public class ViewerController {
         thumbnailPanel.setExpanded(thumbnailsVisible);
         thumbnailPanel.setVisible(displayedFrame != null);
         frame.revalidate();
-        SwingUtilities.invokeLater(() -> { imageComponent.updateScale(); imageComponent.repaint(); });
+        SwingUtilities.invokeLater(() -> {
+            imageComponent.updateScale();
+            imageComponent.repaint();
+        });
         saveSettings();
     }
 
@@ -163,11 +152,13 @@ public class ViewerController {
         actions.openFile().setEnabled(false);
         String requestedDirectory = lastDirectory;
         new javax.swing.SwingWorker<File, Void>() {
-            @Override protected File doInBackground() {
+            @Override
+            protected File doInBackground() {
                 return org.dustyroom.ui.utils.OpenDirectory.resolve(requestedDirectory, System.getProperty("user.home"));
             }
 
-            @Override protected void done() {
+            @Override
+            protected void done() {
                 try {
                     File root = get();
                     if (!resetting) showFileChooser(root);
@@ -221,7 +212,8 @@ public class ViewerController {
             try {
                 page.commitEdit();
                 int number = ((Number) page.getValue()).intValue();
-                if (number < 1 || number > displayedFrame.pageCount()) throw new java.text.ParseException("Out of range", 0);
+                if (number < 1 || number > displayedFrame.pageCount())
+                    throw new java.text.ParseException("Out of range", 0);
                 session.goToPage(number);
                 return;
             } catch (java.text.ParseException exception) {

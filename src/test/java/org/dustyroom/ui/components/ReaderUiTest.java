@@ -1,24 +1,40 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.actions.ViewerActionState;
+import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.navigation.ReadingMode;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class ReaderUiTest {
+    private static Stream<Component> children(Container parent) {
+        return java.util.Arrays.stream(parent.getComponents()).flatMap(component ->
+                component instanceof Container container
+                        ? Stream.concat(Stream.of(component), children(container)) : Stream.of(component));
+    }
+
+    private static ViewerActions actions() {
+        Map<String, Action> actions = new HashMap<>();
+        return (ViewerActions) Proxy.newProxyInstance(ViewerActions.class.getClassLoader(),
+                new Class<?>[]{ViewerActions.class}, (proxy, method, arguments) ->
+                        actions.computeIfAbsent(method.getName(), name -> new AbstractAction(name) {
+                            @Override
+                            public void actionPerformed(ActionEvent event) {
+                            }
+                        }));
+    }
+
     @Test
     void toolbarTracksDisplayedPagesModesAndAvailability() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
@@ -95,24 +111,13 @@ class ReaderUiTest {
             for (Color color : new Color[]{new Color(0x0D1017), new Color(0xF8F9FA)}) {
                 component.setBackground(color);
                 var graphics = canvas.createGraphics();
-                try { component.paint(graphics); } finally { graphics.dispose(); }
+                try {
+                    component.paint(graphics);
+                } finally {
+                    graphics.dispose();
+                }
                 assertEquals(color.getRGB(), canvas.getRGB(20, 20));
             }
         });
-    }
-
-    private static Stream<Component> children(Container parent) {
-        return java.util.Arrays.stream(parent.getComponents()).flatMap(component ->
-                component instanceof Container container
-                        ? Stream.concat(Stream.of(component), children(container)) : Stream.of(component));
-    }
-
-    private static ViewerActions actions() {
-        Map<String, Action> actions = new HashMap<>();
-        return (ViewerActions) Proxy.newProxyInstance(ViewerActions.class.getClassLoader(),
-                new Class<?>[]{ViewerActions.class}, (proxy, method, arguments) ->
-                        actions.computeIfAbsent(method.getName(), name -> new AbstractAction(name) {
-                            @Override public void actionPerformed(ActionEvent event) {}
-                        }));
     }
 }

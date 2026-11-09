@@ -3,19 +3,24 @@ package org.dustyroom.persistence;
 import org.dustyroom.ui.navigation.ReadingMode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.DriverManager;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecentBooksTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
     private BookState book(String id, int page) {
         return new BookState(id, "page-" + page, page, 10, true, ReadingMode.COMICS);
     }
 
-    @Test void hidingSurvivesProgressUpdatesAndRestartButExplicitOpenRestoresIt() throws Exception {
+    @Test
+    void hidingSurvivesProgressUpdatesAndRestartButExplicitOpenRestoresIt() throws Exception {
         Path db = directory.resolve("reader.sqlite3");
         Path file = Files.writeString(directory.resolve("日本語 book.zip"), "untouched");
         BookState state = book(file.toString(), 3);
@@ -36,7 +41,8 @@ class RecentBooksTest {
         assertEquals("untouched", Files.readString(file));
     }
 
-    @Test void historyIsOrderedBoundedAndDoesNotDuplicateBooks() throws Exception {
+    @Test
+    void historyIsOrderedBoundedAndDoesNotDuplicateBooks() throws Exception {
         Path db = directory.resolve("reader.sqlite3");
         try (var store = new SqliteReaderStore(db)) {
             for (int i = 0; i < 15; i++) store.saveBook(book("book-" + i, 1));
@@ -52,7 +58,8 @@ class RecentBooksTest {
         }
     }
 
-    @Test void upgradesSchemaOneWithoutLosingStateAndMakesReadableBackup() throws Exception {
+    @Test
+    void upgradesSchemaOneWithoutLosingStateAndMakesReadableBackup() throws Exception {
         Path db = directory.resolve("reader.sqlite3");
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db);
              var sql = connection.createStatement()) {
@@ -72,8 +79,12 @@ class RecentBooksTest {
         }
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + backup);
              var sql = connection.createStatement()) {
-            try (var result = sql.executeQuery("PRAGMA user_version")) { assertEquals(1, result.getInt(1)); }
-            try (var result = sql.executeQuery("SELECT page_number FROM books")) { assertEquals(3, result.getInt(1)); }
+            try (var result = sql.executeQuery("PRAGMA user_version")) {
+                assertEquals(1, result.getInt(1));
+            }
+            try (var result = sql.executeQuery("SELECT page_number FROM books")) {
+                assertEquals(3, result.getInt(1));
+            }
         }
     }
 }

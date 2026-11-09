@@ -5,10 +5,7 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.ui.theme.ViewerTheme;
 
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -18,7 +15,9 @@ import java.util.Properties;
 public class UiUtils {
     private static ViewerTheme currentTheme = ViewerTheme.DARK;
 
-    public static ViewerTheme currentTheme() { return currentTheme; }
+    public static ViewerTheme currentTheme() {
+        return currentTheme;
+    }
 
     public static void installApplicationLookAndFeel() {
         installTheme(ViewerTheme.DARK);

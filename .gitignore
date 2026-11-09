@@ -43,3 +43,5 @@ bin/
 .DS_Store
 # Portable application data (default override example)
 /reader-data/
+
+todo.txt

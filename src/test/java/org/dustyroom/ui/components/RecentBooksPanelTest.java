@@ -4,15 +4,18 @@ import org.dustyroom.persistence.BookState;
 import org.dustyroom.ui.loading.RecentBook;
 import org.dustyroom.ui.navigation.ReadingMode;
 import org.junit.jupiter.api.Test;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class RecentBooksPanelTest {
-    @Test void missingBooksCanBeRemovedAndCoverUpdatesKeepExistingButtons() throws Exception {
+    @Test
+    void missingBooksCanBeRemovedAndCoverUpdatesKeepExistingButtons() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             RecentBooksPanel panel = new RecentBooksPanel();
             List<String> opened = new ArrayList<>(), removed = new ArrayList<>();

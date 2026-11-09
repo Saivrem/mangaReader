@@ -4,18 +4,8 @@ import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.navigation.ReadingMode;
 
-import javax.swing.AbstractButton;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JRadioButtonMenuItem;
-import javax.swing.JToggleButton;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+import javax.swing.*;
+import java.awt.*;
 
 public class NavigationPanel extends JPanel {
     private final JButton position;
@@ -74,27 +64,6 @@ public class NavigationPanel extends JPanel {
         direction.setEnabled(false);
     }
 
-    public void updateState(ViewerFrame frame, ImageComponent.FitMode mode) {
-        if (frame != null) {
-            pageLabel = (frame.firstPage() == frame.lastPage() ? String.valueOf(frame.firstPage())
-                    : frame.firstPage() + "–" + frame.lastPage()) + " / " + frame.pageCount();
-            direction.setText(frame.readingMode() == ReadingMode.MANGA ? "Manga ▾" : "Comics ▾");
-        }
-        position.setText(pageLabel);
-        fit.setText(switch (mode) {
-            case FIT_SCREEN -> "Fit to window ▾";
-            case FIT_WIDTH -> "Fit width ▾";
-            case FIT_HEIGHT -> "Fit height ▾";
-            case ORIGINAL -> "Custom zoom ▾";
-        });
-        fit.setEnabled(frame != null);
-        direction.setEnabled(frame != null);
-    }
-
-    public void setLoading(boolean loading) {
-        position.setText(loading ? "Loading…" : pageLabel);
-    }
-
     private static JPanel group() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
         panel.setOpaque(false);
@@ -129,5 +98,26 @@ public class NavigationPanel extends JPanel {
             group.add(item);
             menu.add(item);
         }
+    }
+
+    public void updateState(ViewerFrame frame, ImageComponent.FitMode mode) {
+        if (frame != null) {
+            pageLabel = (frame.firstPage() == frame.lastPage() ? String.valueOf(frame.firstPage())
+                    : frame.firstPage() + "–" + frame.lastPage()) + " / " + frame.pageCount();
+            direction.setText(frame.readingMode() == ReadingMode.MANGA ? "Manga ▾" : "Comics ▾");
+        }
+        position.setText(pageLabel);
+        fit.setText(switch (mode) {
+            case FIT_SCREEN -> "Fit to window ▾";
+            case FIT_WIDTH -> "Fit width ▾";
+            case FIT_HEIGHT -> "Fit height ▾";
+            case ORIGINAL -> "Custom zoom ▾";
+        });
+        fit.setEnabled(frame != null);
+        direction.setEnabled(frame != null);
+    }
+
+    public void setLoading(boolean loading) {
+        position.setText(loading ? "Loading…" : pageLabel);
     }
 }

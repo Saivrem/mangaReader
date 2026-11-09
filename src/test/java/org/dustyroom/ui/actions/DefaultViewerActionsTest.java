@@ -2,8 +2,7 @@ package org.dustyroom.ui.actions;
 
 import org.junit.jupiter.api.Test;
 
-import javax.swing.Action;
-import javax.swing.KeyStroke;
+import javax.swing.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.atomic.AtomicBoolean;

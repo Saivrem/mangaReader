@@ -5,12 +5,15 @@ import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.theme.ViewerTheme;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
 import java.nio.file.Path;
 import java.sql.DriverManager;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class SqliteReaderStoreTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
     @Test
     void persistsSettingsAndIndependentBooksAcrossReopen() {
@@ -54,7 +57,9 @@ class SqliteReaderStoreTest {
     @Test
     void invalidConfigValuesFallBackWithoutLosingValidSettings() throws Exception {
         Path db = directory.resolve("reader.sqlite3");
-        try (ReaderStore store = new SqliteReaderStore(db)) { store.saveSettings(ReaderSettings.defaults()); }
+        try (ReaderStore store = new SqliteReaderStore(db)) {
+            store.saveSettings(ReaderSettings.defaults());
+        }
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
             sql.execute("UPDATE settings SET value='LIGHT' WHERE key='theme'");
             sql.execute("UPDATE settings SET value='not-a-mode' WHERE key='fit_mode'");
@@ -111,10 +116,17 @@ class SqliteReaderStoreTest {
         }
         assertThrows(IllegalStateException.class, () -> new SqliteReaderStore(db));
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
-            try (var result = sql.executeQuery("PRAGMA user_version")) { assertTrue(result.next()); assertEquals(0, result.getInt(1)); }
-            try (var result = sql.executeQuery("SELECT original FROM books")) { assertTrue(result.next()); assertEquals("preserved", result.getString(1)); }
+            try (var result = sql.executeQuery("PRAGMA user_version")) {
+                assertTrue(result.next());
+                assertEquals(0, result.getInt(1));
+            }
+            try (var result = sql.executeQuery("SELECT original FROM books")) {
+                assertTrue(result.next());
+                assertEquals("preserved", result.getString(1));
+            }
             try (var result = sql.executeQuery("SELECT count(*) FROM sqlite_master WHERE name='settings'")) {
-                assertTrue(result.next()); assertEquals(0, result.getInt(1));
+                assertTrue(result.next());
+                assertEquals(0, result.getInt(1));
             }
         }
     }
@@ -129,8 +141,12 @@ class SqliteReaderStoreTest {
             backup = store.backupBeforeMigration(db, 1);
             store.reset();
         }
-        try (ReaderStore saved = new SqliteReaderStore(backup)) { assertEquals(settings, saved.settings()); }
-        try (ReaderStore reset = new SqliteReaderStore(db)) { assertEquals(ReaderSettings.defaults(), reset.settings()); }
+        try (ReaderStore saved = new SqliteReaderStore(backup)) {
+            assertEquals(settings, saved.settings());
+        }
+        try (ReaderStore reset = new SqliteReaderStore(db)) {
+            assertEquals(ReaderSettings.defaults(), reset.settings());
+        }
     }
 
     @Test

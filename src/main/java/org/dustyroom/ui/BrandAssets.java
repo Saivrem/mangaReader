@@ -1,25 +1,26 @@
 package org.dustyroom.ui;
 
 import javax.imageio.ImageIO;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BaseMultiResolutionImage;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.List;
 
-/** Decode and resize once on the startup thread, before creating Swing windows. */
+/**
+ * Decode and resize once on the startup thread, before creating Swing windows.
+ */
 public final class BrandAssets {
     private static List<BufferedImage> windowIcons = List.of();
     private static Icon aboutIcon;
     private static Icon welcomeIcon;
 
-    private BrandAssets() {}
+    private BrandAssets() {
+    }
 
     public static void load() {
-        try (var stream = BrandAssets.class.getResourceAsStream("/org/dustyroom/ui/branding/yonaka.png")) {
+        try (var stream = BrandAssets.class.getResourceAsStream("/org/dustyroom/ui/branding/yonaka-original.png")) {
             if (stream == null) throw new IOException("Missing Yonaka icon");
             BufferedImage source = ImageIO.read(stream);
             if (source == null) throw new IOException("Invalid Yonaka icon");
@@ -32,9 +33,17 @@ public final class BrandAssets {
         }
     }
 
-    public static List<BufferedImage> windowIcons() { return windowIcons; }
-    public static Icon aboutIcon() { return aboutIcon; }
-    public static Icon welcomeIcon() { return welcomeIcon; }
+    public static List<BufferedImage> windowIcons() {
+        return windowIcons;
+    }
+
+    public static Icon aboutIcon() {
+        return aboutIcon;
+    }
+
+    public static Icon welcomeIcon() {
+        return welcomeIcon;
+    }
 
     private static Icon multiResolutionIcon(BufferedImage source, int logicalSize) {
         return new ImageIcon(new BaseMultiResolutionImage(resize(source, logicalSize),
@@ -50,7 +59,9 @@ public final class BrandAssets {
             try {
                 graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
                 graphics.drawImage(current, 0, 0, nextSize, nextSize, null);
-            } finally { graphics.dispose(); }
+            } finally {
+                graphics.dispose();
+            }
             current = image;
         } while (current.getWidth() > size);
         return current;

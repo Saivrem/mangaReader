@@ -9,7 +9,8 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class OpenDirectoryTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
     @Test
     void usesExistingSavedDirectory() throws Exception {

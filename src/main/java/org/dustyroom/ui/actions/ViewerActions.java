@@ -1,6 +1,6 @@
 package org.dustyroom.ui.actions;
 
-import javax.swing.Action;
+import javax.swing.*;
 
 public interface ViewerActions {
     Action toggleThumbnails();

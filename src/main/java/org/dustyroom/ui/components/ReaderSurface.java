@@ -2,12 +2,15 @@ package org.dustyroom.ui.components;
 
 import org.dustyroom.ui.BrandAssets;
 import org.dustyroom.ui.loading.RecentBook;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 import java.util.function.Consumer;
 
-/** Welcome and reading views share the same window and open action. */
+/**
+ * Welcome and reading views share the same window and open action.
+ */
 public final class ReaderSurface extends JPanel {
     private final CardLayout cards = new CardLayout();
     private final JLabel status = new JLabel("JPG · PNG · GIF · ZIP", JLabel.CENTER);
@@ -47,7 +50,8 @@ public final class ReaderSurface extends JPanel {
         compact.add(openButton(open), BorderLayout.EAST);
         compact.setMaximumSize(new Dimension(760, 72));
         compact.setVisible(false);
-        for (JComponent component : new JComponent[]{hero, compact, status, recent}) component.setAlignmentX(CENTER_ALIGNMENT);
+        for (JComponent component : new JComponent[]{hero, compact, status, recent})
+            component.setAlignmentX(CENTER_ALIGNMENT);
         content.add(hero);
         content.add(compact);
         content.add(Box.createVerticalStrut(16));
@@ -76,7 +80,9 @@ public final class ReaderSurface extends JPanel {
         return button;
     }
 
-    public void setRecentHandlers(Consumer<String> open, Consumer<String> remove) { recent.setHandlers(open, remove); }
+    public void setRecentHandlers(Consumer<String> open, Consumer<String> remove) {
+        recent.setHandlers(open, remove);
+    }
 
     public void showRecentBooks(List<RecentBook> books) {
         hero.setVisible(books.isEmpty());

@@ -1,17 +1,30 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.PlatformUi;
+import org.dustyroom.ui.actions.ViewerActions;
 
-import javax.swing.Action;
-import javax.swing.ActionMap;
-import javax.swing.InputMap;
-import javax.swing.JComponent;
-import javax.swing.JRootPane;
-import javax.swing.KeyStroke;
+import javax.swing.*;
 import java.awt.event.KeyEvent;
 
 public class KeyBindings {
+
+    private static void bindPrimary(InputMap inputMap, ActionMap actionMap, Action action) {
+        Object accelerator = action.getValue(Action.ACCELERATOR_KEY);
+        Object id = action.getValue(Action.ACTION_COMMAND_KEY);
+        if (accelerator instanceof KeyStroke keyStroke && id instanceof String name) {
+            bind(inputMap, actionMap, name, keyStroke, action);
+        }
+    }
+
+    private static void bind(InputMap inputMap, ActionMap actionMap, String name,
+                             KeyStroke keyStroke, Action action) {
+        inputMap.put(keyStroke, name);
+        actionMap.put(name, action);
+    }
+
+    private static KeyStroke key(int keyCode) {
+        return KeyStroke.getKeyStroke(keyCode, 0);
+    }
 
     public void init(JRootPane rootPane, ViewerActions actions) {
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
@@ -46,23 +59,5 @@ public class KeyBindings {
         bind(inputMap, actionMap, "nextImagePage", key(KeyEvent.VK_PAGE_DOWN), actions.nextImage());
         bind(inputMap, actionMap, "previousImagePage", key(KeyEvent.VK_PAGE_UP), actions.prevImage());
         bind(inputMap, actionMap, "zoomInEquals", key(KeyEvent.VK_EQUALS), actions.zoomIn());
-    }
-
-    private static void bindPrimary(InputMap inputMap, ActionMap actionMap, Action action) {
-        Object accelerator = action.getValue(Action.ACCELERATOR_KEY);
-        Object id = action.getValue(Action.ACTION_COMMAND_KEY);
-        if (accelerator instanceof KeyStroke keyStroke && id instanceof String name) {
-            bind(inputMap, actionMap, name, keyStroke, action);
-        }
-    }
-
-    private static void bind(InputMap inputMap, ActionMap actionMap, String name,
-                             KeyStroke keyStroke, Action action) {
-        inputMap.put(keyStroke, name);
-        actionMap.put(name, action);
-    }
-
-    private static KeyStroke key(int keyCode) {
-        return KeyStroke.getKeyStroke(keyCode, 0);
     }
 }

@@ -30,15 +30,34 @@ public final class SqliteReaderStore implements ReaderStore {
                 sql.execute("PRAGMA busy_timeout=3000");
                 try (var result = sql.executeQuery("PRAGMA user_version")) {
                     version = result.next() ? result.getInt(1) : 0;
-                    if (version > SCHEMA_VERSION) throw new SQLException("Database schema is newer than this application; no changes were made");
+                    if (version > SCHEMA_VERSION)
+                        throw new SQLException("Database schema is newer than this application; no changes were made");
                 }
             }
             if (version > 0 && version < SCHEMA_VERSION) backupBeforeMigration(path, version);
             migrate(version);
-            try (var sql = connection.createStatement()) { sql.execute("PRAGMA journal_mode=WAL"); }
+            try (var sql = connection.createStatement()) {
+                sql.execute("PRAGMA journal_mode=WAL");
+            }
         } catch (Exception exception) {
-            if (opened != null) try { opened.close(); } catch (SQLException closeError) { exception.addSuppressed(closeError); }
+            if (opened != null) try {
+                opened.close();
+            } catch (SQLException closeError) {
+                exception.addSuppressed(closeError);
+            }
             throw new IllegalStateException("Cannot open reader database: " + database, exception);
+        }
+    }
+
+    private static IllegalStateException failure(SQLException exception) {
+        return new IllegalStateException("Cannot read or save reader state", exception);
+    }
+
+    private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
+        try {
+            return value == null ? fallback : Enum.valueOf(type, value);
+        } catch (IllegalArgumentException exception) {
+            return fallback;
         }
     }
 
@@ -88,7 +107,9 @@ public final class SqliteReaderStore implements ReaderStore {
         } catch (SQLException exception) {
             connection.rollback();
             throw exception;
-        } finally { connection.setAutoCommit(true); }
+        } finally {
+            connection.setAutoCommit(true);
+        }
     }
 
     @Override
@@ -96,7 +117,9 @@ public final class SqliteReaderStore implements ReaderStore {
         Map<String, String> values = new HashMap<>();
         try (var sql = connection.createStatement(); var result = sql.executeQuery("SELECT key,value FROM settings")) {
             while (result.next()) values.put(result.getString(1), result.getString(2));
-        } catch (SQLException exception) { throw failure(exception); }
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
         ReaderSettings defaults = ReaderSettings.defaults();
         ViewerTheme theme = enumValue(ViewerTheme.class, values.get("theme"), defaults.theme());
         FitMode fit = enumValue(FitMode.class, values.get("fit_mode"), defaults.fitMode());
@@ -116,13 +139,21 @@ public final class SqliteReaderStore implements ReaderStore {
                 for (var entry : Map.of("theme", settings.theme().name(), "fit_mode", settings.fitMode().name(),
                         "zoom", Double.toString(settings.zoom()), "last_directory", settings.lastDirectory(),
                         "thumbnails_visible", Boolean.toString(settings.thumbnailsVisible())).entrySet()) {
-                    sql.setString(1, entry.getKey()); sql.setString(2, entry.getValue()); sql.addBatch();
+                    sql.setString(1, entry.getKey());
+                    sql.setString(2, entry.getValue());
+                    sql.addBatch();
                 }
                 sql.executeBatch();
                 connection.commit();
-            } catch (SQLException exception) { connection.rollback(); throw exception; }
-            finally { connection.setAutoCommit(true); }
-        } catch (SQLException exception) { throw failure(exception); }
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
     }
 
     @Override
@@ -135,7 +166,9 @@ public final class SqliteReaderStore implements ReaderStore {
                         result.getInt("page_number"), result.getInt("page_count"), result.getInt("two_page") != 0,
                         enumValue(ReadingMode.class, result.getString("reading_mode"), ReadingMode.MANGA)));
             }
-        } catch (SQLException exception) { throw failure(exception); }
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
     }
 
     @Override
@@ -146,11 +179,17 @@ public final class SqliteReaderStore implements ReaderStore {
                 page_id=excluded.page_id,page_number=excluded.page_number,page_count=excluded.page_count,
                 two_page=excluded.two_page,reading_mode=excluded.reading_mode,updated_at=excluded.updated_at
                 """)) {
-            sql.setString(1, state.sourceId()); sql.setString(2, state.pageId());
-            sql.setInt(3, state.pageNumber()); sql.setInt(4, state.pageCount());
-            sql.setInt(5, state.twoPageMode() ? 1 : 0); sql.setString(6, state.readingMode().name());
-            sql.setLong(7, System.currentTimeMillis()); sql.executeUpdate();
-        } catch (SQLException exception) { throw failure(exception); }
+            sql.setString(1, state.sourceId());
+            sql.setString(2, state.pageId());
+            sql.setInt(3, state.pageNumber());
+            sql.setInt(4, state.pageCount());
+            sql.setInt(5, state.twoPageMode() ? 1 : 0);
+            sql.setString(6, state.readingMode().name());
+            sql.setLong(7, System.currentTimeMillis());
+            sql.executeUpdate();
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
     }
 
     @Override
@@ -160,23 +199,35 @@ public final class SqliteReaderStore implements ReaderStore {
         try (var sql = connection.prepareStatement("SELECT * FROM books WHERE recent_hidden=0 ORDER BY updated_at DESC, source_id LIMIT ?")) {
             sql.setInt(1, limit);
             try (var result = sql.executeQuery()) {
-                while (result.next()) books.add(new BookState(result.getString("source_id"), result.getString("page_id"),
-                        result.getInt("page_number"), result.getInt("page_count"), result.getInt("two_page") != 0,
-                        enumValue(ReadingMode.class, result.getString("reading_mode"), ReadingMode.MANGA)));
+                while (result.next())
+                    books.add(new BookState(result.getString("source_id"), result.getString("page_id"),
+                            result.getInt("page_number"), result.getInt("page_count"), result.getInt("two_page") != 0,
+                            enumValue(ReadingMode.class, result.getString("reading_mode"), ReadingMode.MANGA)));
             }
             return java.util.List.copyOf(books);
-        } catch (SQLException exception) { throw failure(exception); }
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
     }
 
-    @Override public void hideRecent(String sourceId) { setRecentHidden(sourceId, true); }
-    @Override public void showRecent(String sourceId) { setRecentHidden(sourceId, false); }
+    @Override
+    public void hideRecent(String sourceId) {
+        setRecentHidden(sourceId, true);
+    }
+
+    @Override
+    public void showRecent(String sourceId) {
+        setRecentHidden(sourceId, false);
+    }
 
     private void setRecentHidden(String sourceId, boolean hidden) {
         try (var sql = connection.prepareStatement("UPDATE books SET recent_hidden=? WHERE source_id=?")) {
             sql.setInt(1, hidden ? 1 : 0);
             sql.setString(2, sourceId);
             sql.executeUpdate();
-        } catch (SQLException exception) { throw failure(exception); }
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
     }
 
     @Override
@@ -187,21 +238,23 @@ public final class SqliteReaderStore implements ReaderStore {
                 sql.executeUpdate("DELETE FROM settings");
                 sql.executeUpdate("DELETE FROM books");
                 connection.commit();
-            } catch (SQLException exception) { connection.rollback(); throw exception; }
-            finally { connection.setAutoCommit(true); }
-        } catch (SQLException exception) { throw failure(exception); }
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
     }
 
-    @Override public void close() {
-        try { connection.close(); } catch (SQLException exception) { throw failure(exception); }
-    }
-
-    private static IllegalStateException failure(SQLException exception) {
-        return new IllegalStateException("Cannot read or save reader state", exception);
-    }
-
-    private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
-        try { return value == null ? fallback : Enum.valueOf(type, value); }
-        catch (IllegalArgumentException exception) { return fallback; }
+    @Override
+    public void close() {
+        try {
+            connection.close();
+        } catch (SQLException exception) {
+            throw failure(exception);
+        }
     }
 }

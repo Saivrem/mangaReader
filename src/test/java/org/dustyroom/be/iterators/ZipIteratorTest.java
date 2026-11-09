@@ -12,14 +12,17 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.dustyroom.be.iterators.ImageTestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.dustyroom.be.iterators.ImageTestFixtures.jpegWithConflictingColorMarkers;
-import static org.dustyroom.be.iterators.ImageTestFixtures.pngBytes;
-import static org.dustyroom.be.iterators.ImageTestFixtures.writeZip;
 
 class ZipIteratorTest {
     @TempDir
     Path tempDir;
+
+    private static void assertName(String expected, Picture picture) {
+        assertNotNull(picture);
+        assertEquals(expected, picture.metadata().name());
+    }
 
     @Test
     void readsOnlyImagesInNaturalCircularOrder() throws Exception {
@@ -210,10 +213,5 @@ class ZipIteratorTest {
         }
         Files.delete(volume);
         assertFalse(Files.exists(volume));
-    }
-
-    private static void assertName(String expected, Picture picture) {
-        assertNotNull(picture);
-        assertEquals(expected, picture.metadata().name());
     }
 }

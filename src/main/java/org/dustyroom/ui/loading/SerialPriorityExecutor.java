@@ -1,10 +1,6 @@
 package org.dustyroom.ui.loading;
 
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class SerialPriorityExecutor implements ViewerTaskExecutor {

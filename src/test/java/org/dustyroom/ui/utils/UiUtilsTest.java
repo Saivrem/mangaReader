@@ -2,12 +2,10 @@ package org.dustyroom.ui.utils;
 
 import org.dustyroom.ui.theme.ViewerTheme;
 import org.junit.jupiter.api.Test;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import java.awt.Color;
+
+import javax.swing.*;
+import java.awt.*;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class UiUtilsTest {
@@ -35,8 +33,11 @@ class UiUtilsTest {
                 assertEquals(new Color(0x0D1017), panel.getBackground());
             } finally {
                 UiUtils.installTheme(previousTheme);
-                try { UIManager.setLookAndFeel(previous); }
-                catch (Exception exception) { throw new AssertionError(exception); }
+                try {
+                    UIManager.setLookAndFeel(previous);
+                } catch (Exception exception) {
+                    throw new AssertionError(exception);
+                }
                 JFrame.setDefaultLookAndFeelDecorated(frameDecorated);
                 JDialog.setDefaultLookAndFeelDecorated(dialogDecorated);
             }

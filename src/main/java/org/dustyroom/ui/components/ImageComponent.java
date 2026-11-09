@@ -1,14 +1,7 @@
 package org.dustyroom.ui.components;
 
-import javax.swing.JComponent;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class ImageComponent extends JComponent {
@@ -37,6 +30,10 @@ public class ImageComponent extends JComponent {
         repaint();
     }
 
+    public FitMode getFitMode() {
+        return fitMode;
+    }
+
     public void setFitMode(FitMode mode) {
         this.fitMode = mode;
         updateScale();
@@ -44,11 +41,9 @@ public class ImageComponent extends JComponent {
         repaint();
     }
 
-    public FitMode getFitMode() {
-        return fitMode;
+    public double getScale() {
+        return scale;
     }
-
-    public double getScale() { return scale; }
 
     public void restoreView(FitMode mode, double zoom) {
         fitMode = mode;

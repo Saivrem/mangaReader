@@ -3,12 +3,16 @@ package org.dustyroom.ui.actions;
 import org.dustyroom.ui.components.ImageComponent.FitMode;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.navigation.ReadingMode;
-import javax.swing.Action;
+
+import javax.swing.*;
 import java.util.List;
 
-/** Publishes the displayed state to shared menu, toolbar and keyboard actions. */
+/**
+ * Publishes the displayed state to shared menu, toolbar and keyboard actions.
+ */
 public final class ViewerActionState {
-    private ViewerActionState() {}
+    private ViewerActionState() {
+    }
 
     public static void apply(ViewerActions actions, ViewerFrame frame, FitMode fit, boolean fullscreen) {
         boolean loaded = frame != null;

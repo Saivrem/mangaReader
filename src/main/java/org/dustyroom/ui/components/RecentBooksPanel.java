@@ -1,20 +1,25 @@
 package org.dustyroom.ui.components;
 
 import org.dustyroom.ui.loading.RecentBook;
+
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/** Small, bounded shelf; cover updates preserve keyboard focus on existing cards. */
+/**
+ * Small, bounded shelf; cover updates preserve keyboard focus on existing cards.
+ */
 public final class RecentBooksPanel extends JPanel {
     private final JPanel cards = new JPanel(new GridLayout(0, 2, 16, 16));
     private final JLabel empty = new JLabel("Your recently read books will appear here.");
     private final Map<String, BookCard> entries = new LinkedHashMap<>();
-    private Consumer<String> open = id -> {};
-    private Consumer<String> remove = id -> {};
+    private Consumer<String> open = id -> {
+    };
+    private Consumer<String> remove = id -> {
+    };
 
     public RecentBooksPanel() {
         super(new BorderLayout(0, 14));
@@ -97,8 +102,14 @@ public final class RecentBooksPanel extends JPanel {
             if (book.cover() != null) {
                 var image = book.cover();
                 cover.setIcon(new Icon() {
-                    public int getIconWidth() { return 72; }
-                    public int getIconHeight() { return 104; }
+                    public int getIconWidth() {
+                        return 72;
+                    }
+
+                    public int getIconHeight() {
+                        return 104;
+                    }
+
                     public void paintIcon(Component c, Graphics graphics, int x, int y) {
                         double scale = Math.min(72.0 / image.getWidth(), 104.0 / image.getHeight());
                         int w = Math.max(1, (int) Math.round(image.getWidth() * scale));
@@ -107,7 +118,9 @@ public final class RecentBooksPanel extends JPanel {
                         try {
                             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
                             g.drawImage(image, x + (72 - w) / 2, y + (104 - h) / 2, w, h, null);
-                        } finally { g.dispose(); }
+                        } finally {
+                            g.dispose();
+                        }
                     }
                 });
             } else cover.setIcon(new ReaderIcon(ReaderIcon.Kind.OPEN));

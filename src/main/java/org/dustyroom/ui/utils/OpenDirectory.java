@@ -5,9 +5,12 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
-/** Filesystem checks belong on a worker thread, before constructing the chooser. */
+/**
+ * Filesystem checks belong on a worker thread, before constructing the chooser.
+ */
 public final class OpenDirectory {
-    private OpenDirectory() {}
+    private OpenDirectory() {
+    }
 
     public static File resolve(String saved, String home) {
         if (saved != null && !saved.isBlank()) {
