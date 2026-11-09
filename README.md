@@ -19,7 +19,7 @@ Run the full verification and build an executable fat JAR:
 The resulting application is written to:
 
 ```text
-build/libs/mangaReader-0.9.0.jar
+build/libs/yonaka-reader-0.9.0.jar
 ```
 
 ## Run
@@ -27,15 +27,15 @@ build/libs/mangaReader-0.9.0.jar
 Open the application without an initial file:
 
 ```bash
-java -jar build/libs/mangaReader-0.9.0.jar
+java -jar build/libs/yonaka-reader-0.9.0.jar
 ```
 
 Open an image, a directory of images, or a ZIP archive immediately:
 
 ```bash
-java -jar build/libs/mangaReader-0.9.0.jar /path/to/page.jpg
-java -jar build/libs/mangaReader-0.9.0.jar /path/to/chapter
-java -jar build/libs/mangaReader-0.9.0.jar /path/to/volume.zip
+java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/page.jpg
+java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/chapter
+java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/volume.zip
 ```
 
 ## Supported content
@@ -97,7 +97,7 @@ Storage locations:
 For portable storage, override the directory before `-jar`:
 
 ```bash
-java -Dmangareader.dataDir=./reader-data -jar build/libs/mangaReader-0.9.0.jar
+java -Dmangareader.dataDir=./reader-data -jar build/libs/yonaka-reader-0.9.0.jar
 ```
 
 ### Reset and compatibility
@@ -223,9 +223,10 @@ The displayed application version comes from the Gradle release version. macOS
 by one, because jpackage requires it to be positive even for a 0.x release.
 
 Branding uses **Yonaka Reader ・ 夜中**. The existing `org.dustyroom.mangareader`
-bundle identifier, Gradle project name and storage paths remain stable so renaming
+bundle identifier and storage paths remain stable so renaming
 the app preserves reading history and preferences. The macOS icon is generated from
 `src/main/resources/org/dustyroom/ui/branding/yonaka.png` at standard and Retina sizes.
+The original crescent icon is preserved alongside it as `yonaka-original.png`.
 
 ### Windows packages
 

@@ -47,7 +47,7 @@ jobs:
       - name: Upload runnable JAR
         uses: actions/upload-artifact@v4
         with:
-          name: mangaReader-${{ matrix.os }}
+          name: yonaka-reader-${{ matrix.os }}
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 14
