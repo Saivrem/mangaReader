@@ -22,7 +22,7 @@ class UiUtilsTest {
                 assertTrue(UiUtils.installTheme(ViewerTheme.DARK));
                 JPanel panel = new JPanel();
                 assertEquals(new Color(0x0D1017), panel.getBackground());
-                assertEquals("Manga Reader Ayu Dark", UIManager.getLookAndFeel().getName());
+                assertEquals("Yonaka Reader Ayu Dark", UIManager.getLookAndFeel().getName());
                 assertTrue(UiUtils.installTheme(ViewerTheme.LIGHT));
                 SwingUtilities.updateComponentTreeUI(panel);
                 assertEquals(new Color(0xF8F9FA), panel.getBackground());

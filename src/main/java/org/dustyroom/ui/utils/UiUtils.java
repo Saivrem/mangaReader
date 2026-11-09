@@ -30,7 +30,7 @@ public class UiUtils {
             if (stream == null) throw new IOException("Missing theme: " + path);
             Properties properties = new Properties();
             properties.load(stream);
-            UIManager.setLookAndFeel(new FlatPropertiesLaf("Manga Reader " + theme.label(), properties));
+            UIManager.setLookAndFeel(new FlatPropertiesLaf("Yonaka Reader " + theme.label(), properties));
             // Preserve OS window controls, system menus and window-management behavior.
             JFrame.setDefaultLookAndFeelDecorated(false);
             JDialog.setDefaultLookAndFeelDecorated(false);

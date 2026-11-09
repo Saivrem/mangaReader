@@ -21,13 +21,16 @@ public final class PlatformUi {
         System.setProperty(SCREEN_MENU_BAR_PROPERTY, Boolean.toString(macOs));
         if (macOs) {
             System.setProperty("apple.awt.application.appearance", "system");
-            System.setProperty("apple.awt.application.name", "Manga Reader");
+            System.setProperty("apple.awt.application.name", "Yonaka Reader");
         }
     }
 
     public static void installApplicationHandlers(ViewerController controller) {
         if (!usesScreenMenuBar() || !Desktop.isDesktopSupported()) return;
         Desktop desktop = Desktop.getDesktop();
+        if (desktop.isSupported(Desktop.Action.APP_OPEN_FILE)) {
+            desktop.setOpenFileHandler(event -> openFiles(event.getFiles(), controller::openExternalFile));
+        }
         if (desktop.isSupported(Desktop.Action.APP_ABOUT)) {
             desktop.setAboutHandler(event -> SwingUtilities.invokeLater(controller::showAboutDialog));
         }
@@ -36,6 +39,14 @@ public final class PlatformUi {
                 response.cancelQuit();
                 SwingUtilities.invokeLater(controller::exit);
             });
+        }
+    }
+
+    static void openFiles(java.util.List<java.io.File> files, java.util.function.Consumer<java.io.File> open) {
+        // The reader displays one book at a time. Finder may send a batch; open its first item.
+        if (!files.isEmpty()) {
+            java.io.File file = files.get(0);
+            SwingUtilities.invokeLater(() -> open.accept(file));
         }
     }
 

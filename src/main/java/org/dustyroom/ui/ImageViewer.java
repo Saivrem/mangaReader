@@ -38,7 +38,8 @@ public class ImageViewer extends JFrame {
     private final Timer resizeRenderTimer;
 
     public ImageViewer(ReaderStore store, ReaderSettings settings) {
-        setTitle("Manga Reader");
+        setTitle("Yonaka Reader");
+        setIconImages(BrandAssets.windowIcons());
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         setPreferredSize(new Dimension(1100, 760));
         setMinimumSize(new Dimension(940, 560));

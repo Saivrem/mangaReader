@@ -22,15 +22,30 @@ public final class ReaderUiPreview {
     public static void main(String[] args) throws Exception {
         File output = new File("build/ui-preview");
         if (!output.isDirectory() && !output.mkdirs()) throw new IllegalStateException("Cannot create " + output);
+        org.dustyroom.ui.BrandAssets.load();
         SwingUtilities.invokeAndWait(() -> {
             for (ViewerTheme theme : ViewerTheme.values()) {
                 if (!UiUtils.installTheme(theme)) throw new IllegalStateException("Cannot install " + theme);
+                renderAbout(output, theme);
                 for (boolean loaded : new boolean[]{false, true}) {
                     render(output, theme, loaded, 1100);
                     if (loaded) render(output, theme, true, 940);
                 }
             }
         });
+    }
+
+    private static void renderAbout(File output, ViewerTheme theme) {
+        JOptionPane pane = new JOptionPane(org.dustyroom.be.utils.Constants.ABOUT.formatted("0.8.0"),
+                JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION,
+                org.dustyroom.ui.BrandAssets.aboutIcon());
+        pane.setSize(520, 240);
+        layout(pane);
+        BufferedImage screenshot = new BufferedImage(1040, 480, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = screenshot.createGraphics();
+        try { graphics.scale(2, 2); pane.printAll(graphics); } finally { graphics.dispose(); }
+        try { ImageIO.write(screenshot, "png", new File(output, theme.name().toLowerCase() + "-about.png")); }
+        catch (java.io.IOException exception) { throw new IllegalStateException(exception); }
     }
 
     private static void render(File output, ViewerTheme theme, boolean loaded, int width) {
@@ -70,9 +85,9 @@ public final class ReaderUiPreview {
         layout(root);
         if (loaded) thumbnails.showSpread(24, 25);
         if (loaded) { image.setImageAndCenter(frame.image(), scroll); layout(root); }
-        BufferedImage screenshot = new BufferedImage(width, 720, BufferedImage.TYPE_INT_RGB);
+        BufferedImage screenshot = new BufferedImage(width * 2, 1440, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = screenshot.createGraphics();
-        try { root.printAll(graphics); } finally { graphics.dispose(); }
+        try { graphics.scale(2, 2); root.printAll(graphics); } finally { graphics.dispose(); }
         try { ImageIO.write(screenshot, "png", new File(output,
                 theme.name().toLowerCase() + (loaded ? "-reading-" : "-welcome-") + width + ".png")); }
         catch (java.io.IOException exception) { throw new IllegalStateException(exception); }

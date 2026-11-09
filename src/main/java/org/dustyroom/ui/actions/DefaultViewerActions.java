@@ -41,7 +41,7 @@ public class DefaultViewerActions implements ViewerActions {
                 key(KeyEvent.VK_T), controller::toggleThumbnails);
         this.openFile = action("openFile", "Open…", "Open an image, ZIP archive or folder",
                 menuShortcut(KeyEvent.VK_O), controller::chooseFile);
-        this.exit = action("exit", PlatformUi.usesScreenMenuBar() ? "Quit" : "Exit", "Close Manga Reader",
+        this.exit = action("exit", PlatformUi.usesScreenMenuBar() ? "Quit" : "Exit", "Close Yonaka Reader",
                 menuShortcut(KeyEvent.VK_Q), controller::exit);
         this.fitHeight = action("fitHeight", "Fit Height", "Fit the page to the window height",
                 key(KeyEvent.VK_H), controller::fitHeight);
@@ -79,7 +79,7 @@ public class DefaultViewerActions implements ViewerActions {
                 key(KeyEvent.VK_ESCAPE), controller::exitFullscreen);
         this.resetApplication = action("resetApplication", "Reset Application…",
                 "Reset settings and reading history", null, controller::resetApplication);
-        this.showAbout = action("showAbout", "About Manga Reader", "Show application information",
+        this.showAbout = action("showAbout", "About Yonaka Reader", "Show application information",
                 null, controller::showAboutDialog);
     }
 

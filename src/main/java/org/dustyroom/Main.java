@@ -16,6 +16,7 @@ public class Main {
 
     public static void main(String[] args) {
         PlatformUi.configure();
+        org.dustyroom.ui.BrandAssets.load();
         ReaderStore candidate = ReaderStore.disabled();
         ReaderSettings loaded = ReaderSettings.defaults();
         String error = null;
@@ -36,7 +37,7 @@ public class Main {
             ImageViewer imageViewer = new ImageViewer(store, settings);
             if (startupError != null) DialogUtils.showError(imageViewer, startupError);
             if (args.length > 0) {
-                imageViewer.openFile(new File(String.join(" ", args)));
+                imageViewer.openFile(new File(args[0]));
             }
         });
     }

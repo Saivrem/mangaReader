@@ -126,6 +126,13 @@ public class ViewerController {
         saveSettings();
     }
 
+    public void openExternalFile(File file) {
+        frame.setExtendedState(frame.getExtendedState() & ~java.awt.Frame.ICONIFIED);
+        frame.toFront();
+        frame.requestFocus();
+        openFile(file);
+    }
+
     public void openFile(File file) {
         session.open(file);
     }
@@ -293,8 +300,8 @@ public class ViewerController {
                 "Reset all settings and reading history?\n\n"
                         + "Saved page positions and reading modes will be removed.\n"
                         + "Your image files, folders and ZIP archives will not be deleted.\n\n"
-                        + "Manga Reader will close. The next launch will start with default settings.",
-                "Reset Manga Reader", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+                        + "Yonaka Reader will close. The next launch will start with default settings.",
+                "Reset Yonaka Reader", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
                 null, options, options[1]);
         if (choice != 0) return;
         resetting = true;

@@ -1,20 +1,11 @@
 package org.dustyroom.ui.components;
 
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import java.awt.CardLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridBagLayout;
+import javax.swing.*;
+import java.awt.*;
 
-/** Welcome and reading views share the same window and open action. */
+/**
+ * Welcome and reading views share the same window and open action.
+ */
 public final class ReaderSurface extends JPanel {
     private final CardLayout cards = new CardLayout();
     private final JLabel status = new JLabel("JPG · PNG · GIF · ZIP", JLabel.CENTER);
@@ -26,9 +17,11 @@ public final class ReaderSurface extends JPanel {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(40, 40, 40, 40));
-        JLabel book = new JLabel(new ReaderIcon(ReaderIcon.Kind.BOOK, 64));
-        JLabel title = new JLabel("Manga Reader");
+        JLabel book = new JLabel(org.dustyroom.ui.BrandAssets.welcomeIcon());
+        JLabel title = new JLabel("Yonaka Reader");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 32f));
+        JLabel slogan = new JLabel("もう少し読んでいましょう");
+        slogan.setFont(slogan.getFont().deriveFont(15f));
         JLabel subtitle = new JLabel("Drop an image, ZIP archive or folder here to start reading.");
         subtitle.setFont(subtitle.getFont().deriveFont(15f));
         JButton button = new JButton(open);
@@ -39,7 +32,10 @@ public final class ReaderSurface extends JPanel {
         button.setMaximumSize(new Dimension(190, 44));
         button.setPreferredSize(new Dimension(190, 44));
         button.getAccessibleContext().setAccessibleName("Open an image, ZIP archive or folder");
-        for (Component item : new Component[]{book, Box.createVerticalStrut(24), title,
+        for (Component item : new Component[]{
+                book,
+                Box.createVerticalStrut(24), title,
+                Box.createVerticalStrut(24), slogan,
                 Box.createVerticalStrut(10), subtitle, Box.createVerticalStrut(28), button,
                 Box.createVerticalStrut(18), status}) {
             if (item instanceof javax.swing.JComponent component) component.setAlignmentX(CENTER_ALIGNMENT);

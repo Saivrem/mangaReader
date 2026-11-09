@@ -85,3 +85,9 @@ tasks.register('packagedStoreSmoke', Exec) {
                 'src/test/java/org/dustyroom/persistence/PackagedStoreSmoke.java'
     }
 }
+
+apply from: 'gradle/macos.gradle'
+
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+
+apply from: 'gradle/desktop-packages.gradle'
