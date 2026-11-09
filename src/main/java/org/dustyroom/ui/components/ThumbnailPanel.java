@@ -43,6 +43,7 @@ public final class ThumbnailPanel extends JPanel {
     private int windowStart, windowEnd = -1;
     private boolean pending;
     private int first = -1, last = -1;
+
     public ThumbnailPanel(Loader loader, IntConsumer navigate, Runnable hide) {
         super(new BorderLayout());
         this.loader = loader;

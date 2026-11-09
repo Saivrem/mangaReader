@@ -213,7 +213,10 @@ public final class AsyncViewerSession implements AutoCloseable {
     private void postRecent(long request, List<RecentBook> books) {
         List<RecentBook> snapshot = List.copyOf(books);
         uiExecutor.execute(() -> {
-            if (recentActive(request)) { shownRecent = snapshot; view.showRecentBooks(snapshot); }
+            if (recentActive(request)) {
+                shownRecent = snapshot;
+                view.showRecentBooks(snapshot);
+            }
         });
     }
 
@@ -598,7 +601,8 @@ public final class AsyncViewerSession implements AutoCloseable {
     private void scheduleAnimations(long targetGeneration, long requestId, PageRef first, PageRef second,
                                     BufferedImage firstImage, BufferedImage secondImage, boolean manga) {
         var refs = second == null ? List.of(first) : List.of(first, second);
-        if (refs.stream().noneMatch(page -> page.key().pageId().toLowerCase(java.util.Locale.ROOT).endsWith(".gif"))) return;
+        if (refs.stream().noneMatch(page -> page.key().pageId().toLowerCase(java.util.Locale.ROOT).endsWith(".gif")))
+            return;
         tasks.execute(PREFETCH, () -> {
             if (!isLatest(targetGeneration, requestId)) return;
             var animated = new ArrayList<AnimatedPage>();

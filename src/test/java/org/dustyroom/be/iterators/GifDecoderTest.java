@@ -2,41 +2,56 @@ package org.dustyroom.be.iterators;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import javax.imageio.*;
+
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.metadata.IIOMetadataNode;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.*;
-import java.nio.file.*;
-import java.util.zip.*;
-import static org.junit.jupiter.api.Assertions.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class GifDecoderTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
-    @Test void compositesOffsetsDisposalTimingAndFiniteLoopCount() throws Exception {
+    @Test
+    void compositesOffsetsDisposalTimingAndFiniteLoopCount() throws Exception {
         byte[] gif = fixture("restoreToPrevious");
-        var clip = GifDecoder.read(new ByteArrayInputStream(gif));
-        assertNotNull(clip);
-        assertEquals(3, clip.frames().size());
-        assertEquals(Color.BLUE.getRGB(), clip.frames().get(1).getRGB(1, 1));
-        assertEquals(Color.RED.getRGB(), clip.frames().get(2).getRGB(1, 1));
-        assertEquals(Color.GREEN.getRGB(), clip.frames().get(2).getRGB(0, 0));
-        assertEquals(java.util.List.of(100, 200, 300), clip.delays());
-        assertEquals(3, clip.loops());
-        assertEquals(0, clip.frameAt(0));
-        assertEquals(1, clip.frameAt(100));
-        assertEquals(2, clip.frameAt(300));
-        assertEquals(0, clip.frameAt(600));
-        assertEquals(2, clip.frameAt(1800));
+        var clip = GifDecoder.read(() -> new ByteArrayInputStream(gif));
+        try (var decoder = clip.opener().open()) {
+            var first = decoder.next();
+            var second = decoder.next();
+            var third = decoder.next();
+            assertEquals(Color.BLUE.getRGB(), second.image().getRGB(1, 1));
+            assertEquals(Color.RED.getRGB(), third.image().getRGB(1, 1));
+            assertEquals(Color.GREEN.getRGB(), third.image().getRGB(0, 0));
+            assertEquals(100, first.delayMillis());
+            assertEquals(200, second.delayMillis());
+            assertEquals(300, third.delayMillis());
+            assertEquals(3, decoder.loops());
+            org.junit.jupiter.api.Assertions.assertNull(decoder.next());
+        }
     }
 
-    @Test void decodesStandaloneAndArchivedAnimationsAndReleasesArchive() throws Exception {
+    @Test
+    void decodesStandaloneAndArchivedAnimationsAndReleasesArchive() throws Exception {
         byte[] gif = fixture("doNotDispose");
         Path file = Files.write(directory.resolve("animation.gif"), gif);
         try (var source = ImageIteratorFactory.create(file.toFile())) {
             var clip = source.animation(source.pages().get(0));
-            assertEquals(Color.BLUE.getRGB(), clip.frames().get(2).getRGB(1, 1));
+            try (var decoder = clip.opener().open()) {
+                decoder.next(); decoder.next();
+                assertEquals(Color.BLUE.getRGB(), decoder.next().image().getRGB(1, 1));
+            }
         }
         Path archive = directory.resolve("animation.zip");
         try (var zip = new ZipOutputStream(Files.newOutputStream(archive))) {
@@ -45,18 +60,58 @@ class GifDecoderTest {
             zip.closeEntry();
         }
         try (var source = ImageIteratorFactory.create(archive.toFile())) {
-            assertEquals(3, source.animation(source.pages().get(0)).frames().size());
+            var clip = source.animation(source.pages().get(0));
+            source.close();
+            try (var decoder = clip.opener().open()) {
+                assertNotNull(decoder.next());
+                assertNotNull(decoder.next());
+                assertNotNull(decoder.next());
+                org.junit.jupiter.api.Assertions.assertNull(decoder.next());
+            }
         }
         Files.delete(archive);
     }
 
-    private byte[] fixture(String disposal) throws Exception {
+    @Test
+    void readsMoreThanFiveHundredFramesLazilyAndReopens() throws Exception {
+        byte[] gif = fixture("doNotDispose", 650);
+        var bytesRead = new java.util.concurrent.atomic.AtomicInteger();
+        var closed = new java.util.concurrent.atomic.AtomicInteger();
+        var clip = GifDecoder.read(() -> new java.io.FilterInputStream(new ByteArrayInputStream(gif)) {
+            @Override public int read() throws java.io.IOException {
+                int value = super.read();
+                if (value >= 0) bytesRead.incrementAndGet();
+                return value;
+            }
+            @Override public int read(byte[] bytes, int offset, int length) throws java.io.IOException {
+                int count = in.read(bytes, offset, length);
+                if (count > 0) bytesRead.addAndGet(count);
+                return count;
+            }
+            @Override public void close() throws java.io.IOException { closed.incrementAndGet(); super.close(); }
+        });
+        assertEquals(0, bytesRead.get());
+        for (int pass = 0; pass < 2; pass++) {
+            int start = bytesRead.get();
+            try (var decoder = clip.opener().open()) {
+                assertNotNull(decoder.next());
+                org.junit.jupiter.api.Assertions.assertTrue(bytesRead.get() - start < gif.length / 2);
+                for (int i = 1; i < 650; i++) assertNotNull(decoder.next());
+                org.junit.jupiter.api.Assertions.assertNull(decoder.next());
+            }
+        }
+        assertEquals(2, closed.get());
+    }
+
+    private byte[] fixture(String disposal) throws Exception { return fixture(disposal, 3); }
+
+    private byte[] fixture(String disposal, int count) throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         var writer = ImageIO.getImageWritersByFormatName("gif").next();
         try (var stream = ImageIO.createImageOutputStream(output)) {
             writer.setOutput(stream);
             writer.prepareWriteSequence(null);
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < count; i++) {
                 int size = i == 0 ? 4 : i == 1 ? 2 : 1;
                 BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
                 Graphics2D g = image.createGraphics();
@@ -84,7 +139,9 @@ class GifDecoderTest {
                 writer.writeToSequence(new IIOImage(image, null, metadata), null);
             }
             writer.endWriteSequence();
-        } finally { writer.dispose(); }
+        } finally {
+            writer.dispose();
+        }
         return output.toByteArray();
     }
 }

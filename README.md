@@ -78,9 +78,10 @@ See [the library proposal](docs/library-design.md) for the next-stage design.
 - Bounded image caching and next-page prefetch
 
 Animated GIFs play both as standalone files and inside ZIP archives, including in
-spreads. Frames are composited off the UI thread with their offsets, disposal rules,
-delays and loop counts. Each animation is limited to 64 MiB of decoded frames and
-500 frames; larger animations show the first frame and an explanatory error. Covers
+spreads. Sequential background decoding preserves frame offsets, disposal rules,
+delays and loop counts, with two frames buffered ahead per visible page. There is no frame-count or duration limit; completed passes reopen
+the source. Memory for decoded pixels depends on canvas size, not animation length.
+Leaving the page cancels playback and closes its file/archive stream. Covers
 and sidebar thumbnails intentionally stay static.
 
 ### Scrolling, zoom and panning

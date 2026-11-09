@@ -53,8 +53,10 @@ public class ViewerController {
         this.imageComponent = imageComponent;
         this.scrollPane = scrollPane;
         this.session = new AsyncViewerSession(new ViewerView() {
-            @Override public void showAnimations(org.dustyroom.be.models.PageKey page, java.util.List<org.dustyroom.ui.loading.AnimatedPage> animations) {
-                if (displayedFrame != null && page.equals(displayedFrame.pageKey())) imageComponent.setAnimations(animations);
+            @Override
+            public void showAnimations(org.dustyroom.be.models.PageKey page, java.util.List<org.dustyroom.ui.loading.AnimatedPage> animations) {
+                if (displayedFrame != null && page.equals(displayedFrame.pageKey()))
+                    imageComponent.setAnimations(animations);
             }
 
             @Override

@@ -5,36 +5,53 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class ImageComponent extends JComponent {
+    private final Timer animationTimer = new Timer(20, event -> animate());
     private BufferedImage image;
     private java.util.List<org.dustyroom.ui.loading.AnimatedPage> animations = java.util.List.of();
-    private long animationStart;
-    private final Timer animationTimer = new Timer(20, event -> animate());
-
-    private void animate() {
-        long elapsed = (System.nanoTime() - animationStart) / 1_000_000;
-        if (animations.stream().allMatch(page -> page.clip().finished(elapsed))) animationTimer.stop();
-        repaint();
-    }
+    private java.util.List<org.dustyroom.ui.loading.BufferedAnimation> players = java.util.List.of();
+    private double scale = 1.0;
+    private FitMode fitMode = FitMode.FIT_SCREEN;
 
     public ImageComponent() {
         addHierarchyListener(event -> {
-            if (isShowing() && !animations.isEmpty()) animationTimer.start();
-            else animationTimer.stop();
+            if (isShowing()) startAnimations();
+            else stopAnimations();
         });
     }
 
-    public void setAnimations(java.util.List<org.dustyroom.ui.loading.AnimatedPage> pages) {
-        animations = java.util.List.copyOf(pages);
-        animationStart = System.nanoTime();
-        if (!animations.isEmpty() && isShowing()) animationTimer.start();
-        else animationTimer.stop();
+    private void animate() {
+        long now = System.nanoTime();
+        players.forEach(player -> player.advance(now));
+        if (players.stream().allMatch(player -> player.finished(now))) animationTimer.stop();
         repaint();
     }
 
-    @Override public void removeNotify() { animationTimer.stop(); super.removeNotify(); }
+    private void startAnimations() {
+        if (!players.isEmpty() || animations.isEmpty()) return;
+        players = animations.stream().map(page -> new org.dustyroom.ui.loading.BufferedAnimation(page.clip(), error ->
+                java.util.logging.Logger.getLogger(ImageComponent.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Cannot play GIF", error))).toList();
+        animationTimer.start();
+    }
 
-    private double scale = 1.0;
-    private FitMode fitMode = FitMode.FIT_SCREEN;
+    private void stopAnimations() {
+        animationTimer.stop();
+        players.forEach(org.dustyroom.ui.loading.BufferedAnimation::close);
+        players = java.util.List.of();
+    }
+
+    public void setAnimations(java.util.List<org.dustyroom.ui.loading.AnimatedPage> pages) {
+        stopAnimations();
+        animations = java.util.List.copyOf(pages);
+        if (isShowing()) startAnimations();
+        repaint();
+    }
+
+    @Override
+    public void removeNotify() {
+        stopAnimations();
+        super.removeNotify();
+    }
 
     public void setImageAndCenter(BufferedImage img, JScrollPane scrollPane) {
         setImage(img);
@@ -53,7 +70,7 @@ public class ImageComponent extends JComponent {
     }
 
     private void setImage(BufferedImage image) {
-        animationTimer.stop();
+        stopAnimations();
         animations = java.util.List.of();
         this.image = image;
         updateScale();
@@ -155,13 +172,15 @@ public class ImageComponent extends JComponent {
         int y = (getHeight() - imgH) / 2;
 
         g2d.drawImage(image, x, y, imgW, imgH, this);
-        long elapsed = (System.nanoTime() - animationStart) / 1_000_000;
-        for (var page : animations) {
+        for (int i = 0; i < players.size(); i++) {
+            var frame = players.get(i).advance(System.nanoTime());
+            if (frame == null) continue;
+            var page = animations.get(i);
             int px = x + (int) Math.round(page.x() * scale), py = y + (int) Math.round(page.y() * scale);
             int width = (int) Math.round(page.width() * scale), height = (int) Math.round(page.height() * scale);
             g2d.setColor(page.spread() ? Color.BLACK : getBackground());
             g2d.fillRect(px, py, width, height);
-            g2d.drawImage(page.clip().frames().get(page.clip().frameAt(elapsed)), px, py, width, height, this);
+            g2d.drawImage(frame.image(), px, py, width, height, this);
         }
     }
 

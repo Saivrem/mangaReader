@@ -135,11 +135,24 @@ public class ZipIterator implements ImageIterator {
     public org.dustyroom.be.models.AnimationClip animation(PageRef page) {
         ensureOpen();
         if (!page.key().sourceId().equals(sourceId(zipFilePath))) throw new IllegalArgumentException("Wrong source");
-        ZipEntry entry = zipFile.getEntry(page.key().pageId());
-        if (entry == null) throw new ImageIteratorException("Missing GIF entry", zipFilePath);
-        try (InputStream input = zipFile.getInputStream(entry)) {
-            return GifDecoder.read(input);
-        } catch (IOException error) { throw new ImageIteratorException(error.getMessage(), zipFilePath, error); }
+        // Playback owns an independent archive handle, including after switching volumes.
+        File archive = zipFilePath;
+        String entryName = page.key().pageId();
+        return GifDecoder.read(() -> {
+            var zip = new java.util.zip.ZipFile(archive);
+            try {
+                ZipEntry entry = zip.getEntry(entryName);
+                if (entry == null) throw new IOException("Missing GIF entry: " + entryName);
+                return new java.io.FilterInputStream(zip.getInputStream(entry)) {
+                    @Override public void close() throws IOException {
+                        try { super.close(); } finally { zip.close(); }
+                    }
+                };
+            } catch (IOException | RuntimeException error) {
+                try { zip.close(); } catch (IOException suppressed) { error.addSuppressed(suppressed); }
+                throw error;
+            }
+        });
     }
 
     @Override

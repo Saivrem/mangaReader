@@ -119,7 +119,10 @@ public class DefaultViewerActions implements ViewerActions {
         return toggleThumbnails;
     }
 
-    @Override public Action home() { return home; }
+    @Override
+    public Action home() {
+        return home;
+    }
 
     @Override
     public Action openFile() {

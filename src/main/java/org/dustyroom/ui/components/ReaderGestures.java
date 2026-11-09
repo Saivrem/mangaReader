@@ -2,12 +2,17 @@ package org.dustyroom.ui.components;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.lang.reflect.Proxy;
 
-/** Precise wheel scrolling, pointer-anchored zoom and grab-to-pan, without image I/O. */
+/**
+ * Precise wheel scrolling, pointer-anchored zoom and grab-to-pan, without image I/O.
+ */
 public final class ReaderGestures {
-    private ReaderGestures() {}
+    private ReaderGestures() {
+    }
 
     public static void install(ImageComponent image, JScrollPane scroll, Runnable changed) {
         scroll.setWheelScrollingEnabled(false);
@@ -19,7 +24,8 @@ public final class ReaderGestures {
             private Point pressed, origin;
             private double verticalRemainder, horizontalRemainder;
 
-            @Override public void mouseWheelMoved(MouseWheelEvent event) {
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent event) {
                 if (event.isControlDown() || event.isMetaDown()) {
                     Point anchor = SwingUtilities.convertPoint(event.getComponent(), event.getPoint(), scroll.getViewport());
                     image.zoomAt(Math.exp(-event.getPreciseWheelRotation() * 0.12), anchor, scroll);
@@ -31,20 +37,23 @@ public final class ReaderGestures {
                             ? bar.getBlockIncrement() : 48 * Math.max(1, event.getScrollAmount()));
                     double total = delta + (horizontal ? horizontalRemainder : verticalRemainder);
                     int pixels = (int) total;
-                    if (horizontal) horizontalRemainder = total - pixels; else verticalRemainder = total - pixels;
+                    if (horizontal) horizontalRemainder = total - pixels;
+                    else verticalRemainder = total - pixels;
                     bar.setValue(bar.getValue() + pixels);
                 }
                 event.consume();
             }
 
-            @Override public void mousePressed(MouseEvent event) {
+            @Override
+            public void mousePressed(MouseEvent event) {
                 if (!SwingUtilities.isLeftMouseButton(event) && !SwingUtilities.isMiddleMouseButton(event)) return;
                 pressed = SwingUtilities.convertPoint(image, event.getPoint(), scroll.getViewport());
                 origin = scroll.getViewport().getViewPosition();
                 image.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
             }
 
-            @Override public void mouseDragged(MouseEvent event) {
+            @Override
+            public void mouseDragged(MouseEvent event) {
                 if (pressed == null) return;
                 Point now = SwingUtilities.convertPoint(image, event.getPoint(), scroll.getViewport());
                 JViewport viewport = scroll.getViewport();
@@ -53,7 +62,8 @@ public final class ReaderGestures {
                         Math.max(0, Math.min(origin.y + pressed.y - now.y, image.getHeight() - viewport.getHeight()))));
             }
 
-            @Override public void mouseReleased(MouseEvent event) {
+            @Override
+            public void mouseReleased(MouseEvent event) {
                 pressed = origin = null;
                 image.setCursor(Cursor.getDefaultCursor());
             }

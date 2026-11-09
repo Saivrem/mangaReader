@@ -8,6 +8,7 @@ public record ReaderSettings(ViewerTheme theme, FitMode fitMode, double zoom, St
     public ReaderSettings(ViewerTheme theme, FitMode fitMode, double zoom, String lastDirectory, boolean thumbnailsVisible) {
         this(theme, fitMode, zoom, lastDirectory, thumbnailsVisible, true);
     }
+
     public ReaderSettings(ViewerTheme theme, FitMode fitMode, double zoom, String lastDirectory) {
         this(theme, fitMode, zoom, lastDirectory, true);
     }

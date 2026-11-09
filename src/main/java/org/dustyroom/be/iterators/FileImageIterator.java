@@ -114,10 +114,10 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public org.dustyroom.be.models.AnimationClip animation(PageRef page) {
-        if (!page.key().sourceId().equals(volumeId(getVolumeRoot()))) throw new IllegalArgumentException("Wrong source");
-        try (InputStream input = Files.newInputStream(new File(page.key().pageId()).toPath())) {
-            return GifDecoder.read(input);
-        } catch (IOException error) { throw new ImageIteratorException(error.getMessage(), getVolumeRoot(), error); }
+        if (!page.key().sourceId().equals(volumeId(getVolumeRoot())))
+            throw new IllegalArgumentException("Wrong source");
+        var path = new File(page.key().pageId()).toPath();
+        return GifDecoder.read(() -> Files.newInputStream(path));
     }
 
     @Override

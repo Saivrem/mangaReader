@@ -71,7 +71,7 @@ class AsyncViewerSessionTest {
     @Test
     void animatedPagesFollowSpreadOrderAndStaleResultsAreDiscarded() {
         FakeImageIterator source = FakeImageIterator.portraits("book", "one.gif", "two.gif", "three.png");
-        source.animation = new org.dustyroom.be.models.AnimationClip(List.of(image(4, 8), image(4, 8)), List.of(100, 100), 0);
+        source.animation = new org.dustyroom.be.models.AnimationClip(() -> { throw new java.io.IOException("Not opened by session"); });
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         QueuedExecutor ui = new QueuedExecutor();
         RecordingView view = new RecordingView();
@@ -837,8 +837,12 @@ class AsyncViewerSessionTest {
         private final List<ViewerFrame> frames = new ArrayList<>();
         private final List<String> errors = new ArrayList<>();
         private final List<List<AnimatedPage>> animations = new ArrayList<>();
-        @Override public void showAnimations(PageKey page, List<AnimatedPage> pages) { animations.add(pages); }
         private int loadingCount;
+
+        @Override
+        public void showAnimations(PageKey page, List<AnimatedPage> pages) {
+            animations.add(pages);
+        }
 
         @Override
         public void showLoading() {
@@ -913,18 +917,16 @@ class AsyncViewerSessionTest {
 
     private static final class FakeImageIterator implements ImageIterator {
         private final String sourceId;
-        private org.dustyroom.be.models.AnimationClip animation;
-        @Override public org.dustyroom.be.models.AnimationClip animation(PageRef page) { return animation; }
         private final List<PageRef> pages;
         private final Map<String, BufferedImage> images;
         private final Map<String, Integer> loadCounts = new HashMap<>();
         private final List<String> failures = new ArrayList<>();
+        private org.dustyroom.be.models.AnimationClip animation;
         private volatile String blockedPage;
         private volatile CountDownLatch blockedLoadStarted;
         private volatile CountDownLatch releaseBlockedLoad;
         private int cursor;
         private int closeCount;
-
         private FakeImageIterator(String sourceId, List<PageRef> pages, Map<String, BufferedImage> images) {
             this.sourceId = sourceId;
             this.pages = pages;
@@ -939,6 +941,11 @@ class AsyncViewerSessionTest {
                 images.put(name, image(4, 8));
             }
             return new FakeImageIterator(source, List.copyOf(pages), images);
+        }
+
+        @Override
+        public org.dustyroom.be.models.AnimationClip animation(PageRef page) {
+            return animation;
         }
 
         PageRef ref(String name) {

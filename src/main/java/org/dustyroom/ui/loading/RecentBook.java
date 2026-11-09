@@ -9,7 +9,10 @@ import java.io.File;
  * Immutable snapshot shared by the welcome view and Open Recent menu.
  */
 public record RecentBook(BookState state, boolean available, BufferedImage cover, java.util.List<BookState> chapters) {
-    public RecentBook { chapters = java.util.List.copyOf(chapters); }
+    public RecentBook {
+        chapters = java.util.List.copyOf(chapters);
+    }
+
     public RecentBook(BookState state, boolean available, BufferedImage cover) {
         this(state, available, cover, java.util.List.of(state));
     }

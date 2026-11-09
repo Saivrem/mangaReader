@@ -1,14 +1,19 @@
 package org.dustyroom.ui.components;
 
 import org.junit.jupiter.api.Test;
+
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.InputEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ReaderInteractionTest {
-    @Test void pageIsCenteredSynchronouslyAndDoesNotJumpOnTheNextEdtTurn() throws Exception {
+    @Test
+    void pageIsCenteredSynchronouslyAndDoesNotJumpOnTheNextEdtTurn() throws Exception {
         Point[] expected = new Point[1];
         JScrollPane[] scroller = new JScrollPane[1];
         SwingUtilities.invokeAndWait(() -> {
@@ -26,7 +31,8 @@ class ReaderInteractionTest {
         SwingUtilities.invokeAndWait(() -> assertEquals(expected[0], scroller[0].getViewport().getViewPosition()));
     }
 
-    @Test void zoomKeepsThePointUnderThePointerAndClampsScale() throws Exception {
+    @Test
+    void zoomKeepsThePointUnderThePointerAndClampsScale() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             ImageComponent image = new ImageComponent();
             JScrollPane scroll = new JScrollPane(image);
@@ -45,14 +51,16 @@ class ReaderInteractionTest {
         });
     }
 
-    @Test void preciseWheelScrollAndDraggingMoveTheViewport() throws Exception {
+    @Test
+    void preciseWheelScrollAndDraggingMoveTheViewport() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             ImageComponent image = new ImageComponent();
             JScrollPane scroll = new JScrollPane(image);
             scroll.setSize(600, 400);
             image.restoreView(ImageComponent.FitMode.ORIGINAL, 1);
             image.setImageAndCenter(new BufferedImage(1200, 1000, BufferedImage.TYPE_INT_RGB), scroll);
-            ReaderGestures.install(image, scroll, () -> {});
+            ReaderGestures.install(image, scroll, () -> {
+            });
             var wheel = new MouseWheelEvent(scroll, MouseEvent.MOUSE_WHEEL, 0, 0, 100, 100,
                     100, 100, 0, false, MouseWheelEvent.WHEEL_UNIT_SCROLL, 3, 1, 0.25);
             scroll.dispatchEvent(wheel);

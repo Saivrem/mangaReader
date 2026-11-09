@@ -93,7 +93,9 @@ class MenuBarTest {
         }
 
         @Override
-        public Action home() { return action; }
+        public Action home() {
+            return action;
+        }
 
         public Action openFile() {
             return action;

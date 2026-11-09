@@ -1,27 +1,20 @@
 package org.dustyroom.be.models;
 
 import java.awt.image.BufferedImage;
-import java.util.List;
+import java.io.IOException;
 
-/** Fully composited, bounded GIF frames decoded off the EDT. Zero loops means forever. */
-public record AnimationClip(List<BufferedImage> frames, List<Integer> delays, int loops) {
-    public AnimationClip {
-        frames = List.copyOf(frames);
-        delays = List.copyOf(delays);
-        if (frames.isEmpty() || frames.size() != delays.size() || delays.stream().anyMatch(d -> d <= 0))
-            throw new IllegalArgumentException("Invalid animation");
+/** A reopenable animation source; owns no open files or decoded frame collection. */
+public record AnimationClip(Opener opener) {
+    @FunctionalInterface
+    public interface Opener { Decoder open() throws IOException; }
+
+    public interface Decoder extends AutoCloseable {
+        /** Next composited frame, or null at the end of one pass. */
+        Frame next() throws IOException;
+        /** Total passes; zero means repeat forever. */
+        int loops();
+        @Override void close() throws IOException;
     }
-    public boolean finished(long elapsedMillis) {
-        return loops > 0 && elapsedMillis >= delays.stream().mapToLong(Integer::longValue).sum() * loops;
-    }
-    public int frameAt(long elapsedMillis) {
-        long duration = delays.stream().mapToLong(Integer::longValue).sum();
-        if (loops > 0 && elapsedMillis >= duration * loops) return frames.size() - 1;
-        long position = Math.max(0, elapsedMillis) % duration;
-        for (int i = 0; i < delays.size(); i++) {
-            if (position < delays.get(i)) return i;
-            position -= delays.get(i);
-        }
-        return 0;
-    }
+
+    public record Frame(BufferedImage image, int delayMillis) {}
 }

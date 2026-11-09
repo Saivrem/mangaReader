@@ -69,8 +69,8 @@ public final class RecentBooksPanel extends JPanel {
         private final JLabel progress = new JLabel();
         private final JLabel availability = new JLabel();
         private final JButton chapters = new JButton();
-        private RecentBook current;
         private final JProgressBar bar = new JProgressBar(0, 100);
+        private RecentBook current;
 
         BookCard(String id) {
             super(new BorderLayout(12, 0));

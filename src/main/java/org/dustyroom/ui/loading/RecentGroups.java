@@ -1,15 +1,19 @@
 package org.dustyroom.ui.loading;
 
 import org.dustyroom.persistence.BookState;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 
-/** Explicit folder grouping, not guessing series names from filenames. */
+/**
+ * Explicit folder grouping, not guessing series names from filenames.
+ */
 public final class RecentGroups {
-    private RecentGroups() {}
+    private RecentGroups() {
+    }
 
     public static List<List<BookState>> select(List<BookState> history, boolean grouped, int limit) {
         var groups = new LinkedHashMap<String, List<BookState>>();
