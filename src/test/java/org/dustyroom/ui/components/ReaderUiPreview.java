@@ -36,7 +36,7 @@ public final class ReaderUiPreview {
     }
 
     private static void renderAbout(File output, ViewerTheme theme) {
-        JOptionPane pane = new JOptionPane(org.dustyroom.be.utils.Constants.ABOUT.formatted("0.8.0"),
+        JOptionPane pane = new JOptionPane(org.dustyroom.be.utils.Constants.ABOUT.formatted("0.9.0"),
                 JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION,
                 org.dustyroom.ui.BrandAssets.aboutIcon());
         pane.setSize(520, 240);

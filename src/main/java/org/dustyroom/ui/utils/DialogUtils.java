@@ -11,7 +11,7 @@ import java.awt.Component;
 public class DialogUtils {
     public static void showAbout(JFrame parent) {
         JOptionPane.showMessageDialog(parent,
-                Constants.ABOUT.formatted("0.8.0"),
+                Constants.ABOUT.formatted("0.9.0"),
                 "About Yonaka Reader", JOptionPane.INFORMATION_MESSAGE,
                 org.dustyroom.ui.BrandAssets.aboutIcon());
     }
