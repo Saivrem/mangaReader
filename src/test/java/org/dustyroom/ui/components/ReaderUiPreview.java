@@ -29,7 +29,7 @@ public final class ReaderUiPreview {
                 renderAbout(output, theme);
                 for (boolean loaded : new boolean[]{false, true}) {
                     render(output, theme, loaded, 1100);
-                    if (loaded) render(output, theme, true, 940);
+                    render(output, theme, loaded, 940);
                 }
             }
         });
@@ -60,6 +60,11 @@ public final class ReaderUiPreview {
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(UIManager.getColor("Viewer.background"));
         ReaderSurface surface = new ReaderSurface(scroll, actions.openFile());
+        if (!loaded) surface.showRecentBooks(java.util.stream.IntStream.range(0, 6).mapToObj(i ->
+                new org.dustyroom.ui.loading.RecentBook(new org.dustyroom.persistence.BookState(
+                        "/books/" + (i == 0 ? "日本語 — The long way home.zip" : "Volume " + (i + 1) + ".zip"),
+                        "page-24", 24 + i, 180, true, ReadingMode.MANGA), i != 2,
+                        i == 2 ? null : org.dustyroom.ui.rendering.ThumbnailRenderer.render(samplePage()))).toList());
         NavigationPanel navigation = new NavigationPanel(actions);
         navigation.updateState(frame, ImageComponent.FitMode.FIT_SCREEN);
         JPanel content = new JPanel(new BorderLayout());

@@ -3,6 +3,8 @@ package org.dustyroom.ui.loading;
 public interface ViewerView {
     default void showPages(java.util.List<org.dustyroom.be.models.PageRef> pages) {}
 
+    default void showRecentBooks(java.util.List<RecentBook> books) {}
+
     void showLoading();
 
     void showFrame(ViewerFrame frame);

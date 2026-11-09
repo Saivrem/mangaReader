@@ -74,6 +74,11 @@ public class ViewerController {
                 if (readerSurface != null) readerSurface.setLoading(true);
             }
 
+            @Override public void showRecentBooks(java.util.List<org.dustyroom.ui.loading.RecentBook> books) {
+                if (readerSurface != null) readerSurface.showRecentBooks(books);
+                if (menuBar instanceof org.dustyroom.ui.components.MenuBar menu) menu.showRecentBooks(books);
+            }
+
             @Override public void showPages(java.util.List<org.dustyroom.be.models.PageRef> pages) {
                 if (thumbnailPanel != null) thumbnailPanel.showPages(pages);
             }
@@ -104,6 +109,12 @@ public class ViewerController {
         this.navigationPanel = navigationPanel;
         this.readerSurface = readerSurface;
         this.actions = actions;
+        java.util.function.Consumer<String> openRecent = id -> openFile(new File(id));
+        readerSurface.setRecentHandlers(openRecent, session::hideRecentBook);
+        if (menuBar instanceof org.dustyroom.ui.components.MenuBar menu) {
+            menu.setRecentHandlers(openRecent, session::refreshRecentBooks, this::showHome);
+        }
+        session.refreshRecentBooks();
         refreshControls();
     }
 
@@ -124,6 +135,15 @@ public class ViewerController {
         frame.revalidate();
         SwingUtilities.invokeLater(() -> { imageComponent.updateScale(); imageComponent.repaint(); });
         saveSettings();
+    }
+
+    public void showHome() {
+        if (resetting) return;
+        if (fullscreen) exitFullscreen();
+        readerSurface.showWelcome();
+        if (thumbnailPanel != null) thumbnailPanel.setVisible(false);
+        frame.setTitle("Yonaka Reader");
+        session.refreshRecentBooks();
     }
 
     public void openExternalFile(File file) {

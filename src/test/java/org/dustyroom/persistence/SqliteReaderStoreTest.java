@@ -137,7 +137,7 @@ class SqliteReaderStoreTest {
     void refusesFutureSchemaWithoutDowngradingIt() throws Exception {
         Path db = directory.resolve("future.sqlite3");
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
-            sql.execute("PRAGMA user_version=2");
+            sql.execute("PRAGMA user_version=3");
         }
         byte[] before = java.nio.file.Files.readAllBytes(db);
         assertThrows(IllegalStateException.class, () -> new SqliteReaderStore(db));
@@ -145,7 +145,7 @@ class SqliteReaderStoreTest {
         try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement();
              var result = sql.executeQuery("PRAGMA user_version")) {
             assertTrue(result.next());
-            assertEquals(2, result.getInt(1));
+            assertEquals(3, result.getInt(1));
         }
     }
 }

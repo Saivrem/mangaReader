@@ -63,6 +63,8 @@ public final class AsyncViewerSession implements AutoCloseable {
     private boolean twoPageMode;
     private ReadingMode readingMode = MANGA;
     private String lastSourceError;
+    private String lastRememberedSource;
+    private final AtomicLong recentRequest = new AtomicLong();
 
     public AsyncViewerSession(ViewerView view) {
         this(view, ReaderStore.disabled());
@@ -144,7 +146,56 @@ public final class AsyncViewerSession implements AutoCloseable {
         if (closed.get() || frame.pageKey() == null) return;
         BookState state = new BookState(frame.pageKey().sourceId(), frame.pageKey().pageId(),
                 frame.firstPage(), frame.pageCount(), frame.twoPageMode(), frame.readingMode());
-        tasks.execute(INTERACTIVE, () -> persist(() -> store.saveBook(state)));
+        tasks.execute(INTERACTIVE, () -> {
+            persist(() -> store.saveBook(state));
+            if (!state.sourceId().equals(lastRememberedSource)) {
+                lastRememberedSource = state.sourceId();
+                refreshRecentBooks();
+            }
+        });
+    }
+
+    public void hideRecentBook(String sourceId) {
+        if (closed.get()) return;
+        recentRequest.incrementAndGet();
+        tasks.execute(INTERACTIVE, () -> {
+            if (closed.get()) return;
+            persist(() -> store.hideRecent(sourceId));
+            refreshRecentBooks();
+        });
+    }
+
+    public void refreshRecentBooks() {
+        if (closed.get()) return;
+        long request = recentRequest.incrementAndGet();
+        tasks.execute(INTERACTIVE, () -> {
+            if (!recentActive(request)) return;
+            List<RecentBook> books;
+            try { books = store.recentBooks(12).stream().map(RecentBookLoader::inspect).toList(); }
+            catch (RuntimeException exception) { warnPersistence(); return; }
+            var snapshots = new ArrayList<>(books);
+            postRecent(request, snapshots);
+            // One cover per low-priority task: page navigation can run between covers.
+            for (int index = 0; index < books.size(); index++) {
+                int position = index;
+                tasks.execute(TaskPriority.THUMBNAIL, () -> {
+                    if (!recentActive(request)) return;
+                    snapshots.set(position, RecentBookLoader.cover(books.get(position)));
+                    postRecent(request, snapshots);
+                });
+            }
+        });
+    }
+
+    private boolean recentActive(long request) {
+        return !closed.get() && recentRequest.get() == request;
+    }
+
+    private void postRecent(long request, List<RecentBook> books) {
+        List<RecentBook> snapshot = List.copyOf(books);
+        uiExecutor.execute(() -> {
+            if (recentActive(request)) view.showRecentBooks(snapshot);
+        });
     }
 
     public void saveSettings(ReaderSettings settings) {
@@ -375,6 +426,8 @@ public final class AsyncViewerSession implements AutoCloseable {
                 closeSource(previousSource);
             }
 
+            persist(() -> store.showRecent(initialPage.key().sourceId()));
+            lastRememberedSource = null;
             renderAndPublish(targetGeneration, requestId);
         } catch (RuntimeException e) {
             closeCandidate(candidate);
@@ -416,6 +469,8 @@ public final class AsyncViewerSession implements AutoCloseable {
             });
             shapes.clear();
             cache.clear();
+            persist(() -> store.showRecent(selected.key().sourceId()));
+            lastRememberedSource = null;
             renderAndPublish(targetGeneration, requestId);
         });
     }

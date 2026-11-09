@@ -8,6 +8,9 @@ public interface ReaderStore extends AutoCloseable {
     void saveSettings(ReaderSettings settings);
     Optional<BookState> book(String sourceId);
     void saveBook(BookState state);
+    default java.util.List<BookState> recentBooks(int limit) { return java.util.List.of(); }
+    default void hideRecent(String sourceId) {}
+    default void showRecent(String sourceId) {}
     void reset();
     @Override void close();
 

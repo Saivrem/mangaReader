@@ -38,6 +38,25 @@ java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/chapter
 java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/volume.zip
 ```
 
+## Recently read
+
+The home screen shows up to 12 recently read books with a first-page cover and saved
+page progress. The same list is available under **File → Open Recent**. Use
+**File → Home** to return to the shelf while a book is open.
+
+Click a book to resume its saved page, spread mode and reading direction. Images
+opened individually share the history entry of their containing directory.
+**Remove from recent** hides an entry without deleting files or saved progress;
+opening that book again adds it back. Missing or inaccessible sources remain visible
+as unavailable. Reopen Home or Open Recent to refresh their availability after
+reconnecting a drive. A moved book must currently be opened from its new location;
+automatic move detection and transferring progress to a new path are future library work.
+
+Covers are loaded in the background and kept only in bounded memory. An unreadable
+cover uses a placeholder; opening the source reports any actual reading error.
+Existing reading history is preserved by a backed-up, transactional schema migration.
+See [the library proposal](docs/library-design.md) for the next-stage design.
+
 ## Supported content
 
 - Images: `jpg`, `jpeg`, `png`, and `gif`
@@ -118,7 +137,7 @@ blocks the upgrade. A newer, unsupported schema is rejected without changing the
 file; the app can still read books without saving progress. Migration failures never
 trigger an automatic wipe or database recreation.
 
-The database uses schema version 1 and WAL journaling; SQLite may create adjacent
+The database uses schema version 2 and WAL journaling; SQLite may create adjacent
 `-wal` and `-shm` files. Settings and progress are written on the background worker,
 and queued saves finish before normal application exit. A database failure is reported
 without preventing reading. No book images or archive contents are stored in the database.
@@ -272,5 +291,8 @@ Java is included, but graphical system libraries and a desktop session are still
 
 All package tasks appear under Gradle's **distribution** group and must run on the
 target OS. CI tests the embedded runtime before packaging, then extracts each MSI/DEB
-and repeats the SQLite smoke test with the extracted runtime. Installer UI and desktop
+and repeats the SQLite smoke test with the extracted runtime. On disposable GitHub-hosted
+runners it also installs and uninstalls MSI/DEB, checks that binaries are removed and
+that sentinel user data/books remain. Windows checks the uninstall registration too.
+The lifecycle script refuses to run on developer workstations. Installer UI and desktop
 integration still require manual platform checks. No workflow publishes a release.

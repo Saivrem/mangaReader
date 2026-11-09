@@ -213,9 +213,51 @@ class AsyncViewerSessionTest {
         tasks.runAll();
     }
 
+    @Test
+    void staleRecentResultsCannotReappearAfterHideOrReset() {
+        ManualTaskExecutor tasks = new ManualTaskExecutor();
+        QueuedExecutor ui = new QueuedExecutor();
+        List<List<RecentBook>> published = new ArrayList<>();
+        MemoryStore store = new MemoryStore();
+        store.books.put("missing.zip", new org.dustyroom.persistence.BookState("missing.zip", "p", 2, 5,
+                false, org.dustyroom.ui.navigation.ReadingMode.COMICS));
+        ViewerView view = new ViewerView() {
+            public void showLoading() {}
+            public void showFrame(ViewerFrame frame) {}
+            public void showError(String error) { fail(error); }
+            public void showRecentBooks(List<RecentBook> books) { published.add(books); }
+        };
+        AsyncViewerSession session = new AsyncViewerSession(view, file -> { throw new AssertionError(); },
+                tasks, ui, cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
+        session.refreshRecentBooks();
+        tasks.runAll(); // Old result is queued for UI delivery.
+        session.hideRecentBook("missing.zip");
+        tasks.runAll();
+        ui.runAll();
+        assertFalse(published.isEmpty());
+        assertTrue(published.stream().allMatch(List::isEmpty));
+        assertTrue(store.book("missing.zip").isPresent());
+        store.showRecent("missing.zip");
+        session.refreshRecentBooks();
+        tasks.runAll();
+        int beforeReset = published.size();
+        session.resetAndClose(() -> {}, error -> fail(error));
+        tasks.runAll();
+        ui.runAll();
+        assertEquals(beforeReset, published.size());
+        assertTrue(store.books.isEmpty());
+    }
+
     private static class MemoryStore implements org.dustyroom.persistence.ReaderStore {
         final Map<String, org.dustyroom.persistence.BookState> books = new HashMap<>();
         boolean closed;
+        final java.util.Set<String> hidden = new java.util.HashSet<>();
+        public List<org.dustyroom.persistence.BookState> recentBooks(int limit) {
+            assertFalse(closed);
+            return books.values().stream().filter(book -> !hidden.contains(book.sourceId())).limit(limit).toList();
+        }
+        public void hideRecent(String id) { hidden.add(id); }
+        public void showRecent(String id) { hidden.remove(id); }
         public org.dustyroom.persistence.ReaderSettings settings() { return org.dustyroom.persistence.ReaderSettings.defaults(); }
         public void saveSettings(org.dustyroom.persistence.ReaderSettings settings) {}
         public java.util.Optional<org.dustyroom.persistence.BookState> book(String id) { return java.util.Optional.ofNullable(books.get(id)); }

@@ -15,7 +15,7 @@ import java.util.Optional;
 
 public final class SqliteReaderStore implements ReaderStore {
     // Independent of the application release version (0.8, 0.9, ...).
-    static final int SCHEMA_VERSION = 1;
+    static final int SCHEMA_VERSION = 2;
     private final Connection connection;
 
     public SqliteReaderStore(Path database) {
@@ -73,6 +73,11 @@ public final class SqliteReaderStore implements ReaderStore {
                         )
                         """);
                 sql.execute("PRAGMA user_version=1");
+            }
+            if (version < 2) {
+                sql.execute("ALTER TABLE books ADD COLUMN recent_hidden INTEGER NOT NULL DEFAULT 0 CHECK(recent_hidden IN (0,1))");
+                sql.execute("CREATE INDEX books_recent ON books(recent_hidden, updated_at DESC)");
+                sql.execute("PRAGMA user_version=2");
             }
             try (var result = sql.executeQuery("PRAGMA user_version")) {
                 if (!result.next() || result.getInt(1) != SCHEMA_VERSION) {
@@ -145,6 +150,32 @@ public final class SqliteReaderStore implements ReaderStore {
             sql.setInt(3, state.pageNumber()); sql.setInt(4, state.pageCount());
             sql.setInt(5, state.twoPageMode() ? 1 : 0); sql.setString(6, state.readingMode().name());
             sql.setLong(7, System.currentTimeMillis()); sql.executeUpdate();
+        } catch (SQLException exception) { throw failure(exception); }
+    }
+
+    @Override
+    public java.util.List<BookState> recentBooks(int limit) {
+        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Invalid recent book limit");
+        var books = new java.util.ArrayList<BookState>();
+        try (var sql = connection.prepareStatement("SELECT * FROM books WHERE recent_hidden=0 ORDER BY updated_at DESC, source_id LIMIT ?")) {
+            sql.setInt(1, limit);
+            try (var result = sql.executeQuery()) {
+                while (result.next()) books.add(new BookState(result.getString("source_id"), result.getString("page_id"),
+                        result.getInt("page_number"), result.getInt("page_count"), result.getInt("two_page") != 0,
+                        enumValue(ReadingMode.class, result.getString("reading_mode"), ReadingMode.MANGA)));
+            }
+            return java.util.List.copyOf(books);
+        } catch (SQLException exception) { throw failure(exception); }
+    }
+
+    @Override public void hideRecent(String sourceId) { setRecentHidden(sourceId, true); }
+    @Override public void showRecent(String sourceId) { setRecentHidden(sourceId, false); }
+
+    private void setRecentHidden(String sourceId, boolean hidden) {
+        try (var sql = connection.prepareStatement("UPDATE books SET recent_hidden=? WHERE source_id=?")) {
+            sql.setInt(1, hidden ? 1 : 0);
+            sql.setString(2, sourceId);
+            sql.executeUpdate();
         } catch (SQLException exception) { throw failure(exception); }
     }
 

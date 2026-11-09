@@ -17,6 +17,11 @@ import javax.swing.JMenuBar;
 import java.awt.event.KeyEvent;
 
 public class MenuBar extends JMenuBar {
+    private final JMenu recentMenu = menu("Open Recent", KeyEvent.VK_R);
+    private final JMenuItem home = new JMenuItem("Home", KeyEvent.VK_H);
+    private java.util.function.Consumer<String> openRecent = id -> {};
+    private java.util.List<org.dustyroom.ui.loading.RecentBook> recentBooks = java.util.List.of();
+
     public MenuBar(ViewerActions actions, Predicate<ViewerTheme> selectTheme) {
         JMenu fileMenu = menu("File", KeyEvent.VK_F);
         JMenu viewMenu = menu("View", KeyEvent.VK_V);
@@ -25,7 +30,12 @@ public class MenuBar extends JMenuBar {
         JMenu helpMenu = menu("Help", KeyEvent.VK_H);
         JMenu readingModeMenu = menu("Reading Mode", KeyEvent.VK_R);
 
-        addActions(fileMenu, actions.openFile(), actions.exit());
+        addActions(fileMenu, actions.openFile());
+        fileMenu.add(recentMenu);
+        fileMenu.add(home);
+        fileMenu.addSeparator();
+        addActions(fileMenu, actions.exit());
+        showRecentBooks(java.util.List.of());
 
         viewMenu.add(item(new JCheckBoxMenuItem(actions.toggleThumbnails())));
         viewMenu.addSeparator();
@@ -53,6 +63,41 @@ public class MenuBar extends JMenuBar {
         add(navigationMenu);
         add(optionsMenu);
         add(helpMenu);
+    }
+
+    public void setRecentHandlers(java.util.function.Consumer<String> open, Runnable refresh, Runnable showHome) {
+        openRecent = open;
+        home.addActionListener(event -> showHome.run());
+        recentMenu.addMenuListener(new javax.swing.event.MenuListener() {
+            public void menuSelected(javax.swing.event.MenuEvent event) { refresh.run(); }
+            public void menuDeselected(javax.swing.event.MenuEvent event) {}
+            public void menuCanceled(javax.swing.event.MenuEvent event) {}
+        });
+    }
+
+    public void showRecentBooks(java.util.List<org.dustyroom.ui.loading.RecentBook> books) {
+        boolean unchanged = books.size() == recentBooks.size();
+        for (int i = 0; unchanged && i < books.size(); i++) {
+            unchanged = books.get(i).state().equals(recentBooks.get(i).state())
+                    && books.get(i).available() == recentBooks.get(i).available();
+        }
+        if (unchanged && recentMenu.getItemCount() > 0) return;
+        recentBooks = java.util.List.copyOf(books);
+        recentMenu.removeAll();
+        if (books.isEmpty()) {
+            JMenuItem empty = new JMenuItem("No recently read books");
+            empty.setEnabled(false);
+            recentMenu.add(empty);
+        }
+        for (var book : books) {
+            JMenuItem item = new JMenuItem();
+            item.putClientProperty("html.disable", true);
+            item.setText(book.title() + " — " + book.progress() + (book.available() ? "" : " (unavailable)"));
+            item.setToolTipText(book.state().sourceId());
+            item.setEnabled(book.available());
+            item.addActionListener(event -> openRecent.accept(book.state().sourceId()));
+            recentMenu.add(item);
+        }
     }
 
     private static JMenu themeMenu(Predicate<ViewerTheme> selectTheme) {
