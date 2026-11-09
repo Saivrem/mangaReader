@@ -97,7 +97,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
       - name: Install DEB packaging tools
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y fakeroot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot xdg-utils
+          # Hosted runners lack the standard Desktop menu directory used by xdg-desktop-menu.
+          sudo mkdir -p /usr/share/desktop-directories
       - name: Locate WiX 3 tools
         if: runner.os == 'Windows'
         shell: pwsh

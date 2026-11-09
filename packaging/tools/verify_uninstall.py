@@ -11,7 +11,8 @@ import uuid
 
 
 def run(command, allowed=(0,)):
-    result = subprocess.run([str(arg) for arg in command], check=False)
+    print('Running:', ' '.join(str(arg) for arg in command), flush=True)
+    result = subprocess.run([str(arg) for arg in command], check=False, timeout=300)
     if result.returncode not in allowed:
         raise RuntimeError(f'{command[0]} failed with exit code {result.returncode}')
 
