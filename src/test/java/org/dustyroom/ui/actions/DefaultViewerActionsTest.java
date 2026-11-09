@@ -19,13 +19,13 @@ class DefaultViewerActionsTest {
         KeyStroke accelerator = KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK);
 
         Action action = DefaultViewerActions.action(
-                "openFile", "Open…", "Open a file", KeyEvent.VK_O, accelerator,
+                "openFile", "Open…", "Open a file", accelerator,
                 () -> invoked.set(true));
 
         assertEquals("openFile", action.getValue(Action.ACTION_COMMAND_KEY));
         assertEquals("Open…", action.getValue(Action.NAME));
         assertEquals("Open a file", action.getValue(Action.SHORT_DESCRIPTION));
-        assertEquals(KeyEvent.VK_O, action.getValue(Action.MNEMONIC_KEY));
+        org.junit.jupiter.api.Assertions.assertNull(action.getValue(Action.MNEMONIC_KEY));
         assertEquals(accelerator, action.getValue(Action.ACCELERATOR_KEY));
 
         action.actionPerformed(null);

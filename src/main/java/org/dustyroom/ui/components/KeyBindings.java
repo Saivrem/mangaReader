@@ -17,7 +17,10 @@ public class KeyBindings {
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = rootPane.getActionMap();
 
+        bindPrimary(inputMap, actionMap, actions.toggleThumbnails());
         bindPrimary(inputMap, actionMap, actions.openFile());
+        bindPrimary(inputMap, actionMap, actions.goToPage());
+        bindPrimary(inputMap, actionMap, actions.exitFullscreen());
         bindPrimary(inputMap, actionMap, actions.exit());
         bindPrimary(inputMap, actionMap, actions.fitHeight());
         bindPrimary(inputMap, actionMap, actions.fitWidth());
@@ -40,7 +43,6 @@ public class KeyBindings {
         }
         bind(inputMap, actionMap, "openFileLegacy", key(KeyEvent.VK_O), actions.openFile());
         bind(inputMap, actionMap, "exitLegacy", key(KeyEvent.VK_Q), actions.exit());
-        bind(inputMap, actionMap, "exitEscape", key(KeyEvent.VK_ESCAPE), actions.exit());
         bind(inputMap, actionMap, "nextImagePage", key(KeyEvent.VK_PAGE_DOWN), actions.nextImage());
         bind(inputMap, actionMap, "previousImagePage", key(KeyEvent.VK_PAGE_UP), actions.prevImage());
         bind(inputMap, actionMap, "zoomInEquals", key(KeyEvent.VK_EQUALS), actions.zoomIn());

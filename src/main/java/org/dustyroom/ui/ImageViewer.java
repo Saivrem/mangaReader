@@ -6,6 +6,11 @@ import org.dustyroom.ui.components.ImageComponent;
 import org.dustyroom.ui.components.KeyBindings;
 import org.dustyroom.ui.components.MenuBar;
 import org.dustyroom.ui.components.NavigationPanel;
+import org.dustyroom.ui.components.ReaderSurface;
+import org.dustyroom.ui.components.FileDropHandler;
+import org.dustyroom.ui.utils.DialogUtils;
+import org.dustyroom.persistence.ReaderSettings;
+import org.dustyroom.persistence.ReaderStore;
 
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
@@ -29,27 +34,33 @@ public class ImageViewer extends JFrame {
     private final NavigationPanel navigationPanel;
     private final ImageComponent imageComponent;
     private final JScrollPane scrollPane;
+    private final ReaderSurface readerSurface;
     private final Timer resizeRenderTimer;
 
-    public ImageViewer() {
+    public ImageViewer(ReaderStore store, ReaderSettings settings) {
         setTitle("Manga Reader");
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        setPreferredSize(new Dimension(800, 600));
+        setPreferredSize(new Dimension(1100, 760));
+        setMinimumSize(new Dimension(940, 560));
 
         GraphicsDevice graphicsDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         imageComponent = new ImageComponent();
+        imageComponent.restoreView(settings.fitMode(), settings.zoom());
         scrollPane = new JScrollPane(imageComponent);
-        viewerController = new ViewerController(this, graphicsDevice, imageComponent, scrollPane);
+        viewerController = new ViewerController(this, graphicsDevice, imageComponent, scrollPane, store, settings);
         ViewerActions viewerActions = new DefaultViewerActions(viewerController);
         resizeRenderTimer = new Timer(RESIZE_RENDER_DELAY_MS, e -> applyResizeRender());
         resizeRenderTimer.setRepeats(false);
 
         menuBar = new MenuBar(viewerActions, viewerController::setTheme);
         navigationPanel = new NavigationPanel(viewerActions);
-        viewerController.attachPanels(menuBar, navigationPanel);
+        readerSurface = new ReaderSurface(scrollPane, viewerActions.openFile());
+        viewerController.attachPanels(menuBar, navigationPanel, readerSurface, viewerActions);
         PlatformUi.installApplicationHandlers(viewerController);
 
         initializeUI(viewerActions);
+        new FileDropHandler(viewerController::openFile, message -> DialogUtils.showError(this, message))
+                .installOn(getRootPane());
         viewerController.configureViewerSurfaces();
         setVisible(true);
     }
@@ -59,10 +70,11 @@ public class ImageViewer extends JFrame {
 
         // PlatformUi configures screen-menu integration before AWT starts.
         setJMenuBar(menuBar);
-        add(scrollPane, BorderLayout.CENTER);
+        add(viewerController.createThumbnailPanel(), BorderLayout.WEST);
+        add(readerSurface, BorderLayout.CENTER);
         add(navigationPanel, BorderLayout.SOUTH);
 
-        addComponentListener(new ComponentAdapter() {
+        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
                 if (imageComponent.getFitMode() != ImageComponent.FitMode.ORIGINAL) {

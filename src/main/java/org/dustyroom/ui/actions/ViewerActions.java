@@ -3,6 +3,8 @@ package org.dustyroom.ui.actions;
 import javax.swing.Action;
 
 public interface ViewerActions {
+    Action toggleThumbnails();
+
     Action openFile();
 
     Action exit();
@@ -36,6 +38,12 @@ public interface ViewerActions {
     Action setComicsReadingMode();
 
     Action setMangaReadingMode();
+
+    Action goToPage();
+
+    Action exitFullscreen();
+
+    Action resetApplication();
 
     Action showAbout();
 }

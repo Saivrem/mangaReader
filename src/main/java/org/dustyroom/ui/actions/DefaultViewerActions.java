@@ -13,6 +13,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
 public class DefaultViewerActions implements ViewerActions {
+    private final Action toggleThumbnails;
     private final Action openFile;
     private final Action exit;
     private final Action fitHeight;
@@ -31,45 +32,58 @@ public class DefaultViewerActions implements ViewerActions {
     private final Action setComicsReadingMode;
     private final Action setMangaReadingMode;
     private final Action showAbout;
+    private final Action resetApplication;
+    private final Action goToPage;
+    private final Action exitFullscreen;
 
     public DefaultViewerActions(ViewerController controller) {
-        this.openFile = action("openFile", "Open…", "Open an image or ZIP archive",
-                KeyEvent.VK_O, menuShortcut(KeyEvent.VK_O), controller::chooseFile);
+        this.toggleThumbnails = action("toggleThumbnails", "Thumbnails", "Show or hide page thumbnails (T)",
+                key(KeyEvent.VK_T), controller::toggleThumbnails);
+        this.openFile = action("openFile", "Open…", "Open an image, ZIP archive or folder",
+                menuShortcut(KeyEvent.VK_O), controller::chooseFile);
         this.exit = action("exit", PlatformUi.usesScreenMenuBar() ? "Quit" : "Exit", "Close Manga Reader",
-                KeyEvent.VK_Q, menuShortcut(KeyEvent.VK_Q), controller::exit);
+                menuShortcut(KeyEvent.VK_Q), controller::exit);
         this.fitHeight = action("fitHeight", "Fit Height", "Fit the page to the window height",
-                KeyEvent.VK_H, key(KeyEvent.VK_H), controller::fitHeight);
+                key(KeyEvent.VK_H), controller::fitHeight);
         this.fitWidth = action("fitWidth", "Fit Width", "Fit the page to the window width",
-                KeyEvent.VK_W, key(KeyEvent.VK_W), controller::fitWidth);
+                key(KeyEvent.VK_W), controller::fitWidth);
         this.fitScreen = action("fitScreen", "Fit to Window", "Fit the entire page inside the window",
-                KeyEvent.VK_S, key(KeyEvent.VK_S), controller::fitScreen);
+                key(KeyEvent.VK_S), controller::fitScreen);
         this.zoomIn = action("zoomIn", "Zoom In", "Increase the page scale",
-                KeyEvent.VK_I, key(KeyEvent.VK_PLUS), controller::zoomIn);
+                key(KeyEvent.VK_PLUS), controller::zoomIn);
         this.zoomOut = action("zoomOut", "Zoom Out", "Decrease the page scale",
-                KeyEvent.VK_O, key(KeyEvent.VK_MINUS), controller::zoomOut);
+                key(KeyEvent.VK_MINUS), controller::zoomOut);
         this.nextImage = action("nextImage", "Next Page", "Show the next page",
-                KeyEvent.VK_N, key(KeyEvent.VK_RIGHT), controller::showNextImage);
+                key(KeyEvent.VK_RIGHT), controller::showNextImage);
         this.prevImage = action("previousImage", "Previous Page", "Show the previous page",
-                KeyEvent.VK_P, key(KeyEvent.VK_LEFT), controller::showPreviousImage);
+                key(KeyEvent.VK_LEFT), controller::showPreviousImage);
         this.firstImage = action("firstImage", "First Page", "Jump to the first page",
-                KeyEvent.VK_F, key(KeyEvent.VK_HOME), controller::showFirstImage);
+                key(KeyEvent.VK_HOME), controller::showFirstImage);
         this.lastImage = action("lastImage", "Last Page", "Jump to the last page",
-                KeyEvent.VK_L, key(KeyEvent.VK_END), controller::showLastImage);
+                key(KeyEvent.VK_END), controller::showLastImage);
         this.nextVolume = action("nextVolume", "Next Volume", "Open the next volume",
-                KeyEvent.VK_X, key(KeyEvent.VK_DOWN), controller::showNextVolume);
+                key(KeyEvent.VK_DOWN), controller::showNextVolume);
         this.prevVolume = action("previousVolume", "Previous Volume", "Open the previous volume",
-                KeyEvent.VK_V, key(KeyEvent.VK_UP), controller::showPrevVolume);
-        this.toggleFullscreen = action("toggleFullscreen", "Toggle Full Screen", "Enter or leave full-screen mode",
-                KeyEvent.VK_F, key(KeyEvent.VK_F), controller::toggleFullscreen);
-        this.toggleTwoPageMode = action("toggleTwoPageMode", "Toggle Two-Page Mode", "Show compatible pages as a spread",
-                KeyEvent.VK_T, key(KeyEvent.VK_P), controller::toggleTwoPageMode);
+                key(KeyEvent.VK_UP), controller::showPrevVolume);
+        this.toggleFullscreen = action("toggleFullscreen", "Full Screen", "Enter or leave full-screen mode",
+                key(KeyEvent.VK_F), controller::toggleFullscreen);
+        this.toggleTwoPageMode = action("toggleTwoPageMode", "Two-Page Spread", "Show compatible pages as a spread",
+                key(KeyEvent.VK_P), controller::toggleTwoPageMode);
         this.setComicsReadingMode = action("comicsReadingMode", "Comics (Left to Right)", "Use left-to-right spread order",
-                KeyEvent.VK_C, key(KeyEvent.VK_C), controller::setComicsReadingMode);
+                key(KeyEvent.VK_C), controller::setComicsReadingMode);
         this.setMangaReadingMode = action("mangaReadingMode", "Manga (Right to Left)", "Use right-to-left spread order",
-                KeyEvent.VK_M, key(KeyEvent.VK_M), controller::setMangaReadingMode);
+                key(KeyEvent.VK_M), controller::setMangaReadingMode);
+        this.goToPage = action("goToPage", "Go to Page…", "Jump to a page (G)",
+                key(KeyEvent.VK_G), controller::choosePage);
+        this.exitFullscreen = action("exitFullscreen", "Leave Full Screen", "Leave full-screen mode",
+                key(KeyEvent.VK_ESCAPE), controller::exitFullscreen);
+        this.resetApplication = action("resetApplication", "Reset Application…",
+                "Reset settings and reading history", null, controller::resetApplication);
         this.showAbout = action("showAbout", "About Manga Reader", "Show application information",
-                KeyEvent.VK_A, null, controller::showAboutDialog);
+                null, controller::showAboutDialog);
     }
+
+    @Override public Action toggleThumbnails() { return toggleThumbnails; }
 
     @Override
     public Action openFile() {
@@ -157,11 +171,20 @@ public class DefaultViewerActions implements ViewerActions {
     }
 
     @Override
+    public Action goToPage() { return goToPage; }
+
+    @Override
+    public Action exitFullscreen() { return exitFullscreen; }
+
+    @Override
+    public Action resetApplication() { return resetApplication; }
+
+    @Override
     public Action showAbout() {
         return showAbout;
     }
 
-    static Action action(String id, String name, String description, int mnemonic,
+    static Action action(String id, String name, String description,
                          KeyStroke accelerator, Runnable runnable) {
         Action action = new AbstractAction(name) {
             @Override
@@ -171,7 +194,6 @@ public class DefaultViewerActions implements ViewerActions {
         };
         action.putValue(Action.ACTION_COMMAND_KEY, id);
         action.putValue(Action.SHORT_DESCRIPTION, description);
-        action.putValue(Action.MNEMONIC_KEY, mnemonic);
         if (accelerator != null) {
             action.putValue(Action.ACCELERATOR_KEY, accelerator);
         }

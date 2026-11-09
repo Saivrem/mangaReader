@@ -14,3 +14,9 @@ Copyright FormDev Software GmbH, under the
 [Apache License 2.0](https://github.com/JFormDesigner/FlatLaf/blob/main/LICENSE).
 FlatLaf provides Swing control rendering and platform menu integration;
 the application supplies its own two palettes and retains native window decorations.
+
+## SQLite JDBC
+
+The application uses [Xerial SQLite JDBC](https://github.com/xerial/sqlite-jdbc)
+for its embedded database, under the [Apache License 2.0](https://github.com/xerial/sqlite-jdbc/blob/master/LICENSE).
+SQLite is embedded; a separate database server or SQLite installation is not required.

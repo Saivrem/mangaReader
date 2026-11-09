@@ -81,6 +81,7 @@ class MenuBarTest {
     }
 
     private static final class NoOpViewerActions implements ViewerActions {
+        @Override public Action toggleThumbnails() { return action; }
         private final Action action = new AbstractAction("Test Action") {
             @Override
             public void actionPerformed(ActionEvent event) {
@@ -109,6 +110,9 @@ class MenuBarTest {
         @Override public Action toggleTwoPageMode() { return action; }
         @Override public Action setComicsReadingMode() { return action; }
         @Override public Action setMangaReadingMode() { return action; }
+        @Override public Action goToPage() { return action; }
+        @Override public Action exitFullscreen() { return action; }
+        @Override public Action resetApplication() { return action; }
         @Override public Action showAbout() { return action; }
     }
 }

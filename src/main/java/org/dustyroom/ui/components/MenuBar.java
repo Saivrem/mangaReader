@@ -5,6 +5,8 @@ import org.dustyroom.ui.theme.ViewerTheme;
 import org.dustyroom.ui.utils.UiUtils;
 import javax.swing.ButtonGroup;
 import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JMenuItem;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -25,22 +27,26 @@ public class MenuBar extends JMenuBar {
 
         addActions(fileMenu, actions.openFile(), actions.exit());
 
-        addActions(viewMenu,
-                actions.fitHeight(), actions.fitWidth(), actions.fitScreen(),
-                actions.zoomIn(), actions.zoomOut());
+        viewMenu.add(item(new JCheckBoxMenuItem(actions.toggleThumbnails())));
+        viewMenu.addSeparator();
+        addRadioActions(viewMenu, actions.fitHeight(), actions.fitWidth(), actions.fitScreen());
+        viewMenu.addSeparator();
+        addActions(viewMenu, actions.zoomIn(), actions.zoomOut());
 
         addActions(navigationMenu,
                 actions.nextImage(), actions.prevImage(), actions.firstImage(), actions.lastImage(),
-                actions.prevVolume(), actions.nextVolume());
+                actions.prevVolume(), actions.nextVolume(), actions.goToPage());
 
-        addActions(readingModeMenu,
-                actions.setComicsReadingMode(), actions.setMangaReadingMode(), actions.toggleTwoPageMode());
+        addRadioActions(readingModeMenu, actions.setComicsReadingMode(), actions.setMangaReadingMode());
+        readingModeMenu.add(item(new JCheckBoxMenuItem(actions.toggleTwoPageMode())));
 
-        addActions(optionsMenu, actions.toggleFullscreen());
+        optionsMenu.add(item(new JCheckBoxMenuItem(actions.toggleFullscreen())));
         addActions(helpMenu, actions.showAbout());
 
         optionsMenu.add(readingModeMenu);
         optionsMenu.add(themeMenu(selectTheme));
+        optionsMenu.addSeparator();
+        addActions(optionsMenu, actions.resetApplication());
 
         add(fileMenu);
         add(viewMenu);
@@ -75,9 +81,46 @@ public class MenuBar extends JMenuBar {
         return menu;
     }
 
+    private static void addRadioActions(JMenu menu, Action... actions) {
+        ButtonGroup group = new ButtonGroup();
+        for (Action action : actions) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(action);
+            group.add(item);
+            menu.add(item(item));
+        }
+    }
+
+    private static JMenuItem item(JMenuItem item) {
+        Object command = item.getAction().getValue(Action.ACTION_COMMAND_KEY);
+        if (command instanceof String id) {
+            int key = switch (id) {
+                case "openFile", "zoomOut" -> KeyEvent.VK_O;
+                case "exit" -> KeyEvent.VK_Q;
+                case "fitHeight" -> KeyEvent.VK_H;
+                case "fitWidth" -> KeyEvent.VK_W;
+                case "fitScreen" -> KeyEvent.VK_S;
+                case "zoomIn" -> KeyEvent.VK_I;
+                case "nextImage" -> KeyEvent.VK_N;
+                case "previousImage" -> KeyEvent.VK_P;
+                case "firstImage", "toggleFullscreen" -> KeyEvent.VK_F;
+                case "lastImage" -> KeyEvent.VK_L;
+                case "nextVolume" -> KeyEvent.VK_X;
+                case "previousVolume" -> KeyEvent.VK_V;
+                case "toggleTwoPageMode", "toggleThumbnails" -> KeyEvent.VK_T;
+                case "comicsReadingMode" -> KeyEvent.VK_C;
+                case "mangaReadingMode" -> KeyEvent.VK_M;
+                case "goToPage" -> KeyEvent.VK_G;
+                case "showAbout" -> KeyEvent.VK_A;
+                default -> 0;
+            };
+            item.setMnemonic(key);
+        }
+        return item;
+    }
+
     private static void addActions(JMenu menu, Action... actions) {
         for (Action action : actions) {
-            menu.add(action);
+            menu.add(item(new JMenuItem(action)));
         }
     }
 }
