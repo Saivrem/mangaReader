@@ -60,6 +60,7 @@ tasks.register('packageMacApp', Exec) {
                     '--input', packageRoot.get().dir('input').asFile.absolutePath,
                     '--main-jar', tasks.named('fatJar').get().archiveFileName.get(),
                     '--main-class', 'org.dustyroom.Main',
+                    '--java-options', '--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED',
                     '--icon', packageRoot.get().file('Yonaka.icns').asFile.absolutePath,
                     '--dest', packageRoot.get().dir('image').asFile.absolutePath,
                     '--temp', packageRoot.get().dir('app-temp').asFile.absolutePath,

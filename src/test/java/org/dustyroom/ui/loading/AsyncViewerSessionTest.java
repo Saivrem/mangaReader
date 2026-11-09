@@ -69,6 +69,43 @@ class AsyncViewerSessionTest {
     }
 
     @Test
+    void animatedPagesFollowSpreadOrderAndStaleResultsAreDiscarded() {
+        FakeImageIterator source = FakeImageIterator.portraits("book", "one.gif", "two.gif", "three.png");
+        source.animation = new org.dustyroom.be.models.AnimationClip(List.of(image(4, 8), image(4, 8)), List.of(100, 100), 0);
+        ManualTaskExecutor tasks = new ManualTaskExecutor();
+        QueuedExecutor ui = new QueuedExecutor();
+        RecordingView view = new RecordingView();
+        AsyncViewerSession session = session(source, tasks, ui, view, cache(12));
+        session.open(new File("book"));
+        tasks.runAll();
+        ui.runAll();
+        session.toggleTwoPageMode();
+        tasks.runAll();
+        ui.runAll();
+        var manga = view.animations.get(view.animations.size() - 1);
+        assertEquals(2, manga.size());
+        assertEquals(4, manga.get(0).x());
+        assertEquals(0, manga.get(1).x());
+        session.setComicsReadingMode();
+        tasks.runAll();
+        ui.runAll();
+        var comics = view.animations.get(view.animations.size() - 1);
+        assertEquals(0, comics.get(0).x());
+        assertEquals(4, comics.get(1).x());
+        session.first();
+        tasks.runAll(); // Animation callback queued, not delivered yet.
+        int published = view.animations.size();
+        session.goToPage(3);
+        tasks.runAll();
+        ui.runAll();
+        assertEquals(published, view.animations.size());
+        assertEquals(3, lastFrame(view).firstPage());
+        session.close();
+        tasks.runAll();
+        ui.runAll();
+    }
+
+    @Test
     void thumbnailsYieldToNavigationAndDoNotChangeTheDisplayedPage() {
         FakeImageIterator source = FakeImageIterator.portraits("source", "one", "two", "three", "four");
         ManualTaskExecutor tasks = new ManualTaskExecutor();
@@ -799,6 +836,8 @@ class AsyncViewerSessionTest {
     private static final class RecordingView implements ViewerView {
         private final List<ViewerFrame> frames = new ArrayList<>();
         private final List<String> errors = new ArrayList<>();
+        private final List<List<AnimatedPage>> animations = new ArrayList<>();
+        @Override public void showAnimations(PageKey page, List<AnimatedPage> pages) { animations.add(pages); }
         private int loadingCount;
 
         @Override
@@ -874,6 +913,8 @@ class AsyncViewerSessionTest {
 
     private static final class FakeImageIterator implements ImageIterator {
         private final String sourceId;
+        private org.dustyroom.be.models.AnimationClip animation;
+        @Override public org.dustyroom.be.models.AnimationClip animation(PageRef page) { return animation; }
         private final List<PageRef> pages;
         private final Map<String, BufferedImage> images;
         private final Map<String, Integer> loadCounts = new HashMap<>();

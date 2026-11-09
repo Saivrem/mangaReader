@@ -4,7 +4,10 @@ import org.dustyroom.ui.components.ImageComponent.FitMode;
 import org.dustyroom.ui.theme.ViewerTheme;
 
 public record ReaderSettings(ViewerTheme theme, FitMode fitMode, double zoom, String lastDirectory,
-                             boolean thumbnailsVisible) {
+                             boolean thumbnailsVisible, boolean groupRecentByFolder) {
+    public ReaderSettings(ViewerTheme theme, FitMode fitMode, double zoom, String lastDirectory, boolean thumbnailsVisible) {
+        this(theme, fitMode, zoom, lastDirectory, thumbnailsVisible, true);
+    }
     public ReaderSettings(ViewerTheme theme, FitMode fitMode, double zoom, String lastDirectory) {
         this(theme, fitMode, zoom, lastDirectory, true);
     }

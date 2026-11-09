@@ -58,6 +58,8 @@ public final class AsyncViewerSession implements AutoCloseable {
     private ReadingMode readingMode = MANGA;
     private String lastSourceError;
     private String lastRememberedSource;
+    private volatile boolean groupRecentByFolder = true;
+    private volatile List<RecentBook> shownRecent = List.of();
 
     public AsyncViewerSession(ViewerView view) {
         this(view, ReaderStore.disabled());
@@ -158,12 +160,19 @@ public final class AsyncViewerSession implements AutoCloseable {
         });
     }
 
+    public void setGroupRecentByFolder(boolean grouped) {
+        groupRecentByFolder = grouped;
+        refreshRecentBooks();
+    }
+
     public void hideRecentBook(String sourceId) {
         if (closed.get()) return;
+        var ids = shownRecent.stream().filter(book -> book.state().sourceId().equals(sourceId))
+                .findFirst().map(book -> book.chapters().stream().map(BookState::sourceId).toList()).orElse(List.of(sourceId));
         recentRequest.incrementAndGet();
         tasks.execute(INTERACTIVE, () -> {
             if (closed.get()) return;
-            persist(() -> store.hideRecent(sourceId));
+            persist(() -> ids.forEach(store::hideRecent));
             refreshRecentBooks();
         });
     }
@@ -175,7 +184,10 @@ public final class AsyncViewerSession implements AutoCloseable {
             if (!recentActive(request)) return;
             List<RecentBook> books;
             try {
-                books = store.recentBooks(12).stream().map(RecentBookLoader::inspect).toList();
+                books = RecentGroups.select(store.recentBooks(1000), groupRecentByFolder, 12).stream().map(group -> {
+                    var book = RecentBookLoader.inspect(group.get(0));
+                    return new RecentBook(book.state(), book.available(), null, group);
+                }).toList();
             } catch (RuntimeException exception) {
                 warnPersistence();
                 return;
@@ -201,7 +213,7 @@ public final class AsyncViewerSession implements AutoCloseable {
     private void postRecent(long request, List<RecentBook> books) {
         List<RecentBook> snapshot = List.copyOf(books);
         uiExecutor.execute(() -> {
-            if (recentActive(request)) view.showRecentBooks(snapshot);
+            if (recentActive(request)) { shownRecent = snapshot; view.showRecentBooks(snapshot); }
         });
     }
 
@@ -579,7 +591,36 @@ public final class AsyncViewerSession implements AutoCloseable {
                 twoPageMode, readingMode, current.key()
         );
         postFrame(targetGeneration, requestId, frame);
+        scheduleAnimations(targetGeneration, requestId, current, second, currentImage, secondImage, readingMode == MANGA);
         schedulePrefetch(targetGeneration, requestId, pageIndex, second != null);
+    }
+
+    private void scheduleAnimations(long targetGeneration, long requestId, PageRef first, PageRef second,
+                                    BufferedImage firstImage, BufferedImage secondImage, boolean manga) {
+        var refs = second == null ? List.of(first) : List.of(first, second);
+        if (refs.stream().noneMatch(page -> page.key().pageId().toLowerCase(java.util.Locale.ROOT).endsWith(".gif"))) return;
+        tasks.execute(PREFETCH, () -> {
+            if (!isLatest(targetGeneration, requestId)) return;
+            var animated = new ArrayList<AnimatedPage>();
+            for (int index = 0; index < refs.size(); index++) {
+                if (!isLatest(targetGeneration, requestId)) return;
+                PageRef page = refs.get(index);
+                if (!page.key().pageId().toLowerCase(java.util.Locale.ROOT).endsWith(".gif")) continue;
+                try {
+                    var clip = source.animation(page);
+                    if (clip == null) continue;
+                    BufferedImage image = index == 0 ? firstImage : secondImage;
+                    int x = second == null ? 0 : index == 0 ? (manga ? secondImage.getWidth() : 0) : (manga ? 0 : firstImage.getWidth());
+                    int height = second == null ? firstImage.getHeight() : Math.max(firstImage.getHeight(), secondImage.getHeight());
+                    animated.add(new AnimatedPage(clip, x, (height - image.getHeight()) / 2, image.getWidth(), image.getHeight(), second != null));
+                } catch (RuntimeException exception) {
+                    postError(targetGeneration, requestId, exception);
+                }
+            }
+            uiExecutor.execute(() -> {
+                if (isLatest(targetGeneration, requestId)) view.showAnimations(first.key(), List.copyOf(animated));
+            });
+        });
     }
 
     private PageRef resolveSecondPage(int anchorIndex) {

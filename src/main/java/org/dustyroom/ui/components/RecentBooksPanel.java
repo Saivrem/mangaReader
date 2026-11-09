@@ -13,6 +13,7 @@ import java.util.function.Consumer;
  * Small, bounded shelf; cover updates preserve keyboard focus on existing cards.
  */
 public final class RecentBooksPanel extends JPanel {
+    private final JCheckBox groupByFolder = new JCheckBox("Group ZIPs by folder", true);
     private final JPanel cards = new JPanel(new GridLayout(0, 2, 16, 16));
     private final JLabel empty = new JLabel("Your recently read books will appear here.");
     private final Map<String, BookCard> entries = new LinkedHashMap<>();
@@ -25,9 +26,17 @@ public final class RecentBooksPanel extends JPanel {
         super(new BorderLayout(0, 14));
         JLabel heading = new JLabel("Recently read");
         heading.setFont(heading.getFont().deriveFont(Font.BOLD, 20f));
-        add(heading, BorderLayout.NORTH);
+        JPanel header = new JPanel(new BorderLayout());
+        header.add(heading, BorderLayout.WEST);
+        header.add(groupByFolder, BorderLayout.EAST);
+        add(header, BorderLayout.NORTH);
         add(empty, BorderLayout.CENTER);
         setMaximumSize(new Dimension(760, Integer.MAX_VALUE));
+    }
+
+    public void setGrouping(boolean grouped, Consumer<Boolean> change) {
+        groupByFolder.setSelected(grouped);
+        groupByFolder.addActionListener(event -> change.accept(groupByFolder.isSelected()));
     }
 
     public void setHandlers(Consumer<String> open, Consumer<String> remove) {
@@ -59,6 +68,8 @@ public final class RecentBooksPanel extends JPanel {
         private final JButton title = new JButton();
         private final JLabel progress = new JLabel();
         private final JLabel availability = new JLabel();
+        private final JButton chapters = new JButton();
+        private RecentBook current;
         private final JProgressBar bar = new JProgressBar(0, 100);
 
         BookCard(String id) {
@@ -66,7 +77,7 @@ public final class RecentBooksPanel extends JPanel {
             setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(UIManager.getColor("Component.borderColor")),
                     BorderFactory.createEmptyBorder(12, 12, 12, 12)));
-            setPreferredSize(new Dimension(350, 152));
+            setPreferredSize(new Dimension(350, 176));
             cover.setPreferredSize(new Dimension(72, 104));
             cover.setHorizontalAlignment(SwingConstants.CENTER);
             add(cover, BorderLayout.WEST);
@@ -82,7 +93,20 @@ public final class RecentBooksPanel extends JPanel {
             hide.setToolTipText("Keep this book and its saved reading position");
             hide.getAccessibleContext().setAccessibleName("Remove " + new java.io.File(id).getName() + " from recent");
             hide.addActionListener(event -> remove.accept(id));
-            for (JComponent item : new JComponent[]{title, progress, bar, availability, hide}) {
+            chapters.putClientProperty("JButton.buttonType", "borderless");
+            chapters.addActionListener(event -> {
+                JPopupMenu menu = new JPopupMenu();
+                for (var chapter : current.chapters().stream().limit(20).toList()) {
+                    JMenuItem entry = new JMenuItem();
+                    entry.putClientProperty("html.disable", true);
+                    entry.setText(new java.io.File(chapter.sourceId()).getName() + " — " + chapter.pageNumber() + "/" + chapter.pageCount());
+                    entry.setToolTipText(chapter.sourceId());
+                    entry.addActionListener(click -> open.accept(chapter.sourceId()));
+                    menu.add(entry);
+                }
+                menu.show(chapters, 0, chapters.getHeight());
+            });
+            for (JComponent item : new JComponent[]{title, progress, bar, chapters, availability, hide}) {
                 item.setAlignmentX(LEFT_ALIGNMENT);
                 details.add(item);
             }
@@ -90,6 +114,10 @@ public final class RecentBooksPanel extends JPanel {
         }
 
         void update(RecentBook book) {
+            current = book;
+            chapters.setVisible(book.chapters().size() > 1);
+            chapters.setText("Chapters (" + book.chapters().size() + ") ▾");
+            chapters.setToolTipText("Up to 20 recently read chapters; continue: " + new java.io.File(book.state().sourceId()).getName());
             // Treat filenames as plain text, never as Swing HTML markup.
             title.putClientProperty("html.disable", true);
             title.setText(book.title());

@@ -38,6 +38,7 @@ jar {
     manifest {
         attributes(
                 'Main-Class': 'org.dustyroom.Main',
+                'Add-Exports': 'java.desktop/com.apple.eawt.event',
         )
     }
 }

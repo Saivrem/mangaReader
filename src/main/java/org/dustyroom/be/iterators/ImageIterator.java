@@ -35,6 +35,8 @@ public interface ImageIterator extends AutoCloseable {
 
     Picture load(PageRef page);
 
+    default org.dustyroom.be.models.AnimationClip animation(PageRef page) { return null; }
+
     PageRef switchToNextVolume();
 
     PageRef switchToPreviousVolume();

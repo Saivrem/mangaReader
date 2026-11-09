@@ -38,6 +38,7 @@ public class ViewerController {
     private ViewerFrame displayedFrame;
     private org.dustyroom.ui.components.ThumbnailPanel thumbnailPanel;
     private boolean thumbnailsVisible;
+    private boolean groupRecentByFolder;
     private String lastDirectory;
     private boolean choosingFile;
     private boolean fullscreen;
@@ -47,10 +48,15 @@ public class ViewerController {
         this.frame = frame;
         this.lastDirectory = settings.lastDirectory();
         this.thumbnailsVisible = settings.thumbnailsVisible();
+        this.groupRecentByFolder = settings.groupRecentByFolder();
         this.graphicsDevice = graphicsDevice;
         this.imageComponent = imageComponent;
         this.scrollPane = scrollPane;
         this.session = new AsyncViewerSession(new ViewerView() {
+            @Override public void showAnimations(org.dustyroom.be.models.PageKey page, java.util.List<org.dustyroom.ui.loading.AnimatedPage> animations) {
+                if (displayedFrame != null && page.equals(displayedFrame.pageKey())) imageComponent.setAnimations(animations);
+            }
+
             @Override
             public void showLoading() {
                 frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -95,12 +101,21 @@ public class ViewerController {
         this.navigationPanel = navigationPanel;
         this.readerSurface = readerSurface;
         this.actions = actions;
+        org.dustyroom.ui.components.ReaderGestures.install(imageComponent, scrollPane, () -> {
+            saveSettings();
+            refreshControls();
+        });
         java.util.function.Consumer<String> openRecent = id -> openFile(new File(id));
         readerSurface.setRecentHandlers(openRecent, session::hideRecentBook);
         if (menuBar instanceof org.dustyroom.ui.components.MenuBar menu) {
-            menu.setRecentHandlers(openRecent, session::refreshRecentBooks, this::showHome);
+            menu.setRecentHandlers(openRecent, session::refreshRecentBooks);
         }
-        session.refreshRecentBooks();
+        readerSurface.setRecentGrouping(groupRecentByFolder, grouped -> {
+            groupRecentByFolder = grouped;
+            session.setGroupRecentByFolder(grouped);
+            saveSettings();
+        });
+        session.setGroupRecentByFolder(groupRecentByFolder);
         refreshControls();
     }
 
@@ -386,7 +401,7 @@ public class ViewerController {
 
     private void saveSettings() {
         double zoom = imageComponent.getFitMode() == ImageComponent.FitMode.ORIGINAL ? imageComponent.getScale() : 1.0;
-        session.saveSettings(new ReaderSettings(UiUtils.currentTheme(), imageComponent.getFitMode(), zoom, lastDirectory, thumbnailsVisible));
+        session.saveSettings(new ReaderSettings(UiUtils.currentTheme(), imageComponent.getFitMode(), zoom, lastDirectory, thumbnailsVisible, groupRecentByFolder));
     }
 
     private void refreshControls() {
@@ -408,7 +423,7 @@ public class ViewerController {
             saveSettings();
         }
         frame.setTitle(viewerFrame.title());
-        scrollPane.getViewport().setViewPosition(new Point(0, 0));
+        frame.validate();
         imageComponent.setImageAndCenter(viewerFrame.image(), scrollPane);
         session.remember(viewerFrame);
         refreshControls();

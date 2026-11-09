@@ -132,6 +132,17 @@ public class ZipIterator implements ImageIterator {
     }
 
     @Override
+    public org.dustyroom.be.models.AnimationClip animation(PageRef page) {
+        ensureOpen();
+        if (!page.key().sourceId().equals(sourceId(zipFilePath))) throw new IllegalArgumentException("Wrong source");
+        ZipEntry entry = zipFile.getEntry(page.key().pageId());
+        if (entry == null) throw new ImageIteratorException("Missing GIF entry", zipFilePath);
+        try (InputStream input = zipFile.getInputStream(entry)) {
+            return GifDecoder.read(input);
+        } catch (IOException error) { throw new ImageIteratorException(error.getMessage(), zipFilePath, error); }
+    }
+
+    @Override
     public Picture load(PageRef page) {
         ensureOpen();
         String currentSourceId = sourceId(zipFilePath);

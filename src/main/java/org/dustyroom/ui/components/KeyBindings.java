@@ -32,6 +32,7 @@ public class KeyBindings {
 
         bindPrimary(inputMap, actionMap, actions.toggleThumbnails());
         bindPrimary(inputMap, actionMap, actions.openFile());
+        bindPrimary(inputMap, actionMap, actions.home());
         bindPrimary(inputMap, actionMap, actions.goToPage());
         bindPrimary(inputMap, actionMap, actions.exitFullscreen());
         bindPrimary(inputMap, actionMap, actions.exit());

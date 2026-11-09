@@ -38,7 +38,7 @@ public final class ThumbnailPanel extends JPanel {
         }
     };
     private final Map<Integer, Icon> cache = new HashMap<>();
-    private boolean expanded = true;
+    private boolean expanded;
     private List<PageRef> pages = List.of();
     private int windowStart, windowEnd = -1;
     private boolean pending;
@@ -116,6 +116,7 @@ public final class ThumbnailPanel extends JPanel {
     }
 
     public void setExpanded(boolean expanded) {
+        if (this.expanded == expanded) return;
         this.expanded = expanded;
         header.setVisible(expanded);
         scroll.setVisible(expanded);

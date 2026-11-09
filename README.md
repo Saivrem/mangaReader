@@ -40,9 +40,17 @@ java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/volume.zip
 
 ## Recently read
 
-The home screen shows up to 12 recently read books with a first-page cover and saved
+The home screen shows up to 12 recently read books/series with a first-page cover and saved
 page progress. The same list is available under **File → Open Recent**. Use
-**File → Home** to return to the shelf while a book is open.
+**File → Home** (Command+Shift+H on macOS, Ctrl+Shift+H elsewhere) to return to the shelf while a book is open.
+
+**Group ZIPs by folder** is enabled by default and can be disabled on the home screen.
+Archives in the same parent folder share a card; Continue resumes the most recently
+read chapter. The chapter menu lists up to 20 recent chapters. Grouping examines up
+to 1,000 recent book states, while only 12 covers are decoded. Removing a group hides
+its listed history entries but preserves every chapter's progress and files.
+Grouping is by folder, not by filename guesses; keep different series in separate
+folders or switch grouping off. This preference survives restarts.
 
 Click a book to resume its saved page, spread mode and reading direction. Images
 opened individually share the history entry of their containing directory.
@@ -69,7 +77,24 @@ See [the library proposal](docs/library-design.md) for the next-stage design.
 - Background image decoding with stale-request protection
 - Bounded image caching and next-page prefetch
 
-GIF files are currently displayed as static images.
+Animated GIFs play both as standalone files and inside ZIP archives, including in
+spreads. Frames are composited off the UI thread with their offsets, disposal rules,
+delays and loop counts. Each animation is limited to 64 MiB of decoded frames and
+500 frames; larger animations show the first frame and an explanatory error. Covers
+and sidebar thumbnails intentionally stay static.
+
+### Scrolling, zoom and panning
+
+The reader uses precise wheel/trackpad deltas, with a faster wheel step. Shift+wheel
+scrolls horizontally. Drag the image with the left or middle mouse button to pan.
+Ctrl+wheel (or Command+wheel on macOS) zooms around the pointer. Native macOS pinch
+zooms around the viewport center; Windows/Linux use Ctrl+wheel, including trackpads
+that emit that gesture. Zoom remains within 5%–2000% and is saved with the view settings.
+
+The packaged macOS app and executable JAR enable Java's macOS magnification API.
+When running the main class directly from an IDE, add VM option
+`--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED` to enable native pinch;
+Ctrl/Command+wheel works without it.
 
 ## Reader interface
 
@@ -150,6 +175,7 @@ without preventing reading. No book images or archive contents are stored in the
 | `Right`, `Page Down` | Next page |
 | `Left`, `Page Up` | Previous page |
 | `Home`, `End` | First or last page |
+| `Command+Shift+H` / `Ctrl+Shift+H` | Home / recently read |
 | `Up`, `Down` | Previous or next volume |
 | `H`, `W`, `S` | Fit height, width, or screen |
 | `+`, `-` | Zoom in or out |

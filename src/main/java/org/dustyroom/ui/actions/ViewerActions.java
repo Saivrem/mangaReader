@@ -7,6 +7,8 @@ public interface ViewerActions {
 
     Action openFile();
 
+    Action home();
+
     Action exit();
 
     Action fitHeight();

@@ -12,6 +12,7 @@ import java.awt.event.KeyEvent;
 public class DefaultViewerActions implements ViewerActions {
     private final Action toggleThumbnails;
     private final Action openFile;
+    private final Action home;
     private final Action exit;
     private final Action fitHeight;
     private final Action fitWidth;
@@ -36,6 +37,9 @@ public class DefaultViewerActions implements ViewerActions {
     public DefaultViewerActions(ViewerController controller) {
         this.toggleThumbnails = action("toggleThumbnails", "Thumbnails", "Show or hide page thumbnails (T)",
                 key(KeyEvent.VK_T), controller::toggleThumbnails);
+        KeyStroke homeShortcut = menuShortcut(KeyEvent.VK_H);
+        this.home = action("home", "Home", "Return to recently read books",
+                KeyStroke.getKeyStroke(KeyEvent.VK_H, homeShortcut.getModifiers() | InputEvent.SHIFT_DOWN_MASK), controller::showHome);
         this.openFile = action("openFile", "Open…", "Open an image, ZIP archive or folder",
                 menuShortcut(KeyEvent.VK_O), controller::chooseFile);
         this.exit = action("exit", PlatformUi.usesScreenMenuBar() ? "Quit" : "Exit", "Close Yonaka Reader",
@@ -114,6 +118,8 @@ public class DefaultViewerActions implements ViewerActions {
     public Action toggleThumbnails() {
         return toggleThumbnails;
     }
+
+    @Override public Action home() { return home; }
 
     @Override
     public Action openFile() {

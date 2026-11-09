@@ -31,11 +31,12 @@ public final class RecentBookLoader {
             var pages = source.pages();
             if (!pages.isEmpty()) {
                 var image = source.load(pages.get(0)).image();
-                return new RecentBook(book.state(), true, ThumbnailRenderer.render(image));
+                return new RecentBook(book.state(), true, ThumbnailRenderer.render(image), book.chapters());
             }
         } catch (RuntimeException ignored) {
             // A missing or corrupt preview must not hide the saved reading position.
         }
-        return inspect(book.state());
+        var checked = inspect(book.state());
+        return new RecentBook(book.state(), checked.available(), null, book.chapters());
     }
 }

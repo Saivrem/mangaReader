@@ -12,12 +12,14 @@ import java.util.function.Predicate;
 
 public class MenuBar extends JMenuBar {
     private final JMenu recentMenu = menu("Open Recent", KeyEvent.VK_R);
-    private final JMenuItem home = new JMenuItem("Home", KeyEvent.VK_H);
+    private final JMenuItem home;
     private java.util.function.Consumer<String> openRecent = id -> {
     };
     private java.util.List<org.dustyroom.ui.loading.RecentBook> recentBooks = java.util.List.of();
 
     public MenuBar(ViewerActions actions, Predicate<ViewerTheme> selectTheme) {
+        home = new JMenuItem(actions.home());
+        home.setMnemonic(KeyEvent.VK_H);
         JMenu fileMenu = menu("File", KeyEvent.VK_F);
         JMenu viewMenu = menu("View", KeyEvent.VK_V);
         JMenu navigationMenu = menu("Navigation", KeyEvent.VK_N);
@@ -129,9 +131,9 @@ public class MenuBar extends JMenuBar {
         }
     }
 
-    public void setRecentHandlers(java.util.function.Consumer<String> open, Runnable refresh, Runnable showHome) {
+    public void setRecentHandlers(java.util.function.Consumer<String> open, Runnable refresh) {
         openRecent = open;
-        home.addActionListener(event -> showHome.run());
+
         recentMenu.addMenuListener(new javax.swing.event.MenuListener() {
             public void menuSelected(javax.swing.event.MenuEvent event) {
                 refresh.run();
@@ -149,7 +151,8 @@ public class MenuBar extends JMenuBar {
         boolean unchanged = books.size() == recentBooks.size();
         for (int i = 0; unchanged && i < books.size(); i++) {
             unchanged = books.get(i).state().equals(recentBooks.get(i).state())
-                    && books.get(i).available() == recentBooks.get(i).available();
+                    && books.get(i).available() == recentBooks.get(i).available()
+                    && books.get(i).chapters().equals(recentBooks.get(i).chapters());
         }
         if (unchanged && recentMenu.getItemCount() > 0) return;
         recentBooks = java.util.List.copyOf(books);
@@ -166,7 +169,23 @@ public class MenuBar extends JMenuBar {
             item.setToolTipText(book.state().sourceId());
             item.setEnabled(book.available());
             item.addActionListener(event -> openRecent.accept(book.state().sourceId()));
-            recentMenu.add(item);
+            if (book.chapters().size() > 1) {
+                JMenu group = new JMenu();
+                group.putClientProperty("html.disable", true);
+                group.setText(book.title() + " (" + book.chapters().size() + " chapters)");
+                item.setText("Continue — " + new java.io.File(book.state().sourceId()).getName());
+                group.add(item);
+                group.addSeparator();
+                for (var chapter : book.chapters().stream().limit(20).toList()) {
+                    JMenuItem entry = new JMenuItem();
+                    entry.putClientProperty("html.disable", true);
+                    entry.setText(new java.io.File(chapter.sourceId()).getName());
+                    entry.setToolTipText(chapter.sourceId());
+                    entry.addActionListener(event -> openRecent.accept(chapter.sourceId()));
+                    group.add(entry);
+                }
+                recentMenu.add(group);
+            } else recentMenu.add(item);
         }
     }
 }

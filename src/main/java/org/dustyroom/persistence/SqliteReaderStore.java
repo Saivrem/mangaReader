@@ -128,7 +128,7 @@ public final class SqliteReaderStore implements ReaderStore {
             double parsed = Double.parseDouble(values.getOrDefault("zoom", "1"));
             if (Double.isFinite(parsed) && parsed >= 0.05 && parsed <= 20) zoom = parsed;
         } catch (NumberFormatException ignored) { /* use default for an invalid setting */ }
-        return new ReaderSettings(theme, fit, zoom, values.getOrDefault("last_directory", ""), !"false".equals(values.get("thumbnails_visible")));
+        return new ReaderSettings(theme, fit, zoom, values.getOrDefault("last_directory", ""), !"false".equals(values.get("thumbnails_visible")), !"false".equals(values.get("group_recent_by_folder")));
     }
 
     @Override
@@ -138,7 +138,8 @@ public final class SqliteReaderStore implements ReaderStore {
             try (var sql = connection.prepareStatement("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value")) {
                 for (var entry : Map.of("theme", settings.theme().name(), "fit_mode", settings.fitMode().name(),
                         "zoom", Double.toString(settings.zoom()), "last_directory", settings.lastDirectory(),
-                        "thumbnails_visible", Boolean.toString(settings.thumbnailsVisible())).entrySet()) {
+                        "thumbnails_visible", Boolean.toString(settings.thumbnailsVisible()),
+                        "group_recent_by_folder", Boolean.toString(settings.groupRecentByFolder())).entrySet()) {
                     sql.setString(1, entry.getKey());
                     sql.setString(2, entry.getValue());
                     sql.addBatch();
@@ -194,7 +195,7 @@ public final class SqliteReaderStore implements ReaderStore {
 
     @Override
     public java.util.List<BookState> recentBooks(int limit) {
-        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Invalid recent book limit");
+        if (limit < 1 || limit > 1000) throw new IllegalArgumentException("Invalid recent book limit");
         var books = new java.util.ArrayList<BookState>();
         try (var sql = connection.prepareStatement("SELECT * FROM books WHERE recent_hidden=0 ORDER BY updated_at DESC, source_id LIMIT ?")) {
             sql.setInt(1, limit);

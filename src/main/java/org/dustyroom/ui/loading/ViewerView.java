@@ -7,6 +7,8 @@ public interface ViewerView {
     default void showRecentBooks(java.util.List<RecentBook> books) {
     }
 
+    default void showAnimations(org.dustyroom.be.models.PageKey page, java.util.List<AnimatedPage> animations) {}
+
     void showLoading();
 
     void showFrame(ViewerFrame frame);

@@ -40,6 +40,7 @@ final class ImageDecoder {
             try {
                 boolean jfif = isJpeg(reader) && hasJfifMarker(imageInput);
                 reader.setInput(imageInput, false, false);
+                if ("gif".equalsIgnoreCase(reader.getFormatName())) return GifDecoder.firstFrame(reader);
                 if (jfif && !reader.getImageTypes(0).hasNext()) {
                     return readUnsupportedJfif(reader);
                 }

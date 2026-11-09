@@ -6,24 +6,55 @@ import java.awt.image.BufferedImage;
 
 public class ImageComponent extends JComponent {
     private BufferedImage image;
+    private java.util.List<org.dustyroom.ui.loading.AnimatedPage> animations = java.util.List.of();
+    private long animationStart;
+    private final Timer animationTimer = new Timer(20, event -> animate());
+
+    private void animate() {
+        long elapsed = (System.nanoTime() - animationStart) / 1_000_000;
+        if (animations.stream().allMatch(page -> page.clip().finished(elapsed))) animationTimer.stop();
+        repaint();
+    }
+
+    public ImageComponent() {
+        addHierarchyListener(event -> {
+            if (isShowing() && !animations.isEmpty()) animationTimer.start();
+            else animationTimer.stop();
+        });
+    }
+
+    public void setAnimations(java.util.List<org.dustyroom.ui.loading.AnimatedPage> pages) {
+        animations = java.util.List.copyOf(pages);
+        animationStart = System.nanoTime();
+        if (!animations.isEmpty() && isShowing()) animationTimer.start();
+        else animationTimer.stop();
+        repaint();
+    }
+
+    @Override public void removeNotify() { animationTimer.stop(); super.removeNotify(); }
+
     private double scale = 1.0;
     private FitMode fitMode = FitMode.FIT_SCREEN;
 
     public void setImageAndCenter(BufferedImage img, JScrollPane scrollPane) {
         setImage(img);
 
-        SwingUtilities.invokeLater(() -> {
-            Dimension viewSize = scrollPane.getViewport().getExtentSize();
-            Dimension imgSize = getPreferredSize();
-
-            int x = Math.max(0, (imgSize.width - viewSize.width) / 2);
-            int y = 0;
-
-            scrollPane.getViewport().setViewPosition(new Point(x, y));
-        });
+        // Finish layout before painting: no intermediate frame at x=0 or stale sidebar width.
+        for (int pass = 0; pass < 3; pass++) {
+            scrollPane.doLayout();
+            scrollPane.getViewport().doLayout();
+            updateScale();
+            setSize(getPreferredSize().width < scrollPane.getViewport().getWidth()
+                            ? scrollPane.getViewport().getWidth() : getPreferredSize().width,
+                    Math.max(scrollPane.getViewport().getHeight(), getPreferredSize().height));
+        }
+        Dimension viewSize = scrollPane.getViewport().getExtentSize();
+        scrollPane.getViewport().setViewPosition(new Point(Math.max(0, (getPreferredSize().width - viewSize.width) / 2), 0));
     }
 
     private void setImage(BufferedImage image) {
+        animationTimer.stop();
+        animations = java.util.List.of();
         this.image = image;
         updateScale();
         revalidate();
@@ -60,6 +91,7 @@ public class ImageComponent extends JComponent {
                 ? getParent().getSize()
                 : Toolkit.getDefaultToolkit().getScreenSize();
 
+        if (parentSize.width <= 0 || parentSize.height <= 0) return;
         switch (fitMode) {
             case FIT_WIDTH -> scale = parentSize.getWidth() / image.getWidth();
             case FIT_HEIGHT -> scale = parentSize.getHeight() / image.getHeight();
@@ -69,6 +101,26 @@ public class ImageComponent extends JComponent {
             );
             case ORIGINAL -> { /* Preserve the explicit zoom across page changes. */ }
         }
+    }
+
+    public void zoomAt(double factor, Point viewportAnchor, JScrollPane scroll) {
+        if (image == null || !Double.isFinite(factor) || factor <= 0) return;
+        JViewport viewport = scroll.getViewport();
+        double oldScale = scale;
+        Point oldPosition = viewport.getViewPosition();
+        double imageX = (oldPosition.x + viewportAnchor.x - (getWidth() - image.getWidth() * oldScale) / 2) / oldScale;
+        double imageY = (oldPosition.y + viewportAnchor.y - (getHeight() - image.getHeight() * oldScale) / 2) / oldScale;
+        fitMode = FitMode.ORIGINAL;
+        scale = Math.max(0.05, Math.min(20, scale * factor));
+        revalidate();
+        scroll.doLayout();
+        viewport.doLayout();
+        setSize(Math.max(viewport.getWidth(), getPreferredSize().width), Math.max(viewport.getHeight(), getPreferredSize().height));
+        int x = (int) Math.round(imageX * scale + (getWidth() - image.getWidth() * scale) / 2 - viewportAnchor.x);
+        int y = (int) Math.round(imageY * scale + (getHeight() - image.getHeight() * scale) / 2 - viewportAnchor.y);
+        viewport.setViewPosition(new Point(Math.max(0, Math.min(x, getWidth() - viewport.getWidth())),
+                Math.max(0, Math.min(y, getHeight() - viewport.getHeight()))));
+        repaint();
     }
 
     public void zoomIn() {
@@ -103,6 +155,14 @@ public class ImageComponent extends JComponent {
         int y = (getHeight() - imgH) / 2;
 
         g2d.drawImage(image, x, y, imgW, imgH, this);
+        long elapsed = (System.nanoTime() - animationStart) / 1_000_000;
+        for (var page : animations) {
+            int px = x + (int) Math.round(page.x() * scale), py = y + (int) Math.round(page.y() * scale);
+            int width = (int) Math.round(page.width() * scale), height = (int) Math.round(page.height() * scale);
+            g2d.setColor(page.spread() ? Color.BLACK : getBackground());
+            g2d.fillRect(px, py, width, height);
+            g2d.drawImage(page.clip().frames().get(page.clip().frameAt(elapsed)), px, py, width, height, this);
+        }
     }
 
     @Override

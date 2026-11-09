@@ -80,6 +80,10 @@ public final class ReaderSurface extends JPanel {
         return button;
     }
 
+    public void setRecentGrouping(boolean grouped, java.util.function.Consumer<Boolean> change) {
+        recent.setGrouping(grouped, change);
+    }
+
     public void setRecentHandlers(Consumer<String> open, Consumer<String> remove) {
         recent.setHandlers(open, remove);
     }

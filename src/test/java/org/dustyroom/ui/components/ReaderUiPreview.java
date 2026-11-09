@@ -72,9 +72,12 @@ public final class ReaderUiPreview {
         ReaderSurface surface = new ReaderSurface(scroll, actions.openFile());
         if (!loaded) surface.showRecentBooks(java.util.stream.IntStream.range(0, 6).mapToObj(i ->
                 new org.dustyroom.ui.loading.RecentBook(new org.dustyroom.persistence.BookState(
-                        "/books/" + (i == 0 ? "日本語 — The long way home.zip" : "Volume " + (i + 1) + ".zip"),
+                        "/books/" + (i == 0 ? "夜中/Chapter 03.zip" : "Volume " + (i + 1) + ".zip"),
                         "page-24", 24 + i, 180, true, ReadingMode.MANGA), i != 2,
-                        i == 2 ? null : org.dustyroom.ui.rendering.ThumbnailRenderer.render(samplePage()))).toList());
+                        i == 2 ? null : org.dustyroom.ui.rendering.ThumbnailRenderer.render(samplePage()),
+                        i == 0 ? java.util.stream.IntStream.range(1, 4).mapToObj(chapter ->
+                                new org.dustyroom.persistence.BookState("/books/夜中/Chapter 0" + chapter + ".zip", "page", 24, 180, true, ReadingMode.MANGA)).toList()
+                                : java.util.List.of(new org.dustyroom.persistence.BookState("/books/Volume " + (i+1) + ".zip", "page", 24+i, 180, true, ReadingMode.MANGA)))).toList());
         NavigationPanel navigation = new NavigationPanel(actions);
         navigation.updateState(frame, ImageComponent.FitMode.FIT_SCREEN);
         JPanel content = new JPanel(new BorderLayout());

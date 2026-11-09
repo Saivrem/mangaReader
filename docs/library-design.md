@@ -4,7 +4,10 @@ Status: design for review, not an implemented library. Application version remai
 
 ## Current foundation: Recently read
 
-The home screen and File → Open Recent share the latest 12 visible book states.
+The home screen and File → Open Recent share the latest 12 visible books/series.
+ZIPs are grouped by parent directory by default (optional, persisted preference).
+Grouping considers the latest 1,000 visible states; each card resumes the last-read
+chapter and exposes up to 20 recent chapters. Per-chapter state remains independent.
 A book means a ZIP archive or a directory of images; opening a single image belongs
 to that directory's reading state. Opening from history restores its saved page,
 spread mode and reading direction. File → Home returns to the shelf.
@@ -57,6 +60,12 @@ Introduce in a future versioned migration:
   time and availability. Initially one active location per book.
 - `reading_state`: stable book ID, stable page identifier plus fallback index, page
   count, spread mode and direction; imported from the existing `books` table.
+- `series`: stable series ID, display title, explicit grouping source (initially a
+  parent folder). Import existing folder groups only when the user adds them to
+  the library; toggling recent grouping must not rewrite library membership.
+- `series_items`: series ID, book ID and user-adjustable chapter order. Sort with
+  the existing natural filename comparator, not recent-read order. Keep resume
+  chapter on the series separate from each chapter's saved position.
 - `library_roots`: explicitly added directories and their scan preferences.
 - `recent_history`: stable book ID, last-read timestamp, hidden flag; independent of
   library membership. Retain legacy book state until migration validation succeeds.
@@ -102,3 +111,19 @@ never touches books; fresh install, upgrade and uninstall on each supported OS.
 3. Add stable IDs and manual library membership with migration tests.
 4. Add search/filter/sort and bounded cover cache.
 5. Add cancellable folder import, then optional filesystem watching.
+
+## Series-first library UX
+
+The confirmed user layout is one directory per work, with one ZIP per chapter.
+Show one library card per work, with a Continue button for its last-read chapter.
+Opening the card reveals all imported chapters in natural order, individual progress,
+and explicit unread/in-progress/finished status. A recent chapter does not occupy
+another top-level card. Folder names provide initial titles; users can rename the
+library title without renaming files. A folder with image pages remains a single
+book, while a folder containing chapter ZIPs is a series. If both occur, present the
+import preview for explicit selection rather than silently mixing them.
+
+First library milestone should be manual folder import and this series detail view,
+then search/filter and relink. Recents are already useful independently, so full
+library implementation remains a reviewed follow-up rather than a prerequisite for
+these reader fixes.
