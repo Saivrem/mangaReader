@@ -1,6 +1,6 @@
 package org.dustyroom.ui.actions;
 
-import javax.swing.*;
+import javax.swing.Action;
 
 public interface ViewerActions {
     Action openFile();
@@ -36,12 +36,6 @@ public interface ViewerActions {
     Action setComicsReadingMode();
 
     Action setMangaReadingMode();
-
-    Action setNimbusTheme();
-
-    Action setMetalTheme();
-
-    Action setSystemTheme();
 
     Action showAbout();
 }

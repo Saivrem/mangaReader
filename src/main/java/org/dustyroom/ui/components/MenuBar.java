@@ -1,50 +1,46 @@
 package org.dustyroom.ui.components;
 
 import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.theme.ViewerTheme;
+import org.dustyroom.ui.utils.UiUtils;
+import javax.swing.ButtonGroup;
+import javax.swing.JRadioButtonMenuItem;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.function.Predicate;
 
-import javax.swing.*;
+import javax.swing.Action;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import java.awt.event.KeyEvent;
 
 public class MenuBar extends JMenuBar {
-    public MenuBar (ViewerActions actions) {
-        JMenu fileMenu = new JMenu("File");
-        JMenu viewMenu = new JMenu("View");
-        JMenu navigationMenu = new JMenu("Navigation");
-        JMenu helpMenu = new JMenu("Help");
-        JMenu optionsMenu = new JMenu("Options");
-        JMenu colorSchemeMenu = new JMenu("Color scheme");
-        JMenu readingModeMenu = new JMenu("Reading mode");
+    public MenuBar(ViewerActions actions, Predicate<ViewerTheme> selectTheme) {
+        JMenu fileMenu = menu("File", KeyEvent.VK_F);
+        JMenu viewMenu = menu("View", KeyEvent.VK_V);
+        JMenu navigationMenu = menu("Navigation", KeyEvent.VK_N);
+        JMenu optionsMenu = menu("Options", KeyEvent.VK_O);
+        JMenu helpMenu = menu("Help", KeyEvent.VK_H);
+        JMenu readingModeMenu = menu("Reading Mode", KeyEvent.VK_R);
 
-        // @formatter:off
-        addMenuItem(fileMenu, "Open (O)"                          , actions.openFile());
-        addMenuItem(fileMenu, "Exit (Q)"                          , actions.exit());
+        addActions(fileMenu, actions.openFile(), actions.exit());
 
-        addMenuItem(viewMenu, "Fit height mode (h)"               , actions.fitHeight());
-        addMenuItem(viewMenu, "Fit width mode (w)"                , actions.fitWidth());
-        addMenuItem(viewMenu, "Fit screen mode (s)"               , actions.fitScreen());
-        addMenuItem(viewMenu, "Zoom In (+)"                       , actions.zoomIn());
-        addMenuItem(viewMenu, "Zoom out (-)"                      , actions.zoomOut());
+        addActions(viewMenu,
+                actions.fitHeight(), actions.fitWidth(), actions.fitScreen(),
+                actions.zoomIn(), actions.zoomOut());
 
-        addMenuItem(navigationMenu, "Next (→)"                    , actions.nextImage());
-        addMenuItem(navigationMenu, "Prev (←)"                    , actions.prevImage());
-        addMenuItem(navigationMenu, "First (⇱)"                   , actions.firstImage());
-        addMenuItem(navigationMenu, "Last (⇲)"                    , actions.lastImage());
-        addMenuItem(navigationMenu, "Prev volume"                 , actions.prevVolume());
-        addMenuItem(navigationMenu, "Next volume"                 , actions.nextVolume());
+        addActions(navigationMenu,
+                actions.nextImage(), actions.prevImage(), actions.firstImage(), actions.lastImage(),
+                actions.prevVolume(), actions.nextVolume());
 
-        addMenuItem(colorSchemeMenu, "Nimbus theme"               , actions.setNimbusTheme());
-        addMenuItem(colorSchemeMenu, "Metal theme"                , actions.setMetalTheme());
-        addMenuItem(colorSchemeMenu, "System theme"               , actions.setSystemTheme());
+        addActions(readingModeMenu,
+                actions.setComicsReadingMode(), actions.setMangaReadingMode(), actions.toggleTwoPageMode());
 
-        addMenuItem(readingModeMenu, "Comics (left to right) (c)" , actions.setComicsReadingMode());
-        addMenuItem(readingModeMenu, "Manga (right to left) (m)"  , actions.setMangaReadingMode());
-        addMenuItem(readingModeMenu, "Toggle two-page mode (p)"   , actions.toggleTwoPageMode());
+        addActions(optionsMenu, actions.toggleFullscreen());
+        addActions(helpMenu, actions.showAbout());
 
-        addMenuItem(optionsMenu, "Toggle Fullscreen (F)"          , actions.toggleFullscreen());
-        addMenuItem(helpMenu, "About"                             , actions.showAbout());
-        // @formatter:on
-
-        optionsMenu.add(colorSchemeMenu);
         optionsMenu.add(readingModeMenu);
+        optionsMenu.add(themeMenu(selectTheme));
 
         add(fileMenu);
         add(viewMenu);
@@ -53,9 +49,35 @@ public class MenuBar extends JMenuBar {
         add(helpMenu);
     }
 
-    private void addMenuItem(JMenu menu, String itemName, Action action) {
-        JMenuItem item = new JMenuItem(action);
-        item.setText(itemName);
-        menu.add(item);
+    private static JMenu themeMenu(Predicate<ViewerTheme> selectTheme) {
+        JMenu menu = menu("Theme", KeyEvent.VK_T);
+        ButtonGroup group = new ButtonGroup();
+        Map<ViewerTheme, JRadioButtonMenuItem> items = new EnumMap<>(ViewerTheme.class);
+        ViewerTheme[] selected = {UiUtils.currentTheme()};
+        for (ViewerTheme theme : ViewerTheme.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(theme.label());
+            item.setSelected(theme == UiUtils.currentTheme());
+            item.addActionListener(event -> {
+                if (selectTheme.test(theme)) selected[0] = theme;
+                // Also restore the previous selection if installation failed.
+                items.get(selected[0]).setSelected(true);
+            });
+            group.add(item);
+            items.put(theme, item);
+            menu.add(item);
+        }
+        return menu;
+    }
+
+    private static JMenu menu(String name, int mnemonic) {
+        JMenu menu = new JMenu(name);
+        menu.setMnemonic(mnemonic);
+        return menu;
+    }
+
+    private static void addActions(JMenu menu, Action... actions) {
+        for (Action action : actions) {
+            menu.add(action);
+        }
     }
 }

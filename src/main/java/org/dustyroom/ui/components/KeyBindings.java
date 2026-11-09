@@ -1,8 +1,14 @@
 package org.dustyroom.ui.components;
 
 import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.PlatformUi;
 
-import javax.swing.*;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JRootPane;
+import javax.swing.KeyStroke;
 import java.awt.event.KeyEvent;
 
 public class KeyBindings {
@@ -11,38 +17,50 @@ public class KeyBindings {
         InputMap inputMap = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = rootPane.getActionMap();
 
-        bind(inputMap, actionMap, "nextImage", KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), actions.nextImage());
-        bind(inputMap, actionMap, "nextImagePg", KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0), actions.nextImage());
+        bindPrimary(inputMap, actionMap, actions.openFile());
+        bindPrimary(inputMap, actionMap, actions.exit());
+        bindPrimary(inputMap, actionMap, actions.fitHeight());
+        bindPrimary(inputMap, actionMap, actions.fitWidth());
+        bindPrimary(inputMap, actionMap, actions.fitScreen());
+        bindPrimary(inputMap, actionMap, actions.zoomIn());
+        bindPrimary(inputMap, actionMap, actions.zoomOut());
+        bindPrimary(inputMap, actionMap, actions.nextImage());
+        bindPrimary(inputMap, actionMap, actions.prevImage());
+        bindPrimary(inputMap, actionMap, actions.firstImage());
+        bindPrimary(inputMap, actionMap, actions.lastImage());
+        bindPrimary(inputMap, actionMap, actions.nextVolume());
+        bindPrimary(inputMap, actionMap, actions.prevVolume());
+        bindPrimary(inputMap, actionMap, actions.toggleFullscreen());
+        bindPrimary(inputMap, actionMap, actions.toggleTwoPageMode());
+        bindPrimary(inputMap, actionMap, actions.setMangaReadingMode());
+        bindPrimary(inputMap, actionMap, actions.setComicsReadingMode());
 
-        bind(inputMap, actionMap, "prevImage", KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), actions.prevImage());
-        bind(inputMap, actionMap, "prevImagePg", KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, 0), actions.prevImage());
-
-        bind(inputMap, actionMap, "firstImage", KeyStroke.getKeyStroke(KeyEvent.VK_HOME, 0), actions.firstImage());
-        bind(inputMap, actionMap, "lastImage", KeyStroke.getKeyStroke(KeyEvent.VK_END, 0), actions.lastImage());
-
-        bind(inputMap, actionMap, "toggleFullscreen", KeyStroke.getKeyStroke(KeyEvent.VK_F, 0), actions.toggleFullscreen());
-        bind(inputMap, actionMap, "openFile", KeyStroke.getKeyStroke(KeyEvent.VK_O, 0), actions.openFile());
-
-        bind(inputMap, actionMap, "fitHeight", KeyStroke.getKeyStroke(KeyEvent.VK_H, 0), actions.fitHeight());
-        bind(inputMap, actionMap, "fitWidth", KeyStroke.getKeyStroke(KeyEvent.VK_W, 0), actions.fitWidth());
-        bind(inputMap, actionMap, "fitScreen", KeyStroke.getKeyStroke(KeyEvent.VK_S, 0), actions.fitScreen());
-        bind(inputMap, actionMap, "toggleTwoPage", KeyStroke.getKeyStroke(KeyEvent.VK_P, 0), actions.toggleTwoPageMode());
-        bind(inputMap, actionMap, "toggleManga", KeyStroke.getKeyStroke(KeyEvent.VK_M, 0), actions.setMangaReadingMode());
-        bind(inputMap, actionMap, "toggleComic", KeyStroke.getKeyStroke(KeyEvent.VK_C, 0), actions.setComicsReadingMode());
-
-        bind(inputMap, actionMap, "zoomInPlus", KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, 0), actions.zoomIn());
-        bind(inputMap, actionMap, "zoomInEquals", KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, 0), actions.zoomIn());
-        bind(inputMap, actionMap, "zoomOut", KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, 0), actions.zoomOut());
-
-        bind(inputMap, actionMap, "prevVolume", KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), actions.prevVolume());
-        bind(inputMap, actionMap, "nextVolume", KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), actions.nextVolume());
-
-        bind(inputMap, actionMap, "quitEsc", KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), actions.exit());
-        bind(inputMap, actionMap, "quitQ", KeyStroke.getKeyStroke(KeyEvent.VK_Q, 0), actions.exit());
+        if (!PlatformUi.usesScreenMenuBar()) {
+            bind(inputMap, actionMap, "fullscreenF11", key(KeyEvent.VK_F11), actions.toggleFullscreen());
+        }
+        bind(inputMap, actionMap, "openFileLegacy", key(KeyEvent.VK_O), actions.openFile());
+        bind(inputMap, actionMap, "exitLegacy", key(KeyEvent.VK_Q), actions.exit());
+        bind(inputMap, actionMap, "exitEscape", key(KeyEvent.VK_ESCAPE), actions.exit());
+        bind(inputMap, actionMap, "nextImagePage", key(KeyEvent.VK_PAGE_DOWN), actions.nextImage());
+        bind(inputMap, actionMap, "previousImagePage", key(KeyEvent.VK_PAGE_UP), actions.prevImage());
+        bind(inputMap, actionMap, "zoomInEquals", key(KeyEvent.VK_EQUALS), actions.zoomIn());
     }
 
-    private void bind(InputMap inputMap, ActionMap actionMap, String name, KeyStroke keyStroke, Action action) {
+    private static void bindPrimary(InputMap inputMap, ActionMap actionMap, Action action) {
+        Object accelerator = action.getValue(Action.ACCELERATOR_KEY);
+        Object id = action.getValue(Action.ACTION_COMMAND_KEY);
+        if (accelerator instanceof KeyStroke keyStroke && id instanceof String name) {
+            bind(inputMap, actionMap, name, keyStroke, action);
+        }
+    }
+
+    private static void bind(InputMap inputMap, ActionMap actionMap, String name,
+                             KeyStroke keyStroke, Action action) {
         inputMap.put(keyStroke, name);
         actionMap.put(name, action);
+    }
+
+    private static KeyStroke key(int keyCode) {
+        return KeyStroke.getKeyStroke(keyCode, 0);
     }
 }

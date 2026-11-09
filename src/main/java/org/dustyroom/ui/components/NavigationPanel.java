@@ -2,11 +2,13 @@ package org.dustyroom.ui.components;
 
 import org.dustyroom.ui.actions.ViewerActions;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.Action;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import java.awt.FlowLayout;
 
 public class NavigationPanel extends JPanel {
-    public NavigationPanel (ViewerActions actions) {
+    public NavigationPanel(ViewerActions actions) {
         setLayout(new FlowLayout());
 
         // @formatter:off

@@ -19,7 +19,7 @@ Run the full verification and build an executable fat JAR:
 The resulting application is written to:
 
 ```text
-build/libs/mangaReader-0.6.jar
+build/libs/mangaReader-0.8.0.jar
 ```
 
 ## Run
@@ -27,15 +27,15 @@ build/libs/mangaReader-0.6.jar
 Open the application without an initial file:
 
 ```bash
-java -jar build/libs/mangaReader-0.6.jar
+java -jar build/libs/mangaReader-0.8.0.jar
 ```
 
 Open an image, a directory of images, or a ZIP archive immediately:
 
 ```bash
-java -jar build/libs/mangaReader-0.6.jar /path/to/page.jpg
-java -jar build/libs/mangaReader-0.6.jar /path/to/chapter
-java -jar build/libs/mangaReader-0.6.jar /path/to/volume.zip
+java -jar build/libs/mangaReader-0.8.0.jar /path/to/page.jpg
+java -jar build/libs/mangaReader-0.8.0.jar /path/to/chapter
+java -jar build/libs/mangaReader-0.8.0.jar /path/to/volume.zip
 ```
 
 ## Supported content
@@ -52,11 +52,20 @@ java -jar build/libs/mangaReader-0.6.jar /path/to/volume.zip
 
 GIF files are currently displayed as static images.
 
+## Appearance and platform behavior
+
+- Options → Theme selects Manga Reader Ayu Dark (default) or Ayu Light.
+- Both application themes use the [Ayu palette](https://github.com/ayu-theme/ayu-colors), implemented with FlatLaf.
+- macOS uses the global screen menu and Command shortcuts.
+- Windows and Linux use a menu inside the window, Control shortcuts, and native window decorations. Windows retains its system window controls and Alt+F4 behavior.
+- The native title bar and macOS global menu follow the OS appearance; the theme selector colors the application content.
+- Theme selection applies immediately for the current session.
+
 ## Keyboard shortcuts
 
 | Key | Action |
 | --- | --- |
-| `O` | Open a file |
+| `O`, `Cmd/Ctrl+O` | Open a file |
 | `Right`, `Page Down` | Next page |
 | `Left`, `Page Up` | Previous page |
 | `Home`, `End` | First or last page |
@@ -65,8 +74,8 @@ GIF files are currently displayed as static images.
 | `+`, `-` | Zoom in or out |
 | `P` | Toggle two-page mode |
 | `M`, `C` | Manga or comics reading mode |
-| `F` | Toggle fullscreen |
-| `Q`, `Escape` | Exit |
+| `F` (also `F11` on Windows/Linux) | Toggle fullscreen |
+| `Q`, `Escape`, `Cmd/Ctrl+Q` | Exit |
 
 ## Project structure
 

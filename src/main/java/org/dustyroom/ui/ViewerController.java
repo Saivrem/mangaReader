@@ -4,20 +4,32 @@ import org.dustyroom.ui.components.ImageComponent;
 import org.dustyroom.ui.loading.AsyncViewerSession;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.loading.ViewerView;
+import org.dustyroom.ui.utils.DialogUtils;
 import org.dustyroom.ui.utils.UiUtils;
+import org.dustyroom.ui.theme.ViewerTheme;
+import javax.swing.SwingUtilities;
 
-import javax.swing.*;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.JViewport;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.GraphicsDevice;
+import java.awt.Point;
 import java.io.File;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
-import static org.dustyroom.ui.LookSettings.NIMBUS;
-import static org.dustyroom.ui.LookSettings.SYSTEM;
 import static org.dustyroom.ui.utils.DialogUtils.showAbout;
-import static org.dustyroom.ui.utils.UiUtils.redrawComponent;
 
 public class ViewerController {
     private final JFrame frame;
@@ -50,7 +62,7 @@ public class ViewerController {
             @Override
             public void showError(String message) {
                 frame.setCursor(Cursor.getDefaultCursor());
-                org.dustyroom.ui.utils.DialogUtils.showError(frame, message);
+                DialogUtils.showError(frame, message);
             }
         });
     }
@@ -73,11 +85,9 @@ public class ViewerController {
         JFileChooser fileChooser = new JFileChooser(root);
         fileChooser.setPreferredSize(new Dimension(800, 600));
 
-        if (UiUtils.getCurrent() != SYSTEM) {
-            Action details = fileChooser.getActionMap().get("viewTypeDetails");
-            if (details != null) {
-                details.actionPerformed(null);
-            }
+        Action details = fileChooser.getActionMap().get("viewTypeDetails");
+        if (details != null) {
+            details.actionPerformed(null);
         }
 
         fileChooser.setFileFilter(new FileNameExtensionFilter("Supported Files", SUPPORTED_FORMATS));
@@ -150,22 +160,16 @@ public class ViewerController {
         session.setMangaReadingMode();
     }
 
-    public void setNimbusTheme() {
-        UiUtils.setDarkTheme();
-        redrawComponent(frame);
-        syncThemeSurfaces();
-    }
-
-    public void setMetalTheme() {
-        UiUtils.setMetalTheme();
-        redrawComponent(frame);
-        syncThemeSurfaces();
-    }
-
-    public void setSystemTheme() {
-        UiUtils.setSystemTheme();
-        redrawComponent(frame);
-        syncThemeSurfaces();
+    public boolean setTheme(ViewerTheme theme) {
+        if (!UiUtils.installTheme(theme)) {
+            DialogUtils.showError(frame, "Unable to apply the selected theme.");
+            return false;
+        }
+        SwingUtilities.updateComponentTreeUI(frame);
+        configureViewerSurfaces();
+        frame.revalidate();
+        frame.repaint();
+        return true;
     }
 
     public void showAboutDialog() {
@@ -174,10 +178,6 @@ public class ViewerController {
 
     public void exit() {
         session.close(() -> System.exit(0));
-    }
-
-    public void close() {
-        session.close();
     }
 
     public void toggleFullscreen() {
@@ -203,8 +203,11 @@ public class ViewerController {
         frame.requestFocusInWindow();
     }
 
-    public void syncThemeSurfaces() {
-        Color background = resolveThemeBackground();
+    public void configureViewerSurfaces() {
+        Color background = UIManager.getColor("Viewer.background");
+        if (background == null) {
+            background = new Color(30, 33, 39);
+        }
 
         Container contentPane = frame.getContentPane();
         contentPane.setBackground(background);
@@ -213,10 +216,6 @@ public class ViewerController {
         scrollPane.setBorder(empty);
         scrollPane.setViewportBorder(empty);
         scrollPane.setOpaque(true);
-        if (background == null) {
-            background = new Color(34, 40, 49);
-        }
-
         imageComponent.setOpaque(true);
         imageComponent.setBackground(background);
         scrollPane.setBackground(background);
@@ -234,13 +233,4 @@ public class ViewerController {
         imageComponent.setImageAndCenter(viewerFrame.image(), scrollPane);
     }
 
-    private Color resolveThemeBackground() {
-        if (UiUtils.getCurrent() == NIMBUS) {
-            Color nimbusBackground = UIManager.getColor("background");
-            return nimbusBackground == null ? new Color(34, 40, 49) : nimbusBackground;
-        }
-
-        Color panelBackground = UIManager.getColor("Panel.background");
-        return panelBackground == null ? UIManager.getColor("control") : panelBackground;
-    }
 }

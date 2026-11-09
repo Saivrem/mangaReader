@@ -1,16 +1,16 @@
 package org.dustyroom.ui.components;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JComponent;
+import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 
-@Setter
-@Getter
-@NoArgsConstructor
 public class ImageComponent extends JComponent {
     private BufferedImage image;
     private double scale = 1.0;
@@ -42,6 +42,10 @@ public class ImageComponent extends JComponent {
         updateScale();
         revalidate();
         repaint();
+    }
+
+    public FitMode getFitMode() {
+        return fitMode;
     }
 
     public void updateScale() {
