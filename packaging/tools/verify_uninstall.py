@@ -10,9 +10,18 @@ import subprocess
 import uuid
 
 
-def run(command, allowed=(0,)):
+def run(command, allowed=(0,), properties=None):
     print('Running:', ' '.join(str(arg) for arg in command), flush=True)
-    result = subprocess.run([str(arg) for arg in command], check=False, timeout=300)
+    arguments = [str(arg) for arg in command]
+    if properties:
+        # msiexec parses PROPERTY="value with spaces", not "PROPERTY=value with spaces".
+        # Python's normal list quoting produces the latter and can open a modal help dialog.
+        arguments = subprocess.list2cmdline(arguments)
+        for name, value in properties.items():
+            if not name.isupper() or not name.isidentifier() or '"' in str(value):
+                raise ValueError('Invalid MSI property')
+            arguments += f' {name}="{value}"'
+    result = subprocess.run(arguments, check=False, timeout=300)
     if result.returncode not in allowed:
         raise RuntimeError(f'{command[0]} failed with exit code {result.returncode}')
 
@@ -65,14 +74,15 @@ def main():
             target = output / 'installed app'
             assert not target.exists(), 'Installation target must be new'
             try:
-                run(['msiexec.exe', '/i', installer, '/qn', '/norestart', f'INSTALLDIR={target}',
-                     '/l*v', output / 'msi-install.log'], allowed=(0, 3010))
+                run(['msiexec.exe', '/i', installer, '/qn', '/norestart',
+                     '/l*v', output / 'msi-install.log'], allowed=(0, 3010), properties={'INSTALLDIR': target})
                 assert windows_registration(), 'Application not registered for Windows uninstall'
                 assert (target / 'Yonaka Reader.exe').is_file(), 'Installed launcher missing'
                 assert (target / 'runtime/bin/java.exe').is_file(), 'Installed runtime missing'
             finally:
-                run(['msiexec.exe', '/x', installer, '/qn', '/norestart',
-                     '/l*v', output / 'msi-uninstall.log'], allowed=(0, 3010))
+                if windows_registration():
+                    run(['msiexec.exe', '/x', installer, '/qn', '/norestart',
+                         '/l*v', output / 'msi-uninstall.log'], allowed=(0, 3010))
             assert not windows_registration(), 'Uninstall registration left behind'
             assert not (target / 'Yonaka Reader.exe').exists(), 'Launcher left behind'
             assert not any(p.is_file() for p in target.rglob('*')), 'Installed files left behind'
