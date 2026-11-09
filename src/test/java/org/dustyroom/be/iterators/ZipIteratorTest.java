@@ -2,6 +2,9 @@ package org.dustyroom.be.iterators;
 
 import org.dustyroom.be.models.Picture;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
@@ -171,14 +174,42 @@ class ZipIteratorTest {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Windows prevents deleting a ZIP while ZipFile holds it open")
     void reportsWhenTheCurrentVolumeDisappears() throws Exception {
         Path volume = writeZip(tempDir.resolve("volume.zip"), "page.png");
-        ZipIterator iterator = new ZipIterator(volume.toFile());
-        assertName("page.png", iterator.next());
-        Files.delete(volume);
+        try (ZipIterator iterator = new ZipIterator(volume.toFile())) {
+            assertName("page.png", iterator.next());
+            Files.delete(volume);
 
-        assertThrows(ImageIteratorException.class, iterator::nextVol);
-        iterator.close();
+            ImageIteratorException error = assertThrows(ImageIteratorException.class, iterator::nextVol);
+            assertEquals("Current ZIP source is no longer available", error.getMessage());
+            assertEquals(volume.toFile(), error.getSource());
+            assertThrows(ImageIteratorException.class, iterator::prevVol);
+        }
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void remainsReadableWhenWindowsRefusesToDeleteAnOpenArchive() throws Exception {
+        Path volume = writeZip(tempDir.resolve("volume.zip"), "page.png");
+        try (ZipIterator iterator = new ZipIterator(volume.toFile())) {
+            assertName("page.png", iterator.next());
+            assertThrows(java.nio.file.FileSystemException.class, () -> Files.delete(volume));
+            assertTrue(Files.exists(volume));
+            assertName("page.png", iterator.first());
+        }
+        Files.delete(volume);
+        assertFalse(Files.exists(volume));
+    }
+
+    @Test
+    void closingReleasesTheArchiveForDeletion() throws Exception {
+        Path volume = writeZip(tempDir.resolve("volume.zip"), "page.png");
+        try (ZipIterator iterator = new ZipIterator(volume.toFile())) {
+            assertName("page.png", iterator.next());
+        }
+        Files.delete(volume);
+        assertFalse(Files.exists(volume));
     }
 
     private static void assertName(String expected, Picture picture) {

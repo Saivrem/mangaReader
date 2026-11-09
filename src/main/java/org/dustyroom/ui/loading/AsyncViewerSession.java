@@ -1,6 +1,10 @@
 package org.dustyroom.ui.loading;
 
 import org.dustyroom.be.iterators.ImageIterator;
+import org.dustyroom.persistence.ReaderStore;
+import org.dustyroom.persistence.ReaderSettings;
+import org.dustyroom.persistence.BookState;
+import java.util.Optional;
 import org.dustyroom.be.iterators.ImageIteratorFactory;
 import org.dustyroom.be.models.PageKey;
 import org.dustyroom.be.models.PageRef;
@@ -10,10 +14,15 @@ import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
 
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,6 +38,8 @@ public final class AsyncViewerSession implements AutoCloseable {
     static final long DEFAULT_CACHE_BYTES = 256L * 1024 * 1024;
 
     private final ViewerView view;
+    private final ReaderStore store;
+    private boolean persistenceWarningShown;
     private final Function<File, ImageIterator> sourceFactory;
     private final ViewerTaskExecutor tasks;
     private final Executor uiExecutor;
@@ -54,6 +65,10 @@ public final class AsyncViewerSession implements AutoCloseable {
     private String lastSourceError;
 
     public AsyncViewerSession(ViewerView view) {
+        this(view, ReaderStore.disabled());
+    }
+
+    public AsyncViewerSession(ViewerView view, ReaderStore store) {
         this(
                 view,
                 ImageIteratorFactory::create,
@@ -61,7 +76,8 @@ public final class AsyncViewerSession implements AutoCloseable {
                 SwingUtilities::invokeLater,
                 new BoundedImageCache(DEFAULT_CACHE_ENTRIES, DEFAULT_CACHE_BYTES),
                 new SpreadPlanner(),
-                new SpreadRenderer()
+                new SpreadRenderer(),
+                store
         );
     }
 
@@ -74,7 +90,14 @@ public final class AsyncViewerSession implements AutoCloseable {
             SpreadPlanner spreadPlanner,
             SpreadRenderer spreadRenderer
     ) {
+        this(view, sourceFactory, tasks, uiExecutor, cache, spreadPlanner, spreadRenderer, ReaderStore.disabled());
+    }
+
+    public AsyncViewerSession(ViewerView view, Function<File, ImageIterator> sourceFactory,
+                              ViewerTaskExecutor tasks, Executor uiExecutor, BoundedImageCache cache,
+                              SpreadPlanner spreadPlanner, SpreadRenderer spreadRenderer, ReaderStore store) {
         this.view = view;
+        this.store = store;
         this.sourceFactory = sourceFactory;
         this.tasks = tasks;
         this.uiExecutor = uiExecutor;
@@ -93,6 +116,84 @@ public final class AsyncViewerSession implements AutoCloseable {
         tasks.execute(INTERACTIVE, () -> openOnWorker(file, targetGeneration, requestId));
     }
 
+    public void resetAndClose(Runnable afterReset, java.util.function.Consumer<String> onFailure) {
+        if (!closed.compareAndSet(false, true)) return;
+        // Invalidate already posted frames and prevent new saves while the reset is queued.
+        generation.incrementAndGet();
+        latestRequest.set(requestSequence.incrementAndGet());
+        boolean queued = tasks.execute(INTERACTIVE, () -> {
+            try {
+                store.reset();
+            } catch (RuntimeException exception) {
+                closed.set(false);
+                uiExecutor.execute(() -> onFailure.accept("Reset failed. The reader database could not be cleared. "
+                        + "Your books were not touched. Check that storage is available and try again."));
+                return;
+            }
+            tasks.close();
+            try { closeOnWorker(); }
+            finally { uiExecutor.execute(afterReset); }
+        });
+        if (!queued) {
+            closed.set(false);
+            uiExecutor.execute(() -> onFailure.accept("Unable to start the reset. Please restart the application and try again."));
+        }
+    }
+
+    public void remember(ViewerFrame frame) {
+        if (closed.get() || frame.pageKey() == null) return;
+        BookState state = new BookState(frame.pageKey().sourceId(), frame.pageKey().pageId(),
+                frame.firstPage(), frame.pageCount(), frame.twoPageMode(), frame.readingMode());
+        tasks.execute(INTERACTIVE, () -> persist(() -> store.saveBook(state)));
+    }
+
+    public void saveSettings(ReaderSettings settings) {
+        if (!closed.get()) tasks.execute(INTERACTIVE, () -> persist(() -> store.saveSettings(settings)));
+    }
+
+    private void persist(Runnable write) {
+        try { write.run(); } catch (RuntimeException exception) { warnPersistence(); }
+    }
+
+    private Optional<BookState> savedBook(String sourceId) {
+        try { return store.book(sourceId); }
+        catch (RuntimeException exception) { warnPersistence(); return Optional.empty(); }
+    }
+
+    private void warnPersistence() {
+        if (persistenceWarningShown) return;
+        persistenceWarningShown = true;
+        uiExecutor.execute(() -> {
+            if (!closed.get()) view.showPersistenceWarning("Reading can continue, but settings or progress could not be saved. Check the reader database location and available disk space.");
+        });
+    }
+
+    private static int restoredIndex(BookState saved, List<PageRef> pages) {
+        for (int index = 0; index < pages.size(); index++) {
+            if (pages.get(index).key().pageId().equals(saved.pageId())) return index;
+        }
+        return Math.max(0, Math.min(saved.pageNumber() - 1, pages.size() - 1));
+    }
+
+    /** Uses the source only on its owning worker, below reading and prefetch priority. */
+    public void thumbnail(int index, PageRef expected, java.util.function.Consumer<BufferedImage> result) {
+        long targetGeneration = generation.get();
+        boolean queued = !closed.get() && tasks.execute(TaskPriority.THUMBNAIL, () -> {
+            BufferedImage thumbnail = null;
+            if (isActive(targetGeneration) && index >= 0 && index < pages.size()
+                    && pages.get(index).equals(expected)) {
+                try {
+                    BufferedImage image = cache.get(expected.key());
+                    if (image == null) image = decodeImage(source, expected);
+                    thumbnail = org.dustyroom.ui.rendering.ThumbnailRenderer.render(image);
+                } catch (RuntimeException ignored) { /* An unreadable preview must not interrupt reading. */ }
+            }
+            BufferedImage completed = thumbnail;
+            uiExecutor.execute(() -> result.accept(isActive(targetGeneration) ? completed : null));
+        });
+        if (!queued) uiExecutor.execute(() -> result.accept(null));
+    }
+
     public void next() {
         navigate(this::moveNext);
     }
@@ -107,6 +208,15 @@ public final class AsyncViewerSession implements AutoCloseable {
 
     public void last() {
         navigate(() -> pageIndex = pages.size() - 1);
+    }
+
+    public void goToPage(int pageNumber) {
+        navigate(() -> {
+            if (pageNumber < 1 || pageNumber > pages.size()) {
+                throw new IllegalArgumentException("Page must be between 1 and " + pages.size());
+            }
+            pageIndex = pageNumber - 1;
+        });
     }
 
     public void nextVolume() {
@@ -175,7 +285,7 @@ public final class AsyncViewerSession implements AutoCloseable {
             cache.clear();
             pageIndex = -1;
             lastSourceError = null;
-            completeClose();
+            try { store.close(); } finally { completeClose(); }
         }
     }
 
@@ -235,6 +345,11 @@ public final class AsyncViewerSession implements AutoCloseable {
             if (candidateIndex < 0 || candidateIndex >= candidatePages.size()) {
                 throw new IllegalStateException("Image source has an invalid initial page");
             }
+            Optional<BookState> saved = savedBook(candidatePages.get(0).key().sourceId());
+            // An explicitly selected image takes precedence over the saved position of its folder.
+            if (saved.isPresent() && !org.dustyroom.be.utils.FileUtils.isImage.test(file)) {
+                candidateIndex = restoredIndex(saved.get(), candidatePages);
+            }
             PageRef initialPage = candidatePages.get(candidateIndex);
             BufferedImage initialImage = decodeImage(candidate, initialPage);
             if (!isActive(targetGeneration)) {
@@ -247,6 +362,10 @@ public final class AsyncViewerSession implements AutoCloseable {
             candidate = null;
             pages = candidatePages;
             pageIndex = candidateIndex;
+            saved.ifPresent(state -> {
+                twoPageMode = state.twoPageMode();
+                readingMode = state.readingMode();
+            });
             shapes.clear();
             cache.clear();
             shapes.put(initialPage.key(), PageShape.from(initialImage));
@@ -290,6 +409,11 @@ public final class AsyncViewerSession implements AutoCloseable {
             int selectedIndex = switchedPages.indexOf(selected);
             pages = switchedPages;
             pageIndex = selectedIndex < 0 ? source.initialPageIndex() : selectedIndex;
+            savedBook(pages.get(0).key().sourceId()).ifPresent(state -> {
+                pageIndex = restoredIndex(state, pages);
+                twoPageMode = state.twoPageMode();
+                readingMode = state.readingMode();
+            });
             shapes.clear();
             cache.clear();
             renderAndPublish(targetGeneration, requestId);
@@ -380,7 +504,9 @@ public final class AsyncViewerSession implements AutoCloseable {
         ViewerFrame frame = new ViewerFrame(
                 composed,
                 spreadRenderer.buildTitle(current.metadata(), second),
-                current.metadata().dir()
+                current.metadata().dir(),
+                pageIndex + 1, pageIndex + (second == null ? 1 : 2), pages.size(),
+                twoPageMode, readingMode, current.key()
         );
         postFrame(targetGeneration, requestId, frame);
         schedulePrefetch(targetGeneration, requestId, pageIndex, second != null);
@@ -477,8 +603,10 @@ public final class AsyncViewerSession implements AutoCloseable {
     }
 
     private void postFrame(long targetGeneration, long requestId, ViewerFrame frame) {
+        List<PageRef> capturedPages = pages;
         uiExecutor.execute(() -> {
             if (isLatest(targetGeneration, requestId)) {
+                view.showPages(capturedPages);
                 view.showFrame(frame);
             }
         });

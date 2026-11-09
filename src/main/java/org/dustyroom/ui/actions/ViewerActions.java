@@ -1,8 +1,10 @@
 package org.dustyroom.ui.actions;
 
-import javax.swing.*;
+import javax.swing.Action;
 
 public interface ViewerActions {
+    Action toggleThumbnails();
+
     Action openFile();
 
     Action exit();
@@ -37,11 +39,11 @@ public interface ViewerActions {
 
     Action setMangaReadingMode();
 
-    Action setNimbusTheme();
+    Action goToPage();
 
-    Action setMetalTheme();
+    Action exitFullscreen();
 
-    Action setSystemTheme();
+    Action resetApplication();
 
     Action showAbout();
 }

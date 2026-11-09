@@ -1,16 +1,16 @@
 package org.dustyroom.ui.components;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JComponent;
+import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 
-@Setter
-@Getter
-@NoArgsConstructor
 public class ImageComponent extends JComponent {
     private BufferedImage image;
     private double scale = 1.0;
@@ -44,6 +44,20 @@ public class ImageComponent extends JComponent {
         repaint();
     }
 
+    public FitMode getFitMode() {
+        return fitMode;
+    }
+
+    public double getScale() { return scale; }
+
+    public void restoreView(FitMode mode, double zoom) {
+        fitMode = mode;
+        scale = zoom;
+        updateScale();
+        revalidate();
+        repaint();
+    }
+
     public void updateScale() {
         if (image == null) return;
 
@@ -58,20 +72,20 @@ public class ImageComponent extends JComponent {
                     parentSize.getWidth() / image.getWidth(),
                     parentSize.getHeight() / image.getHeight()
             );
-            case ORIGINAL -> scale = 1.0;
+            case ORIGINAL -> { /* Preserve the explicit zoom across page changes. */ }
         }
     }
 
     public void zoomIn() {
         fitMode = FitMode.ORIGINAL;
-        scale *= 1.1;
+        scale = Math.max(0.05, Math.min(20, scale * 1.1));
         revalidate();
         repaint();
     }
 
     public void zoomOut() {
         fitMode = FitMode.ORIGINAL;
-        scale /= 1.1;
+        scale = Math.max(0.05, Math.min(20, scale / 1.1));
         revalidate();
         repaint();
     }
@@ -79,6 +93,9 @@ public class ImageComponent extends JComponent {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        // JComponent has no UI delegate to clear an opaque background for us.
+        g.setColor(getBackground());
+        g.fillRect(0, 0, getWidth(), getHeight());
         if (image == null) return;
 
         Graphics2D g2d = (Graphics2D) g;
