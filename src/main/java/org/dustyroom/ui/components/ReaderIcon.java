@@ -49,6 +49,14 @@ public record ReaderIcon(ReaderIconKind kind, int size) implements Icon {
                 }
                 case PREVIOUS -> line(g, 15, 5, 8, 12, 15, 19);
                 case NEXT -> line(g, 9, 5, 16, 12, 9, 19);
+                case FIRST -> {
+                    line(g, 5, 5, 5, 19);
+                    line(g, 17, 5, 10, 12, 17, 19);
+                }
+                case LAST -> {
+                    line(g, 19, 5, 19, 19);
+                    line(g, 7, 5, 14, 12, 7, 19);
+                }
                 case PREVIOUS_VOLUME -> {
                     line(g, 7, 5, 7, 19);
                     line(g, 17, 5, 10, 12, 17, 19);

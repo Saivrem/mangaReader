@@ -4,9 +4,9 @@ A lightweight desktop manga and image viewer built with Java Swing.
 
 ## Requirements
 
-- JDK 17
+- JDK 25
 
-The Gradle wrapper is included, and the build uses a Java 17 toolchain. A separate Gradle installation is not required.
+The Gradle wrapper is included, and the build uses a Java 25 toolchain. A separate Gradle installation is not required.
 
 ## Build and test
 
@@ -63,7 +63,6 @@ automatic move detection and transferring progress to a new path are future libr
 Covers are loaded in the background and kept only in bounded memory. An unreadable
 cover uses a placeholder; opening the source reports any actual reading error.
 Existing reading history is preserved by a backed-up, transactional schema migration.
-See [the library proposal](docs/library-design.md) for the next-stage design.
 
 ## Supported content
 
@@ -79,7 +78,8 @@ See [the library proposal](docs/library-design.md) for the next-stage design.
 
 Animated GIFs play both as standalone files and inside ZIP archives, including in
 spreads. Sequential background decoding preserves frame offsets, disposal rules,
-delays and loop counts, with two frames buffered ahead per visible page. There is no frame-count or duration limit; completed passes reopen
+delays and loop counts, with two frames buffered ahead per visible page. Playback follows a monotonic timeline, so delayed UI ticks do not accumulate slowdown.
+There is no frame-count or duration limit; completed passes reopen
 the source. Memory for decoded pixels depends on canvas size, not animation length.
 Leaving the page cancels playback and closes its file/archive stream. Covers
 and sidebar thumbnails intentionally stay static.
@@ -221,7 +221,7 @@ so the remaining pages can still be browsed.
 ### Continuous integration
 
 GitHub Actions runs tests, builds the runnable JAR and checks packaged SQLite on
-Linux, macOS and Windows using Java 17 for pushes and pull requests. Test reports
+Linux, macOS and Windows using Java 25 for pushes and pull requests. Test reports
 and successful JAR builds are available as workflow artifacts for 14 days.
 The packaged SQLite check can also be run locally:
 
@@ -234,7 +234,7 @@ scaling still need manual desktop verification on each platform.
 
 ### Standalone macOS application
 
-On macOS with JDK 17 and Python 3, run:
+On macOS with JDK 25 and Python 3, run:
 
 ```shell
 ./gradlew clean test packageDmg
@@ -276,9 +276,9 @@ The original crescent icon is preserved alongside it as `yonaka-original.png`.
 
 ### Windows packages
 
-Build on Windows x64 with JDK 17. MSI packaging also requires **WiX Toolset 3.x**
+Build on Windows x64 with JDK 25. MSI packaging also requires **WiX Toolset 3.x**
 (`candle.exe` and `light.exe` on `PATH`; WiX 4/5 alone are not compatible with this
-JDK 17 packaging setup).
+JDK 25 packaging setup).
 
 ```powershell
 .\gradlew.bat clean test packageMsi packageWindowsZip
@@ -299,7 +299,7 @@ no Apple-style notarization step, but trusted signing remains a separate release
 
 ### Ubuntu packages
 
-Build on Ubuntu 22.04 or newer with JDK 17 and `fakeroot` (`sudo apt install fakeroot`).
+Build on Ubuntu 22.04 or newer with JDK 25 and `fakeroot` (`sudo apt install fakeroot`).
 CI targets Ubuntu 22.04 x64 to avoid unnecessarily raising the system-library baseline.
 
 ```shell

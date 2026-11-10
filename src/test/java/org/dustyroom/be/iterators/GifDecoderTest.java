@@ -123,11 +123,26 @@ class GifDecoderTest {
         assertEquals(2, closed.get());
     }
 
+    @Test
+    void preservesTenMillisecondFrameDelays() throws Exception {
+        byte[] gif = fixture("doNotDispose", 3, 1);
+        AnimationClip clip = GifDecoder.read(() -> new ByteArrayInputStream(gif));
+        try (AnimationDecoder decoder = clip.opener().open()) {
+            assertEquals(10, decoder.next().delayMillis());
+            assertEquals(20, decoder.next().delayMillis());
+            assertEquals(30, decoder.next().delayMillis());
+        }
+    }
+
     private byte[] fixture(String disposal) throws Exception {
         return fixture(disposal, 3);
     }
 
     private byte[] fixture(String disposal, int count) throws Exception {
+        return fixture(disposal, count, 10);
+    }
+
+    private byte[] fixture(String disposal, int count, int delayUnits) throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         ImageWriter writer = ImageIO.getImageWritersByFormatName("gif").next();
         try (ImageOutputStream stream = ImageIO.createImageOutputStream(output)) {
@@ -146,7 +161,7 @@ class GifDecoderTest {
                 descriptor.setAttribute("imageLeftPosition", i == 1 ? "1" : "0");
                 descriptor.setAttribute("imageTopPosition", i == 1 ? "1" : "0");
                 IIOMetadataNode control = (IIOMetadataNode) tree.getElementsByTagName("GraphicControlExtension").item(0);
-                control.setAttribute("delayTime", Integer.toString((i + 1) * 10));
+                control.setAttribute("delayTime", Integer.toString((i + 1) * delayUnits));
                 control.setAttribute("disposalMethod", i == 1 ? disposal : "doNotDispose");
                 if (i == 0) {
                     IIOMetadataNode extensions = new IIOMetadataNode("ApplicationExtensions");

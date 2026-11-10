@@ -44,6 +44,10 @@ class ReaderUiTest {
             ViewerActions actions = actions();
             ViewerActionState.apply(actions, null, FitMode.FIT_SCREEN, false);
             NavigationPanel panel = new NavigationPanel(actions);
+            assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
+                    .anyMatch(button -> button.getAction() == actions.firstImage()));
+            assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
+                    .anyMatch(button -> button.getAction() == actions.lastImage()));
             assertFalse(actions.nextImage().isEnabled());
             assertFalse(actions.goToPage().isEnabled());
             assertTrue(actions.openFile().isEnabled());

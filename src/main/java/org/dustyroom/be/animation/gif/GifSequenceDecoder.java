@@ -86,7 +86,7 @@ final class GifSequenceDecoder implements AnimationDecoder {
             fill(canvas, x, y, frame.getWidth(), frame.getHeight(), transparent ? null : background);
         // Forward-only reading: do not retain compressed data for the entire animation.
         stream.discardPreviousFrames();
-        return new AnimationFrame(composed, delay == 0 ? 100 : Math.max(20, delay));
+        return new AnimationFrame(composed, delay == 0 ? 100 : delay);
     }
 
     @Override

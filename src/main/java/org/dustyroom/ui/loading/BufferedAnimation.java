@@ -19,6 +19,7 @@ public final class BufferedAnimation implements AutoCloseable {
     private volatile boolean closed, complete;
     private AnimationFrame current;
     private long deadline;
+    private boolean buffering;
 
     public BufferedAnimation(AnimationClip source, Consumer<Exception> errorHandler) {
         worker = new Thread(() -> {
@@ -59,18 +60,28 @@ public final class BufferedAnimation implements AutoCloseable {
     }
 
     /**
-     * Called only by the UI thread. An underrun holds the current frame, never blocks or skips.
+     * Called only by the UI thread. Late ticks catch up with the timeline; an underrun holds the current frame without blocking.
      */
     public AnimationFrame advance(long nowNanos) {
         if (closed) return null;
-        if (current == null || nowNanos >= deadline) {
+        // Keep an absolute media timeline: late timer ticks must not stretch every frame.
+        // Bound catch-up work to the queue capacity so the EDT always remains responsive.
+        for (int consumed = 0; consumed < 2 && (current == null || nowNanos >= deadline); consumed++) {
             AnimationFrame next = frames.poll();
-            if (next != null) {
-                capacity.release();
-                current = next;
-                deadline = nowNanos + TimeUnit.MILLISECONDS.toNanos(next.delayMillis());
+            if (next == null) {
+                buffering = true;
+                break;
             }
+            capacity.release();
+            long start = current == null || buffering ? nowNanos : deadline;
+            current = next;
+            deadline = start + TimeUnit.MILLISECONDS.toNanos(next.delayMillis());
+            buffering = false;
         }
+        return current;
+    }
+
+    public AnimationFrame currentFrame() {
         return current;
     }
 

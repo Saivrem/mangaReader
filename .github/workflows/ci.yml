@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Java 17 / ${{ matrix.os }}
+    name: Java 25 / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '25'
       # Also validates the checked-in Gradle Wrapper JAR.
       - uses: gradle/actions/setup-gradle@v5
       - name: Tests, fat JAR and packaged SQLite smoke test
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '25'
           architecture: aarch64
       - uses: gradle/actions/setup-gradle@v5
       - name: Test and build standalone DMG
@@ -92,7 +92,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '25'
           architecture: x64
       - uses: gradle/actions/setup-gradle@v5
       - name: Install DEB packaging tools
@@ -108,7 +108,7 @@ jobs:
         run: |
           $wixBin = Join-Path $env:WIX 'bin'
           if (!(Test-Path (Join-Path $wixBin 'candle.exe')) -or !(Test-Path (Join-Path $wixBin 'light.exe'))) {
-            throw 'WiX 3 candle.exe and light.exe are required by JDK 17 jpackage.'
+            throw 'WiX 3 candle.exe and light.exe are required by JDK 25 jpackage.'
           }
           $wixBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Test and build native packages

@@ -7,15 +7,17 @@ import org.dustyroom.ui.loading.BufferedAnimation;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.geom.Area;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ImageComponent extends JComponent {
-    private final Timer animationTimer = new Timer(20, event -> animate());
+    private final Timer animationTimer = new Timer(10, event -> animate());
     private BufferedImage image;
     private List<AnimatedPage> animations = List.of();
     private List<BufferedAnimation> players = List.of();
+    private boolean animationPaused;
     private double scale = 1.0;
     private FitMode fitMode = FitMode.FIT_SCREEN;
 
@@ -28,13 +30,17 @@ public class ImageComponent extends JComponent {
 
     private void animate() {
         long now = System.nanoTime();
-        players.forEach(player -> player.advance(now));
+        boolean changed = false;
+        for (BufferedAnimation player : players) {
+            AnimationFrame previous = player.currentFrame();
+            if (player.advance(now) != previous) changed = true;
+        }
         if (players.stream().allMatch(player -> player.finished(now))) animationTimer.stop();
-        repaint();
+        if (changed) repaint();
     }
 
     private void startAnimations() {
-        if (!players.isEmpty() || animations.isEmpty()) return;
+        if (animationPaused || !players.isEmpty() || animations.isEmpty()) return;
         players = animations.stream().map(page -> new BufferedAnimation(page.clip(), error ->
                 Logger.getLogger(ImageComponent.class.getName())
                         .log(Level.WARNING, "Cannot play GIF", error))).toList();
@@ -45,6 +51,12 @@ public class ImageComponent extends JComponent {
         animationTimer.stop();
         players.forEach(BufferedAnimation::close);
         players = List.of();
+    }
+
+    public void setAnimationPaused(boolean paused) {
+        animationPaused = paused;
+        if (paused) stopAnimations();
+        else if (isShowing()) startAnimations();
     }
 
     public void setAnimations(List<AnimatedPage> pages) {
@@ -79,6 +91,7 @@ public class ImageComponent extends JComponent {
     private void setImage(BufferedImage image) {
         stopAnimations();
         animations = List.of();
+        animationPaused = false;
         this.image = image;
         updateScale();
         revalidate();
@@ -178,17 +191,42 @@ public class ImageComponent extends JComponent {
         int x = (getWidth() - imgW) / 2;
         int y = (getHeight() - imgH) / 2;
 
-        g2d.drawImage(image, x, y, imgW, imgH, this);
+        // Do not rescale a full static image only to cover it with the animated frame.
+        // In spreads retain the still page and the black margins around each page.
+        Area stillArea = new Area(new Rectangle(x, y, imgW, imgH));
         for (int i = 0; i < players.size(); i++) {
-            AnimationFrame frame = players.get(i).advance(System.nanoTime());
+            if (players.get(i).currentFrame() != null) {
+                AnimatedPage page = animations.get(i);
+                stillArea.subtract(new Area(animationBounds(page, x, y)));
+            }
+        }
+        if (!stillArea.isEmpty()) {
+            Graphics2D stillGraphics = (Graphics2D) g2d.create();
+            try {
+                stillGraphics.clip(stillArea);
+                stillGraphics.drawImage(image, x, y, imgW, imgH, this);
+            } finally {
+                stillGraphics.dispose();
+            }
+        }
+        // Bicubic resampling of every moving frame monopolizes the EDT on large GIFs.
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        for (int i = 0; i < players.size(); i++) {
+            AnimationFrame frame = players.get(i).currentFrame();
             if (frame == null) continue;
             AnimatedPage page = animations.get(i);
-            int px = x + (int) Math.round(page.x() * scale), py = y + (int) Math.round(page.y() * scale);
-            int width = (int) Math.round(page.width() * scale), height = (int) Math.round(page.height() * scale);
+            Rectangle bounds = animationBounds(page, x, y);
+            int px = bounds.x, py = bounds.y, width = bounds.width, height = bounds.height;
             g2d.setColor(page.spread() ? Color.BLACK : getBackground());
             g2d.fillRect(px, py, width, height);
             g2d.drawImage(frame.image(), px, py, width, height, this);
         }
+    }
+
+    private Rectangle animationBounds(AnimatedPage page, int x, int y) {
+        return new Rectangle(x + (int) Math.round(page.x() * scale),
+                y + (int) Math.round(page.y() * scale),
+                (int) Math.round(page.width() * scale), (int) Math.round(page.height() * scale));
     }
 
     @Override

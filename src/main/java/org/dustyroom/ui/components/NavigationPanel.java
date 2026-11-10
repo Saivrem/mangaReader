@@ -25,6 +25,7 @@ public class NavigationPanel extends JPanel {
         add(files, BorderLayout.WEST);
 
         JPanel pages = group();
+        pages.add(button(actions.firstImage(), ReaderIconKind.FIRST, null));
         pages.add(button(actions.prevImage(), ReaderIconKind.PREVIOUS, null));
         position = new JButton(actions.goToPage());
         position.setText(pageLabel);
@@ -33,6 +34,7 @@ public class NavigationPanel extends JPanel {
         position.getAccessibleContext().setAccessibleName("Page position; activate to go to a page");
         pages.add(position);
         pages.add(button(actions.nextImage(), ReaderIconKind.NEXT, null));
+        pages.add(button(actions.lastImage(), ReaderIconKind.LAST, null));
         add(pages, BorderLayout.CENTER);
 
         JPanel settings = group();

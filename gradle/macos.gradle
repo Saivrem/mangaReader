@@ -1,17 +1,26 @@
+import javax.inject.Inject
+import org.gradle.process.ExecOperations
+
+interface MacProcessServices {
+    @Inject ExecOperations getExecOperations()
+}
+def processes = objects.newInstance(MacProcessServices).execOperations
+
 // Native macOS distribution. Keep application identity stable across releases.
+def appVersion = project.version.toString()
 def appName = 'Yonaka Reader'
 def bundleId = 'org.dustyroom.mangareader'
 // Apple's build version requires a positive first component, even for a 0.x release.
 // Marketing/display version stays project.version; this is a separate, monotonic build identifier.
-def parts = project.version.toString().split('\\.')
+def parts = appVersion.split('\\.')
 def bundleBuildVersion = "${parts[0].toInteger() + 1}.${parts[1]}.${parts[2]}"
 
 def packageRoot = layout.buildDirectory.dir('macos')
 def appBundle = packageRoot.map { it.dir("image/${appName}.app") }
-def packageJdk = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+def packageJdk = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
 def requireMac = {
     if (!System.getProperty('os.name').toLowerCase(Locale.ROOT).startsWith('mac')) {
-        throw new GradleException('macOS packaging must run on macOS with a macOS JDK 17.')
+        throw new GradleException('macOS packaging must run on macOS with a macOS JDK 25.')
     }
 }
 
@@ -28,14 +37,14 @@ tasks.register('generateMacIcon') {
         [16, 32, 128, 256, 512].each { size ->
             [1, 2].each { density ->
                 def suffix = density == 2 ? '@2x' : ''
-                exec {
+                processes.exec {
                     commandLine 'sips', '-z', (size * density).toString(), (size * density).toString(),
                             source.absolutePath, '--out', new File(iconset, "icon_${size}x${size}${suffix}.png").absolutePath
                     standardOutput = new ByteArrayOutputStream()
                 }
             }
         }
-        exec { commandLine 'iconutil', '-c', 'icns', iconset.absolutePath, '-o', output.get().asFile.absolutePath }
+        processes.exec { commandLine 'iconutil', '-c', 'icns', iconset.absolutePath, '-o', output.get().asFile.absolutePath }
     }
 }
 
@@ -60,6 +69,7 @@ tasks.register('packageMacApp', Exec) {
                     '--input', packageRoot.get().dir('input').asFile.absolutePath,
                     '--main-jar', tasks.named('fatJar').get().archiveFileName.get(),
                     '--main-class', 'org.dustyroom.Main',
+                         '--java-options', '--enable-native-access=ALL-UNNAMED',
                     '--java-options', '--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED',
                     '--icon', packageRoot.get().file('Yonaka.icns').asFile.absolutePath,
                     '--dest', packageRoot.get().dir('image').asFile.absolutePath,
@@ -75,13 +85,13 @@ tasks.register('packageMacApp', Exec) {
     }
     doLast {
         // Register as an alternate viewer; do not claim users' default image/ZIP associations.
-        exec {
+        processes.exec {
             commandLine 'python3', 'packaging/macos/configure_bundle.py',
-                    appBundle.get().asFile.absolutePath, project.version.toString(), bundleBuildVersion
+                    appBundle.get().asFile.absolutePath, appVersion, bundleBuildVersion
         }
         // The plist changed after jpackage's ad-hoc signing. Restore a valid local signature.
-        exec { commandLine 'codesign', '--force', '--deep', '--sign', '-', appBundle.get().asFile.absolutePath }
-        exec { commandLine 'codesign', '--verify', '--deep', '--strict', appBundle.get().asFile.absolutePath }
+        processes.exec { commandLine 'codesign', '--force', '--deep', '--sign', '-', appBundle.get().asFile.absolutePath }
+        processes.exec { commandLine 'codesign', '--verify', '--deep', '--strict', appBundle.get().asFile.absolutePath }
     }
 }
 
@@ -89,8 +99,8 @@ tasks.register('compileMacSmoke', JavaCompile) {
     source = files('src/test/java/org/dustyroom/persistence/PackagedStoreSmoke.java')
     classpath = files(tasks.named('fatJar'))
     destinationDirectory = packageRoot.map { it.dir('smoke-classes') }
-    options.release = 17
-    javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(17) }
+    options.release = 25
+    javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(25) }
 }
 
 tasks.register('verifyMacApp', Exec) {
@@ -103,7 +113,7 @@ tasks.register('verifyMacApp', Exec) {
         temp.mkdirs()
         def home = appBundle.get().dir('Contents')
         commandLine home.file('runtime/Contents/Home/bin/java').asFile.absolutePath,
-                '-Djava.awt.headless=true', "-Dorg.sqlite.tmpdir=${temp.absolutePath}",
+                '-Djava.awt.headless=true', '--enable-native-access=ALL-UNNAMED', "-Dorg.sqlite.tmpdir=${temp.absolutePath}",
                 '-cp', home.file("app/${tasks.named('fatJar').get().archiveFileName.get()}").asFile.absolutePath +
                     File.pathSeparator + tasks.named('compileMacSmoke').get().destinationDirectory.get().asFile.absolutePath,
                 'org.dustyroom.persistence.PackagedStoreSmoke'
@@ -122,16 +132,29 @@ tasks.register('packageDmg', Exec) {
         destination.mkdirs()
         staging.mkdirs()
         // Preserve bundle symlinks and signatures; do not rely on Finder AppleScript aliases.
-        exec { commandLine 'ditto', appBundle.get().asFile.absolutePath, new File(staging, "${appName}.app").absolutePath }
+        processes.exec { commandLine 'ditto', appBundle.get().asFile.absolutePath, new File(staging, "${appName}.app").absolutePath }
         java.nio.file.Files.createSymbolicLink(new File(staging, 'Applications').toPath(), java.nio.file.Path.of('/Applications'))
         def architectureOutput = new ByteArrayOutputStream()
-        exec {
+        processes.exec {
             commandLine 'lipo', '-archs', appBundle.get().file("Contents/MacOS/${appName}").asFile.absolutePath
             standardOutput = architectureOutput
         }
         def architecture = architectureOutput.toString('UTF-8').trim().replace(' ', '-')
-        def target = new File(destination, "YonakaReader-${project.version}-macos-${architecture}.dmg")
-        commandLine 'hdiutil', 'create', '-volname', appName, '-srcfolder', staging.absolutePath,
-                '-format', 'UDZO', '-fs', 'HFS+', '-ov', target.absolutePath
+        def target = new File(destination, "YonakaReader-${appVersion}-macos-${architecture}.dmg")
+        def help = new ByteArrayOutputStream()
+        processes.exec {
+            commandLine 'diskutil', 'image', 'create', 'from', '--help'
+            standardOutput = help
+            errorOutput = help
+            ignoreExitValue = true
+        }
+        if (help.toString('UTF-8').contains('--volumeName')) {
+            commandLine 'diskutil', 'image', 'create', 'from', '--volumeName', appName,
+                    '--format', 'UDZO', staging.absolutePath, target.absolutePath
+        } else {
+            // Older macOS runners do not provide diskutil image yet.
+            commandLine 'hdiutil', 'create', '-volname', appName, '-srcfolder', staging.absolutePath,
+                    '-format', 'UDZO', '-fs', 'HFS+', '-ov', target.absolutePath
+        }
     }
 }

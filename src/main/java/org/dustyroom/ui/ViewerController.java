@@ -65,6 +65,7 @@ public class ViewerController {
 
             @Override
             public void showLoading() {
+                imageComponent.setAnimationPaused(true);
                 frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                 if (navigationPanel != null) navigationPanel.setLoading(true);
                 if (readerSurface != null) readerSurface.setLoading(true);
@@ -93,6 +94,7 @@ public class ViewerController {
 
             @Override
             public void showError(String message) {
+                imageComponent.setAnimationPaused(false);
                 frame.setCursor(Cursor.getDefaultCursor());
                 refreshControls();
                 if (readerSurface != null) readerSurface.setLoading(false);
@@ -127,7 +129,11 @@ public class ViewerController {
 
     public ThumbnailPanel createThumbnailPanel() {
         thumbnailPanel = new ThumbnailPanel(session::thumbnail,
-                session::goToPage, this::toggleThumbnails);
+                page -> {
+                    session.goToPage(page);
+                    // Leave the list's local navigation bindings after mouse or Enter activation.
+                    frame.requestFocusInWindow();
+                }, this::toggleThumbnails);
         thumbnailPanel.setExpanded(thumbnailsVisible);
         thumbnailPanel.setVisible(false);
         actions.toggleThumbnails().putValue(Action.SELECTED_KEY, thumbnailsVisible);
@@ -164,12 +170,14 @@ public class ViewerController {
     }
 
     public void openFile(File file) {
+        imageComponent.setAnimationPaused(true);
         session.open(file);
     }
 
     public void chooseFile() {
         if (choosingFile || resetting) return;
         choosingFile = true;
+        imageComponent.setAnimationPaused(true);
         actions.openFile().setEnabled(false);
         String requestedDirectory = lastDirectory;
         new SwingWorker<File, Void>() {
@@ -185,7 +193,9 @@ public class ViewerController {
                     if (!resetting) showFileChooser(root);
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
+                    imageComponent.setAnimationPaused(false);
                 } catch (ExecutionException exception) {
+                    imageComponent.setAnimationPaused(false);
                     DialogUtils.showError(frame, "Unable to access the last open directory.");
                 } finally {
                     choosingFile = false;
@@ -214,6 +224,8 @@ public class ViewerController {
         int result = fileChooser.showOpenDialog(frame);
         if (result == JFileChooser.APPROVE_OPTION) {
             openFile(fileChooser.getSelectedFile());
+        } else {
+            imageComponent.setAnimationPaused(false);
         }
 
         if (fullscreen) {

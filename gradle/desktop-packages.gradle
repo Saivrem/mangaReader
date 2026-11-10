@@ -1,7 +1,8 @@
 // Windows and Linux bundles share the same JAR, icon and supported extensions as macOS.
+def appVersion = project.version.toString()
 def appName = 'Yonaka Reader'
 def root = layout.buildDirectory.dir('desktop-packages')
-def jdk = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
+def jdk = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
 def modules = 'java.se,jdk.unsupported,jdk.crypto.ec,jdk.charsets,jdk.localedata'
 def architecture = ['amd64': 'x64', 'x86_64': 'x64', 'aarch64': 'arm64'].get(System.getProperty('os.arch'), System.getProperty('os.arch'))
 def associations = {
@@ -22,7 +23,7 @@ tasks.register('generateWindowsIcon', Exec) {
     inputs.files(source, file('packaging/tools/WindowsIcon.java'))
     outputs.file(icon)
     doFirst {
-        commandLine jdk.get().executablePath.asFile.absolutePath, '-Djava.awt.headless=true',
+        commandLine jdk.get().executablePath.asFile.absolutePath, '-Djava.awt.headless=true', '--enable-native-access=ALL-UNNAMED',
                 'packaging/tools/WindowsIcon.java', source.absolutePath, icon.get().asFile.absolutePath
     }
 }
@@ -31,8 +32,8 @@ tasks.register('compileDesktopSmoke', JavaCompile) {
     source = files('src/test/java/org/dustyroom/persistence/PackagedStoreSmoke.java')
     classpath = files(tasks.named('fatJar'))
     destinationDirectory = root.map { it.dir('smoke-classes') }
-    options.release = 17
-    javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(17) }
+    options.release = 25
+    javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(25) }
 }
 
 ['Windows', 'Linux'].each { platform ->
@@ -56,11 +57,12 @@ tasks.register('compileDesktopSmoke', JavaCompile) {
             delete(directory.get().dir('image'), directory.get().dir('app-temp'))
             def icon = windows ? root.get().file('Yonaka.ico').asFile : file('src/main/resources/org/dustyroom/ui/branding/yonaka-original.png')
             commandLine([packager(), '--type', 'app-image', '--name', appName,
-                         '--app-version', project.version.toString(), '--vendor', 'Dustyroom',
+                         '--app-version', appVersion, '--vendor', 'Dustyroom',
                          '--description', 'Yonaka Reader - manga and image archive reader',
                          '--input', root.get().dir('input').asFile.absolutePath,
                          '--main-jar', tasks.named('fatJar').get().archiveFileName.get(),
-                         '--main-class', 'org.dustyroom.Main', '--icon', icon.absolutePath,
+                         '--main-class', 'org.dustyroom.Main',
+                         '--java-options', '--enable-native-access=ALL-UNNAMED', '--icon', icon.absolutePath,
                          '--dest', directory.get().dir('image').asFile.absolutePath,
                          '--temp', directory.get().dir('app-temp').asFile.absolutePath,
                          '--add-modules', modules,
@@ -78,7 +80,7 @@ tasks.register('compileDesktopSmoke', JavaCompile) {
             def javaPath = windows ? 'runtime/bin/java.exe' : 'lib/runtime/bin/java'
             def appPath = windows ? 'app' : 'lib/app'
             commandLine image.get().file(javaPath).asFile.absolutePath,
-                    '-Djava.awt.headless=true', "-Dorg.sqlite.tmpdir=${temp.absolutePath}",
+                    '-Djava.awt.headless=true', '--enable-native-access=ALL-UNNAMED', "-Dorg.sqlite.tmpdir=${temp.absolutePath}",
                     '-cp', image.get().file("${appPath}/${tasks.named('fatJar').get().archiveFileName.get()}").asFile.absolutePath +
                         File.pathSeparator + tasks.named('compileDesktopSmoke').get().destinationDirectory.get().asFile.absolutePath,
                     'org.dustyroom.persistence.PackagedStoreSmoke'
@@ -93,7 +95,7 @@ tasks.register('compileDesktopSmoke', JavaCompile) {
             def format = windows ? 'msi' : 'deb'
             delete(directory.get().dir(format), directory.get().dir('installer-temp'))
             def arguments = [packager(), '--type', format, '--name', appName,
-                             '--app-version', project.version.toString(), '--vendor', 'Dustyroom',
+                             '--app-version', appVersion, '--vendor', 'Dustyroom',
                              '--description', 'Yonaka Reader - manga and image archive reader',
                              '--app-image', image.get().asFile.absolutePath,
                              '--dest', directory.get().dir(format).asFile.absolutePath,
@@ -118,7 +120,7 @@ tasks.register('compileDesktopSmoke', JavaCompile) {
             dependsOn tasks.named('verifyWindowsApp')
             from(image) { into(appName) }
             destinationDirectory = directory.map { it.dir('portable') }
-            archiveFileName = "YonakaReader-${project.version}-windows-${architecture}.zip"
+            archiveFileName = "YonakaReader-${appVersion}-windows-${architecture}.zip"
         }
     } else {
         // Use native tar so executable permissions and runtime symlinks survive extraction.
@@ -130,7 +132,7 @@ tasks.register('compileDesktopSmoke', JavaCompile) {
                 requireHost()
                 def destination = directory.get().dir('portable').asFile
                 destination.mkdirs()
-                commandLine 'tar', '-czf', new File(destination, "YonakaReader-${project.version}-linux-${architecture}.tar.gz").absolutePath,
+                commandLine 'tar', '-czf', new File(destination, "YonakaReader-${appVersion}-linux-${architecture}.tar.gz").absolutePath,
                         '-C', directory.get().dir('image').asFile.absolutePath, appName
             }
         }

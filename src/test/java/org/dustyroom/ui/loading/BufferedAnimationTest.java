@@ -31,6 +31,28 @@ class BufferedAnimationTest {
     }
 
     @Test
+    void lateTicksDoNotAccumulateDelayAndPaintingDoesNotAdvancePlayback() {
+        AnimationClip clip = new AnimationClip(() -> new AnimationDecoder() {
+            private int index;
+            public AnimationFrame next() { return frame(++index); }
+            public int loops() { return 0; }
+            public void close() { }
+        });
+        try (BufferedAnimation player = new BufferedAnimation(clip, error -> fail(error))) {
+            await(() -> player.bufferedFrames() == 2);
+            assertEquals(1, player.advance(0).image().getRGB(0, 0) & 255);
+            await(() -> player.bufferedFrames() == 2);
+            assertEquals(2, player.advance(TimeUnit.MILLISECONDS.toNanos(120)).image().getRGB(0, 0) & 255);
+            await(() -> player.bufferedFrames() == 2);
+            // Second deadline remains 200 ms, rather than drifting to 220 ms.
+            assertEquals(3, player.advance(TimeUnit.MILLISECONDS.toNanos(200)).image().getRGB(0, 0) & 255);
+            assertSame(player.currentFrame(), player.currentFrame());
+            await(() -> player.bufferedFrames() == 2);
+            assertEquals(5, player.advance(TimeUnit.MILLISECONDS.toNanos(450)).image().getRGB(0, 0) & 255);
+        }
+    }
+
+    @Test
     void boundsReadAheadAndClosesBlockedProducerOnCancellation() throws Exception {
         AtomicInteger reads = new AtomicInteger();
         CountDownLatch closed = new CountDownLatch(1);
