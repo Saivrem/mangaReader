@@ -23,7 +23,9 @@ import org.dustyroom.ui.components.ReaderSurface;
 import org.dustyroom.ui.components.ReaderWorkspace;
 import org.dustyroom.ui.listeners.ComponentResizeListener;
 import org.dustyroom.ui.listeners.WindowCloseListener;
+import org.dustyroom.ui.utils.BrandAssets;
 import org.dustyroom.ui.utils.DialogUtils;
+import org.dustyroom.ui.utils.PlatformUi;
 
 public class ImageViewer extends JFrame {
     private static final int RESIZE_RENDER_DELAY_MS = 80;

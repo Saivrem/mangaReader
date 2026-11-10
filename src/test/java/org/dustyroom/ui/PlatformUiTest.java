@@ -1,6 +1,7 @@
 package org.dustyroom.ui;
 
 import org.dustyroom.be.utils.Constants;
+import org.dustyroom.ui.utils.PlatformUi;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PlatformUiTest {
     @Test
     void finderOpenRequestsUseTheEdtAndPreservePaths() throws Exception {
-        List<File> opened = new ArrayList<File>();
+        List<File> opened = new ArrayList<>();
         File first = new File("日本語 books/volume 01.zip");
         PlatformUi.openFiles(List.of(first, new File("second.zip")), file -> {
             assertTrue(SwingUtilities.isEventDispatchThread());
@@ -34,7 +35,7 @@ class PlatformUiTest {
 
     @Test
     void macAssociationsMatchSupportedFormats() throws Exception {
-        Set<String> extensions = new HashSet<String>();
+        Set<String> extensions = new HashSet<>();
         try (Stream<Path> paths = Files.list(Path.of("packaging/macos/associations"))) {
             for (Path path : paths.toList()) {
                 Properties properties = new Properties();

@@ -1,13 +1,13 @@
-package org.dustyroom.ui;
+package org.dustyroom.ui.utils;
 
 import java.awt.Desktop;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
-import javax.swing.Action;
 import javax.swing.SwingUtilities;
 import lombok.experimental.UtilityClass;
+import org.dustyroom.ui.ViewerController;
 
 /**
  * Configures UI behavior which must be decided before AWT is initialized.
@@ -47,10 +47,10 @@ public class PlatformUi {
         }
     }
 
-    static void openFiles(List<File> files, Consumer<File> open) {
+    public static void openFiles(List<File> files, Consumer<File> open) {
         // The reader displays one book at a time. Finder may send a batch; open its first item.
         if (!files.isEmpty()) {
-            File file = files.get(0);
+            File file = files.getFirst();
             SwingUtilities.invokeLater(() -> open.accept(file));
         }
     }
@@ -59,7 +59,7 @@ public class PlatformUi {
         return isMacOs(System.getProperty("os.name", ""));
     }
 
-    static boolean isMacOs(String osName) {
+    public static boolean isMacOs(String osName) {
         String normalizedName = osName.toLowerCase(Locale.ROOT);
         return normalizedName.startsWith("mac") || normalizedName.startsWith("darwin");
     }

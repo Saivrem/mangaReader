@@ -1,6 +1,6 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.PlatformUi;
+import org.dustyroom.ui.utils.PlatformUi;
 import org.dustyroom.ui.actions.ViewerActions;
 import org.junit.jupiter.api.Test;
 

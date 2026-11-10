@@ -5,7 +5,6 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.utils.Constants;
-import org.dustyroom.ui.BrandAssets;
 
 @UtilityClass
 public class DialogUtils {

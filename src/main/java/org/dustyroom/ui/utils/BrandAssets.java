@@ -1,4 +1,4 @@
-package org.dustyroom.ui;
+package org.dustyroom.ui.utils;
 
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;

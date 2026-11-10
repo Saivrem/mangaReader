@@ -1,5 +1,6 @@
 package org.dustyroom.ui;
 
+import org.dustyroom.ui.utils.BrandAssets;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;

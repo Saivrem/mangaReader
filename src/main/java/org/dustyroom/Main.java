@@ -10,9 +10,9 @@ import org.dustyroom.be.persistence.RecoverableReaderStore;
 import org.dustyroom.be.persistence.SqliteReaderStore;
 import org.dustyroom.be.settings.SystemThemeDetector;
 import org.dustyroom.be.utils.StorageUtils;
-import org.dustyroom.ui.BrandAssets;
+import org.dustyroom.ui.utils.BrandAssets;
 import org.dustyroom.ui.ImageViewer;
-import org.dustyroom.ui.PlatformUi;
+import org.dustyroom.ui.utils.PlatformUi;
 import org.dustyroom.ui.utils.DialogUtils;
 import org.dustyroom.ui.utils.UiUtils;
 

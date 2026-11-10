@@ -19,7 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import org.dustyroom.be.models.view.RecentBook;
-import org.dustyroom.ui.BrandAssets;
+import org.dustyroom.ui.utils.BrandAssets;
 
 /**
  * Welcome and reading views share the same window and open action.

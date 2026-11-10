@@ -7,7 +7,7 @@ import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JRootPane;
 import javax.swing.KeyStroke;
-import org.dustyroom.ui.PlatformUi;
+import org.dustyroom.ui.utils.PlatformUi;
 import org.dustyroom.ui.actions.ViewerActions;
 
 public class KeyBindings {

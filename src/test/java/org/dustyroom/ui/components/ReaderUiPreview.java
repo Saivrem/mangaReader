@@ -10,7 +10,7 @@ import org.dustyroom.be.models.state.ViewerTheme;
 import org.dustyroom.be.models.view.RecentBook;
 import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.be.utils.Constants;
-import org.dustyroom.ui.BrandAssets;
+import org.dustyroom.ui.utils.BrandAssets;
 import org.dustyroom.ui.actions.ViewerActionState;
 import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.rendering.ThumbnailRenderer;
