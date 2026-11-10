@@ -1,11 +1,14 @@
 package org.dustyroom.ui.components;
 
 import org.dustyroom.ui.rendering.ThumbnailRenderer;
-import javax.swing.Icon;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-/** Logical size stays constant; Java2D uses the retained pixels at the monitor's device scale. */
+/**
+ * Logical size stays constant; Java2D uses the retained pixels at the monitor's device scale.
+ */
 public final class ThumbnailIcon implements Icon {
     private final BufferedImage image;
     private final int width;
@@ -19,14 +22,24 @@ public final class ThumbnailIcon implements Icon {
         height = Math.max(1, (int) Math.round(image.getHeight() * scale));
     }
 
-    @Override public int getIconWidth() { return width; }
-    @Override public int getIconHeight() { return height; }
+    @Override
+    public int getIconWidth() {
+        return width;
+    }
 
-    @Override public void paintIcon(Component component, Graphics graphics, int x, int y) {
+    @Override
+    public int getIconHeight() {
+        return height;
+    }
+
+    @Override
+    public void paintIcon(Component component, Graphics graphics, int x, int y) {
         Graphics2D copy = (Graphics2D) graphics.create();
         try {
             copy.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             copy.drawImage(image, x, y, width, height, null);
-        } finally { copy.dispose(); }
+        } finally {
+            copy.dispose();
+        }
     }
 }

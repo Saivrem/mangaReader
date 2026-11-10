@@ -7,13 +7,25 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.dustyroom.be.iterators.ImageTestFixtures.jpegWithConflictingColorMarkers;
 import static org.dustyroom.be.iterators.ImageTestFixtures.writeImage;
+import static org.junit.jupiter.api.Assertions.*;
 
 class FileImageIteratorTest {
     @TempDir
     Path tempDir;
+
+    private static void assertName(String expected, Picture picture) {
+        assertNotNull(picture);
+        assertEquals(expected, picture.metadata().name());
+    }
+
+    private static void assertBlue(Picture picture) {
+        int rgb = picture.image().getRGB(1, 1);
+        assertTrue((rgb >>> 16 & 0xff) < 20);
+        assertTrue((rgb >>> 8 & 0xff) < 20);
+        assertTrue((rgb & 0xff) > 200);
+    }
 
     @Test
     void startsAtSelectedFileAndNavigatesInNaturalCircularOrder() throws Exception {
@@ -163,17 +175,5 @@ class FileImageIteratorTest {
 
         ImageIteratorException error = assertThrows(ImageIteratorException.class, iterator::nextVol);
         assertEquals(volume.toAbsolutePath().normalize().toFile(), error.getSource());
-    }
-
-    private static void assertName(String expected, Picture picture) {
-        assertNotNull(picture);
-        assertEquals(expected, picture.metadata().name());
-    }
-
-    private static void assertBlue(Picture picture) {
-        int rgb = picture.image().getRGB(1, 1);
-        assertTrue((rgb >>> 16 & 0xff) < 20);
-        assertTrue((rgb >>> 8 & 0xff) < 20);
-        assertTrue((rgb & 0xff) > 200);
     }
 }

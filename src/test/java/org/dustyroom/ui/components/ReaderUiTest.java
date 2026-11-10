@@ -1,36 +1,59 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.persistence.ReaderSettings;
 import org.dustyroom.ui.actions.ViewerActionState;
+import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.loading.ViewerFrame;
 import org.dustyroom.ui.navigation.ReadingMode;
+import org.dustyroom.ui.theme.ViewerTheme;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class ReaderUiTest {
+    private static Stream<Component> children(Container parent) {
+        return Arrays.stream(parent.getComponents()).flatMap(component ->
+                component instanceof Container container
+                        ? Stream.concat(Stream.of(component), children(container)) : Stream.of(component));
+    }
+
+    private static ViewerActions actions() {
+        Map<String, Action> actions = new HashMap<>();
+        return (ViewerActions) Proxy.newProxyInstance(ViewerActions.class.getClassLoader(),
+                new Class<?>[]{ViewerActions.class}, (proxy, method, arguments) ->
+                        actions.computeIfAbsent(method.getName(), name -> new AbstractAction(name) {
+                            @Override
+                            public void actionPerformed(ActionEvent event) {
+                            }
+                        }));
+    }
+
     @Test
     void toolbarTracksDisplayedPagesModesAndAvailability() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             ViewerActions actions = actions();
-            ViewerActionState.apply(actions, null, ImageComponent.FitMode.FIT_SCREEN, false);
+            ViewerActionState.apply(actions, null, FitMode.FIT_SCREEN, false);
             NavigationPanel panel = new NavigationPanel(actions);
+            assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
+                    .anyMatch(button -> button.getAction() == actions.firstImage()));
+            assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
+                    .anyMatch(button -> button.getAction() == actions.lastImage()));
             assertFalse(actions.nextImage().isEnabled());
             assertFalse(actions.goToPage().isEnabled());
             assertTrue(actions.openFile().isEnabled());
             ViewerFrame frame = new ViewerFrame(null, "Book", null, 2, 3, 10, true, ReadingMode.COMICS, null);
-            ViewerActionState.apply(actions, frame, ImageComponent.FitMode.FIT_WIDTH, true);
-            panel.updateState(frame, ImageComponent.FitMode.FIT_WIDTH);
+            ViewerActionState.apply(actions, frame, FitMode.FIT_WIDTH, true);
+            panel.updateState(frame, FitMode.FIT_WIDTH);
             assertEquals(Boolean.TRUE, actions.fitWidth().getValue(Action.SELECTED_KEY));
             assertEquals(Boolean.FALSE, actions.fitScreen().getValue(Action.SELECTED_KEY));
             assertEquals(Boolean.TRUE, actions.toggleTwoPageMode().getValue(Action.SELECTED_KEY));
@@ -42,7 +65,7 @@ class ReaderUiTest {
             children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
                     .forEach(button -> assertEquals(0, button.getMnemonic()));
             ViewerActionState.apply(actions, new ViewerFrame(null, "Book", null, 10, 10, 10, false,
-                    ReadingMode.MANGA, null), ImageComponent.FitMode.ORIGINAL, false);
+                    ReadingMode.MANGA, null), FitMode.ORIGINAL, false);
             assertFalse(actions.lastImage().isEnabled());
             assertTrue(actions.nextImage().isEnabled()); // existing wrap-around navigation
             assertFalse(actions.exitFullscreen().isEnabled());
@@ -72,16 +95,16 @@ class ReaderUiTest {
             ImageComponent component = new ImageComponent();
             JScrollPane scroll = new JScrollPane(component);
             scroll.getViewport().setSize(800, 600);
-            component.restoreView(ImageComponent.FitMode.ORIGINAL, 1.75);
+            component.restoreView(FitMode.ORIGINAL, 1.75);
             component.setImageAndCenter(new BufferedImage(4, 8, BufferedImage.TYPE_INT_RGB), scroll);
             assertEquals(1.75, component.getScale());
             component.setImageAndCenter(new BufferedImage(8, 16, BufferedImage.TYPE_INT_RGB), scroll);
             assertEquals(1.75, component.getScale());
-            component.setFitMode(ImageComponent.FitMode.FIT_SCREEN);
+            component.setFitMode(FitMode.FIT_SCREEN);
             component.zoomOut();
             assertTrue(component.getScale() <= 20);
-            assertDoesNotThrow(() -> new org.dustyroom.persistence.ReaderSettings(
-                    org.dustyroom.ui.theme.ViewerTheme.DARK, component.getFitMode(), component.getScale()));
+            assertDoesNotThrow(() -> new ReaderSettings(
+                    ViewerTheme.DARK, component.getFitMode(), component.getScale()));
         });
     }
 
@@ -94,25 +117,14 @@ class ReaderUiTest {
             BufferedImage canvas = new BufferedImage(40, 40, BufferedImage.TYPE_INT_RGB);
             for (Color color : new Color[]{new Color(0x0D1017), new Color(0xF8F9FA)}) {
                 component.setBackground(color);
-                var graphics = canvas.createGraphics();
-                try { component.paint(graphics); } finally { graphics.dispose(); }
+                Graphics2D graphics = canvas.createGraphics();
+                try {
+                    component.paint(graphics);
+                } finally {
+                    graphics.dispose();
+                }
                 assertEquals(color.getRGB(), canvas.getRGB(20, 20));
             }
         });
-    }
-
-    private static Stream<Component> children(Container parent) {
-        return java.util.Arrays.stream(parent.getComponents()).flatMap(component ->
-                component instanceof Container container
-                        ? Stream.concat(Stream.of(component), children(container)) : Stream.of(component));
-    }
-
-    private static ViewerActions actions() {
-        Map<String, Action> actions = new HashMap<>();
-        return (ViewerActions) Proxy.newProxyInstance(ViewerActions.class.getClassLoader(),
-                new Class<?>[]{ViewerActions.class}, (proxy, method, arguments) ->
-                        actions.computeIfAbsent(method.getName(), name -> new AbstractAction(name) {
-                            @Override public void actionPerformed(ActionEvent event) {}
-                        }));
     }
 }

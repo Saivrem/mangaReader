@@ -1,5 +1,7 @@
 package org.dustyroom.be.iterators;
 
+import org.dustyroom.be.animation.gif.GifDecoder;
+
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
@@ -40,6 +42,7 @@ final class ImageDecoder {
             try {
                 boolean jfif = isJpeg(reader) && hasJfifMarker(imageInput);
                 reader.setInput(imageInput, false, false);
+                if ("gif".equalsIgnoreCase(reader.getFormatName())) return GifDecoder.firstFrame(reader);
                 if (jfif && !reader.getImageTypes(0).hasNext()) {
                     return readUnsupportedJfif(reader);
                 }

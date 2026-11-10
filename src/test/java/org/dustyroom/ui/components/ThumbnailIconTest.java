@@ -1,12 +1,16 @@
 package org.dustyroom.ui.components;
 
 import org.junit.jupiter.api.Test;
-import java.awt.Graphics2D;
+
+import java.awt.*;
 import java.awt.image.BufferedImage;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ThumbnailIconTest {
-    @Test void retinaPaintingUsesPhysicalPixelsInsteadOfStretchingALowResolutionIcon() {
+    @Test
+    void retinaPaintingUsesPhysicalPixelsInsteadOfStretchingALowResolutionIcon() {
         BufferedImage source = new BufferedImage(288, 384, BufferedImage.TYPE_INT_RGB);
         for (int y = 0; y < source.getHeight(); y++) {
             for (int x = 0; x < source.getWidth(); x++) source.setRGB(x, y, x % 2 == 0 ? 0 : 0xffffff);
@@ -19,7 +23,9 @@ class ThumbnailIconTest {
         try {
             graphics.scale(2, 2);
             icon.paintIcon(null, graphics, 0, 0);
-        } finally { graphics.dispose(); }
+        } finally {
+            graphics.dispose();
+        }
         assertTrue((screen.getRGB(100, 100) & 255) < 20);
         assertTrue((screen.getRGB(101, 100) & 255) > 235);
     }

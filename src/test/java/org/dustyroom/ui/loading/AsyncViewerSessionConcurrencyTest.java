@@ -16,9 +16,22 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AsyncViewerSessionConcurrencyTest {
+    private static AsyncViewerSession session(BlockingIterator source, RecordingView view) {
+        return new AsyncViewerSession(
+                view,
+                file -> source,
+                new SerialPriorityExecutor(),
+                Runnable::run,
+                new BoundedImageCache(4, 1024 * 1024),
+                new SpreadPlanner(),
+                new SpreadRenderer()
+        );
+    }
+
     @Test
     void closeWaitsForInFlightDecodeAndSuppressesItsCallback() throws Exception {
         BlockingIterator source = new BlockingIterator();
@@ -37,18 +50,6 @@ class AsyncViewerSessionConcurrencyTest {
         assertEquals(1, source.closeCount.get());
         assertEquals(0, view.frames.get());
         assertEquals(0, view.errors.get());
-    }
-
-    private static AsyncViewerSession session(BlockingIterator source, RecordingView view) {
-        return new AsyncViewerSession(
-                view,
-                file -> source,
-                new SerialPriorityExecutor(),
-                Runnable::run,
-                new BoundedImageCache(4, 1024 * 1024),
-                new SpreadPlanner(),
-                new SpreadRenderer()
-        );
     }
 
     private static final class RecordingView implements ViewerView {

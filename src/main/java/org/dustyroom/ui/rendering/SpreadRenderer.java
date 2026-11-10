@@ -3,8 +3,7 @@ package org.dustyroom.ui.rendering;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.PictureMetadata;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class SpreadRenderer {

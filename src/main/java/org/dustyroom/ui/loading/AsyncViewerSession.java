@@ -1,31 +1,29 @@
 package org.dustyroom.ui.loading;
 
+import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.iterators.ImageIterator;
-import org.dustyroom.persistence.ReaderStore;
-import org.dustyroom.persistence.ReaderSettings;
-import org.dustyroom.persistence.BookState;
-import java.util.Optional;
 import org.dustyroom.be.iterators.ImageIteratorFactory;
 import org.dustyroom.be.models.PageKey;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.PageShape;
 import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.utils.FileUtils;
+import org.dustyroom.persistence.BookState;
+import org.dustyroom.persistence.ReaderSettings;
+import org.dustyroom.persistence.ReaderStore;
 import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
+import org.dustyroom.ui.rendering.ThumbnailRenderer;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.dustyroom.ui.loading.TaskPriority.INTERACTIVE;
@@ -39,7 +37,6 @@ public final class AsyncViewerSession implements AutoCloseable {
 
     private final ViewerView view;
     private final ReaderStore store;
-    private boolean persistenceWarningShown;
     private final Function<File, ImageIterator> sourceFactory;
     private final ViewerTaskExecutor tasks;
     private final Executor uiExecutor;
@@ -52,17 +49,21 @@ public final class AsyncViewerSession implements AutoCloseable {
     private final AtomicBoolean closed = new AtomicBoolean();
     private final Object closeMonitor = new Object();
     private final List<Runnable> closeCallbacks = new ArrayList<>();
+    private final Map<PageKey, PageShape> shapes = new HashMap<>();
+    private final AtomicLong recentRequest = new AtomicLong();
+    private boolean persistenceWarningShown;
     private boolean cleanupComplete;
     private boolean closeCallbackDrainScheduled;
-
     // The following state is owned by the serial task executor.
     private ImageIterator source;
     private List<PageRef> pages = List.of();
-    private final Map<PageKey, PageShape> shapes = new HashMap<>();
     private int pageIndex = -1;
     private boolean twoPageMode;
     private ReadingMode readingMode = MANGA;
     private String lastSourceError;
+    private String lastRememberedSource;
+    private volatile boolean groupRecentByFolder = true;
+    private volatile List<RecentBook> shownRecent = List.of();
 
     public AsyncViewerSession(ViewerView view) {
         this(view, ReaderStore.disabled());
@@ -106,6 +107,13 @@ public final class AsyncViewerSession implements AutoCloseable {
         this.spreadRenderer = spreadRenderer;
     }
 
+    private static int restoredIndex(BookState saved, List<PageRef> pages) {
+        for (int index = 0; index < pages.size(); index++) {
+            if (pages.get(index).key().pageId().equals(saved.pageId())) return index;
+        }
+        return Math.max(0, Math.min(saved.pageNumber() - 1, pages.size() - 1));
+    }
+
     public void open(File file) {
         if (closed.get()) {
             return;
@@ -116,7 +124,7 @@ public final class AsyncViewerSession implements AutoCloseable {
         tasks.execute(INTERACTIVE, () -> openOnWorker(file, targetGeneration, requestId));
     }
 
-    public void resetAndClose(Runnable afterReset, java.util.function.Consumer<String> onFailure) {
+    public void resetAndClose(Runnable afterReset, Consumer<String> onFailure) {
         if (!closed.compareAndSet(false, true)) return;
         // Invalidate already posted frames and prevent new saves while the reset is queued.
         generation.incrementAndGet();
@@ -131,8 +139,11 @@ public final class AsyncViewerSession implements AutoCloseable {
                 return;
             }
             tasks.close();
-            try { closeOnWorker(); }
-            finally { uiExecutor.execute(afterReset); }
+            try {
+                closeOnWorker();
+            } finally {
+                uiExecutor.execute(afterReset);
+            }
         });
         if (!queued) {
             closed.set(false);
@@ -144,7 +155,73 @@ public final class AsyncViewerSession implements AutoCloseable {
         if (closed.get() || frame.pageKey() == null) return;
         BookState state = new BookState(frame.pageKey().sourceId(), frame.pageKey().pageId(),
                 frame.firstPage(), frame.pageCount(), frame.twoPageMode(), frame.readingMode());
-        tasks.execute(INTERACTIVE, () -> persist(() -> store.saveBook(state)));
+        tasks.execute(INTERACTIVE, () -> {
+            persist(() -> store.saveBook(state));
+            if (!state.sourceId().equals(lastRememberedSource)) {
+                lastRememberedSource = state.sourceId();
+                refreshRecentBooks();
+            }
+        });
+    }
+
+    public void setGroupRecentByFolder(boolean grouped) {
+        groupRecentByFolder = grouped;
+        refreshRecentBooks();
+    }
+
+    public void hideRecentBook(String sourceId) {
+        if (closed.get()) return;
+        List<String> ids = shownRecent.stream().filter(book -> book.state().sourceId().equals(sourceId))
+                .findFirst().map(book -> book.chapters().stream().map(BookState::sourceId).toList()).orElse(List.of(sourceId));
+        recentRequest.incrementAndGet();
+        tasks.execute(INTERACTIVE, () -> {
+            if (closed.get()) return;
+            persist(() -> ids.forEach(store::hideRecent));
+            refreshRecentBooks();
+        });
+    }
+
+    public void refreshRecentBooks() {
+        if (closed.get()) return;
+        long request = recentRequest.incrementAndGet();
+        tasks.execute(INTERACTIVE, () -> {
+            if (!recentActive(request)) return;
+            List<RecentBook> books;
+            try {
+                books = RecentGroups.select(store.recentBooks(1000), groupRecentByFolder, 12).stream().map(group -> {
+                    RecentBook book = RecentBookLoader.inspect(group.get(0));
+                    return new RecentBook(book.state(), book.available(), null, group);
+                }).toList();
+            } catch (RuntimeException exception) {
+                warnPersistence();
+                return;
+            }
+            List<RecentBook> snapshots = new ArrayList<>(books);
+            postRecent(request, snapshots);
+            // One cover per low-priority task: page navigation can run between covers.
+            for (int index = 0; index < books.size(); index++) {
+                int position = index;
+                tasks.execute(TaskPriority.THUMBNAIL, () -> {
+                    if (!recentActive(request)) return;
+                    snapshots.set(position, RecentBookLoader.cover(books.get(position)));
+                    postRecent(request, snapshots);
+                });
+            }
+        });
+    }
+
+    private boolean recentActive(long request) {
+        return !closed.get() && recentRequest.get() == request;
+    }
+
+    private void postRecent(long request, List<RecentBook> books) {
+        List<RecentBook> snapshot = List.copyOf(books);
+        uiExecutor.execute(() -> {
+            if (recentActive(request)) {
+                shownRecent = snapshot;
+                view.showRecentBooks(snapshot);
+            }
+        });
     }
 
     public void saveSettings(ReaderSettings settings) {
@@ -152,31 +229,35 @@ public final class AsyncViewerSession implements AutoCloseable {
     }
 
     private void persist(Runnable write) {
-        try { write.run(); } catch (RuntimeException exception) { warnPersistence(); }
+        try {
+            write.run();
+        } catch (RuntimeException exception) {
+            warnPersistence();
+        }
     }
 
     private Optional<BookState> savedBook(String sourceId) {
-        try { return store.book(sourceId); }
-        catch (RuntimeException exception) { warnPersistence(); return Optional.empty(); }
+        try {
+            return store.book(sourceId);
+        } catch (RuntimeException exception) {
+            warnPersistence();
+            return Optional.empty();
+        }
     }
 
     private void warnPersistence() {
         if (persistenceWarningShown) return;
         persistenceWarningShown = true;
         uiExecutor.execute(() -> {
-            if (!closed.get()) view.showPersistenceWarning("Reading can continue, but settings or progress could not be saved. Check the reader database location and available disk space.");
+            if (!closed.get())
+                view.showPersistenceWarning("Reading can continue, but settings or progress could not be saved. Check the reader database location and available disk space.");
         });
     }
 
-    private static int restoredIndex(BookState saved, List<PageRef> pages) {
-        for (int index = 0; index < pages.size(); index++) {
-            if (pages.get(index).key().pageId().equals(saved.pageId())) return index;
-        }
-        return Math.max(0, Math.min(saved.pageNumber() - 1, pages.size() - 1));
-    }
-
-    /** Uses the source only on its owning worker, below reading and prefetch priority. */
-    public void thumbnail(int index, PageRef expected, java.util.function.Consumer<BufferedImage> result) {
+    /**
+     * Uses the source only on its owning worker, below reading and prefetch priority.
+     */
+    public void thumbnail(int index, PageRef expected, Consumer<BufferedImage> result) {
         long targetGeneration = generation.get();
         boolean queued = !closed.get() && tasks.execute(TaskPriority.THUMBNAIL, () -> {
             BufferedImage thumbnail = null;
@@ -185,7 +266,7 @@ public final class AsyncViewerSession implements AutoCloseable {
                 try {
                     BufferedImage image = cache.get(expected.key());
                     if (image == null) image = decodeImage(source, expected);
-                    thumbnail = org.dustyroom.ui.rendering.ThumbnailRenderer.render(image);
+                    thumbnail = ThumbnailRenderer.render(image);
                 } catch (RuntimeException ignored) { /* An unreadable preview must not interrupt reading. */ }
             }
             BufferedImage completed = thumbnail;
@@ -285,7 +366,11 @@ public final class AsyncViewerSession implements AutoCloseable {
             cache.clear();
             pageIndex = -1;
             lastSourceError = null;
-            try { store.close(); } finally { completeClose(); }
+            try {
+                store.close();
+            } finally {
+                completeClose();
+            }
         }
     }
 
@@ -347,7 +432,7 @@ public final class AsyncViewerSession implements AutoCloseable {
             }
             Optional<BookState> saved = savedBook(candidatePages.get(0).key().sourceId());
             // An explicitly selected image takes precedence over the saved position of its folder.
-            if (saved.isPresent() && !org.dustyroom.be.utils.FileUtils.isImage.test(file)) {
+            if (saved.isPresent() && !FileUtils.isImage.test(file)) {
                 candidateIndex = restoredIndex(saved.get(), candidatePages);
             }
             PageRef initialPage = candidatePages.get(candidateIndex);
@@ -375,6 +460,8 @@ public final class AsyncViewerSession implements AutoCloseable {
                 closeSource(previousSource);
             }
 
+            persist(() -> store.showRecent(initialPage.key().sourceId()));
+            lastRememberedSource = null;
             renderAndPublish(targetGeneration, requestId);
         } catch (RuntimeException e) {
             closeCandidate(candidate);
@@ -416,6 +503,8 @@ public final class AsyncViewerSession implements AutoCloseable {
             });
             shapes.clear();
             cache.clear();
+            persist(() -> store.showRecent(selected.key().sourceId()));
+            lastRememberedSource = null;
             renderAndPublish(targetGeneration, requestId);
         });
     }
@@ -509,7 +598,37 @@ public final class AsyncViewerSession implements AutoCloseable {
                 twoPageMode, readingMode, current.key()
         );
         postFrame(targetGeneration, requestId, frame);
+        scheduleAnimations(targetGeneration, requestId, current, second, currentImage, secondImage, readingMode == MANGA);
         schedulePrefetch(targetGeneration, requestId, pageIndex, second != null);
+    }
+
+    private void scheduleAnimations(long targetGeneration, long requestId, PageRef first, PageRef second,
+                                    BufferedImage firstImage, BufferedImage secondImage, boolean manga) {
+        List<PageRef> refs = second == null ? List.of(first) : List.of(first, second);
+        if (refs.stream().noneMatch(page -> page.key().pageId().toLowerCase(Locale.ROOT).endsWith(".gif")))
+            return;
+        tasks.execute(PREFETCH, () -> {
+            if (!isLatest(targetGeneration, requestId)) return;
+            List<AnimatedPage> animated = new ArrayList<AnimatedPage>();
+            for (int index = 0; index < refs.size(); index++) {
+                if (!isLatest(targetGeneration, requestId)) return;
+                PageRef page = refs.get(index);
+                if (!page.key().pageId().toLowerCase(Locale.ROOT).endsWith(".gif")) continue;
+                try {
+                    AnimationClip clip = source.animation(page);
+                    if (clip == null) continue;
+                    BufferedImage image = index == 0 ? firstImage : secondImage;
+                    int x = second == null ? 0 : index == 0 ? (manga ? secondImage.getWidth() : 0) : (manga ? 0 : firstImage.getWidth());
+                    int height = second == null ? firstImage.getHeight() : Math.max(firstImage.getHeight(), secondImage.getHeight());
+                    animated.add(new AnimatedPage(clip, x, (height - image.getHeight()) / 2, image.getWidth(), image.getHeight(), second != null));
+                } catch (RuntimeException exception) {
+                    postError(targetGeneration, requestId, exception);
+                }
+            }
+            uiExecutor.execute(() -> {
+                if (isLatest(targetGeneration, requestId)) view.showAnimations(first.key(), List.copyOf(animated));
+            });
+        });
     }
 
     private PageRef resolveSecondPage(int anchorIndex) {
@@ -654,8 +773,5 @@ public final class AsyncViewerSession implements AutoCloseable {
         }
     }
 
-    @FunctionalInterface
-    private interface WorkerCommand {
-        void run(long targetGeneration, long requestId);
-    }
+
 }

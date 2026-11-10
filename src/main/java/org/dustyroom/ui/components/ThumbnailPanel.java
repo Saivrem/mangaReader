@@ -1,27 +1,27 @@
 package org.dustyroom.ui.components;
 
 import org.dustyroom.be.models.PageRef;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-/** EDT-owned, virtualized list. Only one thumbnail request is outstanding at a time. */
+/**
+ * EDT-owned, virtualized list. Only one thumbnail request is outstanding at a time.
+ */
 public final class ThumbnailPanel extends JPanel {
-    @FunctionalInterface public interface Loader {
-        void load(int index, PageRef page, Consumer<BufferedImage> result);
-    }
+    private static final int PREFETCH_MARGIN = 10;
     private final JList<PageRef> list = new JList<>();
-    private final Loader loader;
+    private final ThumbnailLoader loader;
     private final JPanel header = new JPanel(new BorderLayout());
     private final JScrollPane scroll = new JScrollPane(list);
     private final JButton handle = new JButton() {
-        @Override protected void paintComponent(Graphics graphics) {
+        @Override
+        protected void paintComponent(Graphics graphics) {
             Graphics2D g = (Graphics2D) graphics.create();
             try {
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -30,18 +30,19 @@ public final class ThumbnailPanel extends JPanel {
                 g.setColor(color == null ? getForeground() : color);
                 int width = active ? 5 : 3;
                 g.fillRoundRect((getWidth() - width) / 2, (getHeight() - 32) / 2, width, 32, width, width);
-            } finally { g.dispose(); }
+            } finally {
+                g.dispose();
+            }
         }
     };
-    private boolean expanded = true;
-    private List<PageRef> pages = List.of();
-    private static final int PREFETCH_MARGIN = 10;
     private final Map<Integer, Icon> cache = new HashMap<>();
+    private boolean expanded;
+    private List<PageRef> pages = List.of();
     private int windowStart, windowEnd = -1;
     private boolean pending;
     private int first = -1, last = -1;
 
-    public ThumbnailPanel(Loader loader, IntConsumer navigate, Runnable hide) {
+    public ThumbnailPanel(ThumbnailLoader loader, IntConsumer navigate, Runnable hide) {
         super(new BorderLayout());
         this.loader = loader;
 
@@ -54,7 +55,8 @@ public final class ThumbnailPanel extends JPanel {
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.getAccessibleContext().setAccessibleName("Book pages");
         list.setCellRenderer(new DefaultListCellRenderer() {
-            @Override public Component getListCellRendererComponent(JList<?> owner, Object value, int index, boolean selected, boolean focus) {
+            @Override
+            public Component getListCellRendererComponent(JList<?> owner, Object value, int index, boolean selected, boolean focus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(owner, value, index,
                         index >= first && index <= last, focus);
                 Icon icon = cache.get(index);
@@ -72,14 +74,17 @@ public final class ThumbnailPanel extends JPanel {
             }
         });
         list.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override
+            public void mouseClicked(MouseEvent e) {
                 int index = list.locationToIndex(e.getPoint());
-                if (SwingUtilities.isLeftMouseButton(e) && index >= 0 && list.getCellBounds(index, index).contains(e.getPoint())) navigate.accept(index + 1);
+                if (SwingUtilities.isLeftMouseButton(e) && index >= 0 && list.getCellBounds(index, index).contains(e.getPoint()))
+                    navigate.accept(index + 1);
             }
         });
         list.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "openPage");
         list.getActionMap().put("openPage", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (list.getSelectedIndex() >= 0) navigate.accept(list.getSelectedIndex() + 1);
             }
         });
@@ -101,11 +106,16 @@ public final class ThumbnailPanel extends JPanel {
         add(rail, BorderLayout.EAST);
         setExpanded(true);
         addComponentListener(new ComponentAdapter() {
-            @Override public void componentShown(ComponentEvent e) { followCurrent(); pump(); }
+            @Override
+            public void componentShown(ComponentEvent e) {
+                followCurrent();
+                pump();
+            }
         });
     }
 
     public void setExpanded(boolean expanded) {
+        if (this.expanded == expanded) return;
         this.expanded = expanded;
         header.setVisible(expanded);
         scroll.setVisible(expanded);
@@ -115,7 +125,10 @@ public final class ThumbnailPanel extends JPanel {
         handle.getAccessibleContext().setAccessibleName(label);
         revalidate();
         repaint();
-        if (expanded) SwingUtilities.invokeLater(() -> { followCurrent(); pump(); });
+        if (expanded) SwingUtilities.invokeLater(() -> {
+            followCurrent();
+            pump();
+        });
     }
 
     public void showPages(List<PageRef> newPages) {
@@ -124,8 +137,15 @@ public final class ThumbnailPanel extends JPanel {
         cache.clear();
         first = last = -1;
         list.setModel(new AbstractListModel<>() {
-            @Override public int getSize() { return newPages.size(); }
-            @Override public PageRef getElementAt(int index) { return newPages.get(index); }
+            @Override
+            public int getSize() {
+                return newPages.size();
+            }
+
+            @Override
+            public PageRef getElementAt(int index) {
+                return newPages.get(index);
+            }
         });
         pump();
     }
@@ -134,7 +154,10 @@ public final class ThumbnailPanel extends JPanel {
         boolean changed = first != firstPage - 1 || last != lastPage - 1;
         first = firstPage - 1;
         last = lastPage - 1;
-        if (changed) { list.setSelectedIndex(first); followCurrent(); }
+        if (changed) {
+            list.setSelectedIndex(first);
+            followCurrent();
+        }
         list.repaint();
         pump();
     }
@@ -181,4 +204,6 @@ public final class ThumbnailPanel extends JPanel {
         });
         return true;
     }
+
+
 }

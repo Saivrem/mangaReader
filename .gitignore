@@ -43,3 +43,8 @@ bin/
 .DS_Store
 # Portable application data (default override example)
 /reader-data/
+
+todo.txt
+# Agent guidance is maintained in the master-project AGENTS.md.
+/AGENTS.md
+docs

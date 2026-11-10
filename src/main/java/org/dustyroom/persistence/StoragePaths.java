@@ -5,7 +5,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class StoragePaths {
-    private StoragePaths() {}
+    private StoragePaths() {
+    }
 
     public static Path database() {
         return directory(System.getProperty("mangareader.dataDir"), System.getProperty("os.name", ""),

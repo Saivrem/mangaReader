@@ -1,21 +1,28 @@
 package org.dustyroom.persistence;
 
-import org.dustyroom.ui.components.ImageComponent.FitMode;
+import org.dustyroom.ui.components.FitMode;
 import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.theme.ViewerTheme;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class SqliteReaderStoreTest {
-    @TempDir Path directory;
+    @TempDir
+    Path directory;
 
     @Test
     void persistsSettingsAndIndependentBooksAcrossReopen() {
         Path db = directory.resolve("nested/reader.sqlite3");
-        ReaderSettings settings = new ReaderSettings(ViewerTheme.LIGHT, FitMode.ORIGINAL, 1.75, directory.resolve("日本語 books").toString(), false);
+        ReaderSettings settings = new ReaderSettings(ViewerTheme.LIGHT, FitMode.ORIGINAL, 1.75, directory.resolve("日本語 books").toString(), false, false);
         BookState a = new BookState("/books/日本語 'vol'.zip", "chapter/02.png", 2, 10, true, ReadingMode.MANGA);
         BookState b = new BookState("/books/other", "/books/other/3.png", 3, 8, false, ReadingMode.COMICS);
         try (ReaderStore store = new SqliteReaderStore(db)) {
@@ -43,7 +50,7 @@ class SqliteReaderStoreTest {
         try (ReaderStore store = new SqliteReaderStore(db)) {
             store.saveSettings(new ReaderSettings(ViewerTheme.LIGHT, FitMode.FIT_WIDTH, 1));
         }
-        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
             sql.execute("DELETE FROM settings WHERE key='last_directory'");
         }
         try (ReaderStore store = new SqliteReaderStore(db)) {
@@ -54,8 +61,10 @@ class SqliteReaderStoreTest {
     @Test
     void invalidConfigValuesFallBackWithoutLosingValidSettings() throws Exception {
         Path db = directory.resolve("reader.sqlite3");
-        try (ReaderStore store = new SqliteReaderStore(db)) { store.saveSettings(ReaderSettings.defaults()); }
-        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
+        try (ReaderStore store = new SqliteReaderStore(db)) {
+            store.saveSettings(ReaderSettings.defaults());
+        }
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
             sql.execute("UPDATE settings SET value='LIGHT' WHERE key='theme'");
             sql.execute("UPDATE settings SET value='not-a-mode' WHERE key='fit_mode'");
             sql.execute("UPDATE settings SET value='NaN' WHERE key='zoom'");
@@ -70,7 +79,7 @@ class SqliteReaderStoreTest {
         Path db = directory.resolve("reader.sqlite3");
         Path book = directory.resolve("book.zip");
         byte[] original = {1, 2, 3};
-        java.nio.file.Files.write(book, original);
+        Files.write(book, original);
         try (ReaderStore store = new SqliteReaderStore(db)) {
             store.saveSettings(new ReaderSettings(ViewerTheme.LIGHT, FitMode.FIT_WIDTH, 1, directory.toString()));
             store.saveBook(new BookState(book.toString(), "page.png", 2, 5, true, ReadingMode.COMICS));
@@ -82,7 +91,7 @@ class SqliteReaderStoreTest {
             assertEquals(ReaderSettings.defaults(), store.settings());
             assertTrue(store.book(book.toString()).isEmpty());
         }
-        assertArrayEquals(original, java.nio.file.Files.readAllBytes(book));
+        assertArrayEquals(original, Files.readAllBytes(book));
     }
 
     @Test
@@ -93,7 +102,7 @@ class SqliteReaderStoreTest {
         try (ReaderStore store = new SqliteReaderStore(db)) {
             store.saveSettings(settings);
             store.saveBook(book);
-            try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
+            try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
                 sql.execute("CREATE TRIGGER prevent_delete BEFORE DELETE ON books BEGIN SELECT RAISE(ABORT,'test failure'); END");
             }
             assertThrows(IllegalStateException.class, store::reset);
@@ -105,16 +114,23 @@ class SqliteReaderStoreTest {
     @Test
     void failedMigrationRollsBackDdlAndKeepsThePreviousSchemaVersion() throws Exception {
         Path db = directory.resolve("old.sqlite3");
-        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
             sql.execute("CREATE TABLE books (original TEXT)");
             sql.execute("INSERT INTO books VALUES('preserved')");
         }
         assertThrows(IllegalStateException.class, () -> new SqliteReaderStore(db));
-        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
-            try (var result = sql.executeQuery("PRAGMA user_version")) { assertTrue(result.next()); assertEquals(0, result.getInt(1)); }
-            try (var result = sql.executeQuery("SELECT original FROM books")) { assertTrue(result.next()); assertEquals("preserved", result.getString(1)); }
-            try (var result = sql.executeQuery("SELECT count(*) FROM sqlite_master WHERE name='settings'")) {
-                assertTrue(result.next()); assertEquals(0, result.getInt(1));
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
+            try (ResultSet result = sql.executeQuery("PRAGMA user_version")) {
+                assertTrue(result.next());
+                assertEquals(0, result.getInt(1));
+            }
+            try (ResultSet result = sql.executeQuery("SELECT original FROM books")) {
+                assertTrue(result.next());
+                assertEquals("preserved", result.getString(1));
+            }
+            try (ResultSet result = sql.executeQuery("SELECT count(*) FROM sqlite_master WHERE name='settings'")) {
+                assertTrue(result.next());
+                assertEquals(0, result.getInt(1));
             }
         }
     }
@@ -129,23 +145,27 @@ class SqliteReaderStoreTest {
             backup = store.backupBeforeMigration(db, 1);
             store.reset();
         }
-        try (ReaderStore saved = new SqliteReaderStore(backup)) { assertEquals(settings, saved.settings()); }
-        try (ReaderStore reset = new SqliteReaderStore(db)) { assertEquals(ReaderSettings.defaults(), reset.settings()); }
+        try (ReaderStore saved = new SqliteReaderStore(backup)) {
+            assertEquals(settings, saved.settings());
+        }
+        try (ReaderStore reset = new SqliteReaderStore(db)) {
+            assertEquals(ReaderSettings.defaults(), reset.settings());
+        }
     }
 
     @Test
     void refusesFutureSchemaWithoutDowngradingIt() throws Exception {
         Path db = directory.resolve("future.sqlite3");
-        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement()) {
-            sql.execute("PRAGMA user_version=2");
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
+            sql.execute("PRAGMA user_version=3");
         }
-        byte[] before = java.nio.file.Files.readAllBytes(db);
+        byte[] before = Files.readAllBytes(db);
         assertThrows(IllegalStateException.class, () -> new SqliteReaderStore(db));
-        assertArrayEquals(before, java.nio.file.Files.readAllBytes(db));
-        try (var connection = DriverManager.getConnection("jdbc:sqlite:" + db); var sql = connection.createStatement();
-             var result = sql.executeQuery("PRAGMA user_version")) {
+        assertArrayEquals(before, Files.readAllBytes(db));
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement();
+             ResultSet result = sql.executeQuery("PRAGMA user_version")) {
             assertTrue(result.next());
-            assertEquals(2, result.getInt(1));
+            assertEquals(3, result.getInt(1));
         }
     }
 }

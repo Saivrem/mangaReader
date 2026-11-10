@@ -8,11 +8,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class SerialPriorityExecutorTest {
+    private static void await(CountDownLatch latch) {
+        try {
+            if (!latch.await(Duration.ofSeconds(2).toMillis(), TimeUnit.MILLISECONDS)) {
+                throw new AssertionError("Timed out waiting for test latch");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(e);
+        }
+    }
+
     @Test
     void queuedInteractiveWorkRunsBeforePrefetch() throws Exception {
         SerialPriorityExecutor executor = new SerialPriorityExecutor();
@@ -50,16 +59,5 @@ class SerialPriorityExecutorTest {
         assertFalse(executor.execute(TaskPriority.PREFETCH, () -> {
             throw new AssertionError("Rejected work must not run");
         }));
-    }
-
-    private static void await(CountDownLatch latch) {
-        try {
-            if (!latch.await(Duration.ofSeconds(2).toMillis(), TimeUnit.MILLISECONDS)) {
-                throw new AssertionError("Timed out waiting for test latch");
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new AssertionError(e);
-        }
     }
 }

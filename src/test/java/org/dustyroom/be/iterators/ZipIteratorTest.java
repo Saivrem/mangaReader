@@ -7,19 +7,23 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.dustyroom.be.iterators.ImageTestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.dustyroom.be.iterators.ImageTestFixtures.jpegWithConflictingColorMarkers;
-import static org.dustyroom.be.iterators.ImageTestFixtures.pngBytes;
-import static org.dustyroom.be.iterators.ImageTestFixtures.writeZip;
 
 class ZipIteratorTest {
     @TempDir
     Path tempDir;
+
+    private static void assertName(String expected, Picture picture) {
+        assertNotNull(picture);
+        assertEquals(expected, picture.metadata().name());
+    }
 
     @Test
     void readsOnlyImagesInNaturalCircularOrder() throws Exception {
@@ -194,7 +198,7 @@ class ZipIteratorTest {
         Path volume = writeZip(tempDir.resolve("volume.zip"), "page.png");
         try (ZipIterator iterator = new ZipIterator(volume.toFile())) {
             assertName("page.png", iterator.next());
-            assertThrows(java.nio.file.FileSystemException.class, () -> Files.delete(volume));
+            assertThrows(FileSystemException.class, () -> Files.delete(volume));
             assertTrue(Files.exists(volume));
             assertName("page.png", iterator.first());
         }
@@ -210,10 +214,5 @@ class ZipIteratorTest {
         }
         Files.delete(volume);
         assertFalse(Files.exists(volume));
-    }
-
-    private static void assertName(String expected, Picture picture) {
-        assertNotNull(picture);
-        assertEquals(expected, picture.metadata().name());
     }
 }

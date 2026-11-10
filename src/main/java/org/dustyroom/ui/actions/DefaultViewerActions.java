@@ -1,13 +1,10 @@
 package org.dustyroom.ui.actions;
 
-import org.dustyroom.ui.ViewerController;
 import org.dustyroom.ui.PlatformUi;
+import org.dustyroom.ui.ViewerController;
 
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.KeyStroke;
-import java.awt.HeadlessException;
-import java.awt.Toolkit;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -15,6 +12,7 @@ import java.awt.event.KeyEvent;
 public class DefaultViewerActions implements ViewerActions {
     private final Action toggleThumbnails;
     private final Action openFile;
+    private final Action home;
     private final Action exit;
     private final Action fitHeight;
     private final Action fitWidth;
@@ -39,9 +37,12 @@ public class DefaultViewerActions implements ViewerActions {
     public DefaultViewerActions(ViewerController controller) {
         this.toggleThumbnails = action("toggleThumbnails", "Thumbnails", "Show or hide page thumbnails (T)",
                 key(KeyEvent.VK_T), controller::toggleThumbnails);
+        KeyStroke homeShortcut = menuShortcut(KeyEvent.VK_H);
+        this.home = action("home", "Home", "Return to recently read books",
+                KeyStroke.getKeyStroke(KeyEvent.VK_H, homeShortcut.getModifiers() | InputEvent.SHIFT_DOWN_MASK), controller::showHome);
         this.openFile = action("openFile", "Open…", "Open an image, ZIP archive or folder",
                 menuShortcut(KeyEvent.VK_O), controller::chooseFile);
-        this.exit = action("exit", PlatformUi.usesScreenMenuBar() ? "Quit" : "Exit", "Close Manga Reader",
+        this.exit = action("exit", PlatformUi.usesScreenMenuBar() ? "Quit" : "Exit", "Close Yonaka Reader",
                 menuShortcut(KeyEvent.VK_Q), controller::exit);
         this.fitHeight = action("fitHeight", "Fit Height", "Fit the page to the window height",
                 key(KeyEvent.VK_H), controller::fitHeight);
@@ -79,11 +80,49 @@ public class DefaultViewerActions implements ViewerActions {
                 key(KeyEvent.VK_ESCAPE), controller::exitFullscreen);
         this.resetApplication = action("resetApplication", "Reset Application…",
                 "Reset settings and reading history", null, controller::resetApplication);
-        this.showAbout = action("showAbout", "About Manga Reader", "Show application information",
+        this.showAbout = action("showAbout", "About Yonaka Reader", "Show application information",
                 null, controller::showAboutDialog);
     }
 
-    @Override public Action toggleThumbnails() { return toggleThumbnails; }
+    static Action action(String id, String name, String description,
+                         KeyStroke accelerator, Runnable runnable) {
+        Action action = new AbstractAction(name) {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                runnable.run();
+            }
+        };
+        action.putValue(Action.ACTION_COMMAND_KEY, id);
+        action.putValue(Action.SHORT_DESCRIPTION, description);
+        if (accelerator != null) {
+            action.putValue(Action.ACCELERATOR_KEY, accelerator);
+        }
+        return action;
+    }
+
+    private static KeyStroke menuShortcut(int keyCode) {
+        int modifiers;
+        try {
+            modifiers = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        } catch (HeadlessException exception) {
+            modifiers = InputEvent.CTRL_DOWN_MASK;
+        }
+        return KeyStroke.getKeyStroke(keyCode, modifiers);
+    }
+
+    private static KeyStroke key(int keyCode) {
+        return KeyStroke.getKeyStroke(keyCode, 0);
+    }
+
+    @Override
+    public Action toggleThumbnails() {
+        return toggleThumbnails;
+    }
+
+    @Override
+    public Action home() {
+        return home;
+    }
 
     @Override
     public Action openFile() {
@@ -171,46 +210,22 @@ public class DefaultViewerActions implements ViewerActions {
     }
 
     @Override
-    public Action goToPage() { return goToPage; }
+    public Action goToPage() {
+        return goToPage;
+    }
 
     @Override
-    public Action exitFullscreen() { return exitFullscreen; }
+    public Action exitFullscreen() {
+        return exitFullscreen;
+    }
 
     @Override
-    public Action resetApplication() { return resetApplication; }
+    public Action resetApplication() {
+        return resetApplication;
+    }
 
     @Override
     public Action showAbout() {
         return showAbout;
-    }
-
-    static Action action(String id, String name, String description,
-                         KeyStroke accelerator, Runnable runnable) {
-        Action action = new AbstractAction(name) {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                runnable.run();
-            }
-        };
-        action.putValue(Action.ACTION_COMMAND_KEY, id);
-        action.putValue(Action.SHORT_DESCRIPTION, description);
-        if (accelerator != null) {
-            action.putValue(Action.ACCELERATOR_KEY, accelerator);
-        }
-        return action;
-    }
-
-    private static KeyStroke menuShortcut(int keyCode) {
-        int modifiers;
-        try {
-            modifiers = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
-        } catch (HeadlessException exception) {
-            modifiers = InputEvent.CTRL_DOWN_MASK;
-        }
-        return KeyStroke.getKeyStroke(keyCode, modifiers);
-    }
-
-    private static KeyStroke key(int keyCode) {
-        return KeyStroke.getKeyStroke(keyCode, 0);
     }
 }

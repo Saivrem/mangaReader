@@ -1,16 +1,15 @@
 package org.dustyroom.ui.components;
 
-import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
-import javax.swing.TransferHandler;
-import java.awt.Component;
-import java.awt.Container;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
 
-/** Only hands paths to the asynchronous loader; does not inspect the filesystem. */
+/**
+ * Only hands paths to the asynchronous loader; does not inspect the filesystem.
+ */
 public final class FileDropHandler extends TransferHandler {
     private final Consumer<File> open;
     private final Consumer<String> error;

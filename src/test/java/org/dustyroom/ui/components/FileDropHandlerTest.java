@@ -1,14 +1,36 @@
 package org.dustyroom.ui.components;
 
 import org.junit.jupiter.api.Test;
+
 import javax.swing.*;
-import java.awt.datatransfer.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.File;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class FileDropHandlerTest {
+    private static TransferHandler.TransferSupport support(List<File> files) {
+        return new TransferHandler.TransferSupport(new JPanel(), new Transferable() {
+            public DataFlavor[] getTransferDataFlavors() {
+                return new DataFlavor[]{DataFlavor.javaFileListFlavor};
+            }
+
+            public boolean isDataFlavorSupported(DataFlavor flavor) {
+                return flavor.equals(DataFlavor.javaFileListFlavor);
+            }
+
+            public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+                if (!isDataFlavorSupported(flavor)) throw new UnsupportedFlavorException(flavor);
+                return files;
+            }
+        });
+    }
+
     @Test
     void handsOffSinglePathsWithoutRequiringFilesystemAccess() throws Exception {
         List<File> opened = new ArrayList<>();
@@ -33,19 +55,9 @@ class FileDropHandlerTest {
             assertFalse(handler.importData(new TransferHandler.TransferSupport(new JPanel(), new StringSelection("a.zip"))));
             assertFalse(handler.importData(support(List.of())));
         });
-        SwingUtilities.invokeAndWait(() -> {}); // drain the deferred drop feedback
+        SwingUtilities.invokeAndWait(() -> {
+        }); // drain the deferred drop feedback
         assertTrue(opened.isEmpty());
         assertEquals(2, errors.size());
-    }
-
-    private static TransferHandler.TransferSupport support(List<File> files) {
-        return new TransferHandler.TransferSupport(new JPanel(), new Transferable() {
-            public DataFlavor[] getTransferDataFlavors() { return new DataFlavor[]{DataFlavor.javaFileListFlavor}; }
-            public boolean isDataFlavorSupported(DataFlavor flavor) { return flavor.equals(DataFlavor.javaFileListFlavor); }
-            public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-                if (!isDataFlavorSupported(flavor)) throw new UnsupportedFlavorException(flavor);
-                return files;
-            }
-        });
     }
 }

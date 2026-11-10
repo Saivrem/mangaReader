@@ -1,6 +1,8 @@
 package org.dustyroom.be.iterators;
 
 import lombok.extern.slf4j.Slf4j;
+import org.dustyroom.be.animation.AnimationClip;
+import org.dustyroom.be.animation.gif.GifDecoder;
 import org.dustyroom.be.models.PageKey;
 import org.dustyroom.be.models.PageRef;
 import org.dustyroom.be.models.Picture;
@@ -11,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.dustyroom.be.models.Direction.NEXT;
@@ -110,6 +113,14 @@ public class FileImageIterator implements ImageIterator {
         initialSelectionPending = false;
         currentIndex = fileList.size() - 1;
         return load(pageRefs.get(currentIndex));
+    }
+
+    @Override
+    public AnimationClip animation(PageRef page) {
+        if (!page.key().sourceId().equals(volumeId(getVolumeRoot())))
+            throw new IllegalArgumentException("Wrong source");
+        Path path = new File(page.key().pageId()).toPath();
+        return GifDecoder.read(() -> Files.newInputStream(path));
     }
 
     @Override

@@ -1,8 +1,10 @@
 package org.dustyroom.persistence;
 
 import org.junit.jupiter.api.Test;
+
 import java.nio.file.Path;
 import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StoragePathsTest {

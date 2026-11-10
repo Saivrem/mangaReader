@@ -1,8 +1,11 @@
 package org.dustyroom.ui;
 
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.util.List;
 import java.util.Locale;
-import java.awt.Desktop;
-import javax.swing.SwingUtilities;
+import java.util.function.Consumer;
 
 /**
  * Configures UI behavior which must be decided before AWT is initialized.
@@ -21,13 +24,16 @@ public final class PlatformUi {
         System.setProperty(SCREEN_MENU_BAR_PROPERTY, Boolean.toString(macOs));
         if (macOs) {
             System.setProperty("apple.awt.application.appearance", "system");
-            System.setProperty("apple.awt.application.name", "Manga Reader");
+            System.setProperty("apple.awt.application.name", "Yonaka Reader");
         }
     }
 
     public static void installApplicationHandlers(ViewerController controller) {
         if (!usesScreenMenuBar() || !Desktop.isDesktopSupported()) return;
         Desktop desktop = Desktop.getDesktop();
+        if (desktop.isSupported(Desktop.Action.APP_OPEN_FILE)) {
+            desktop.setOpenFileHandler(event -> openFiles(event.getFiles(), controller::openExternalFile));
+        }
         if (desktop.isSupported(Desktop.Action.APP_ABOUT)) {
             desktop.setAboutHandler(event -> SwingUtilities.invokeLater(controller::showAboutDialog));
         }
@@ -36,6 +42,14 @@ public final class PlatformUi {
                 response.cancelQuit();
                 SwingUtilities.invokeLater(controller::exit);
             });
+        }
+    }
+
+    static void openFiles(List<File> files, Consumer<File> open) {
+        // The reader displays one book at a time. Finder may send a batch; open its first item.
+        if (!files.isEmpty()) {
+            File file = files.get(0);
+            SwingUtilities.invokeLater(() -> open.accept(file));
         }
     }
 

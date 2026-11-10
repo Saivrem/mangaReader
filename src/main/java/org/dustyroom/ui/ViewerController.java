@@ -1,40 +1,28 @@
 package org.dustyroom.ui;
 
-import org.dustyroom.ui.components.ImageComponent;
+import org.dustyroom.be.models.PageKey;
+import org.dustyroom.be.models.PageRef;
 import org.dustyroom.persistence.ReaderSettings;
 import org.dustyroom.persistence.ReaderStore;
-import org.dustyroom.ui.components.NavigationPanel;
-import org.dustyroom.ui.components.ReaderSurface;
-import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.actions.ViewerActionState;
-import javax.swing.JOptionPane;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerNumberModel;
-import org.dustyroom.ui.loading.AsyncViewerSession;
-import org.dustyroom.ui.loading.ViewerFrame;
-import org.dustyroom.ui.loading.ViewerView;
-import org.dustyroom.ui.utils.DialogUtils;
-import org.dustyroom.ui.utils.UiUtils;
+import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.components.*;
+import org.dustyroom.ui.components.MenuBar;
+import org.dustyroom.ui.loading.*;
 import org.dustyroom.ui.theme.ViewerTheme;
-import javax.swing.SwingUtilities;
+import org.dustyroom.ui.utils.DialogUtils;
+import org.dustyroom.ui.utils.OpenDirectory;
+import org.dustyroom.ui.utils.UiUtils;
 
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.JComponent;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JViewport;
-import javax.swing.UIManager;
+import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.Point;
+import java.awt.*;
 import java.io.File;
+import java.text.ParseException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
@@ -52,8 +40,9 @@ public class ViewerController {
     private ReaderSurface readerSurface;
     private ViewerActions actions;
     private ViewerFrame displayedFrame;
-    private org.dustyroom.ui.components.ThumbnailPanel thumbnailPanel;
+    private ThumbnailPanel thumbnailPanel;
     private boolean thumbnailsVisible;
+    private boolean groupRecentByFolder;
     private String lastDirectory;
     private boolean choosingFile;
     private boolean fullscreen;
@@ -63,18 +52,33 @@ public class ViewerController {
         this.frame = frame;
         this.lastDirectory = settings.lastDirectory();
         this.thumbnailsVisible = settings.thumbnailsVisible();
+        this.groupRecentByFolder = settings.groupRecentByFolder();
         this.graphicsDevice = graphicsDevice;
         this.imageComponent = imageComponent;
         this.scrollPane = scrollPane;
         this.session = new AsyncViewerSession(new ViewerView() {
             @Override
+            public void showAnimations(PageKey page, List<AnimatedPage> animations) {
+                if (displayedFrame != null && page.equals(displayedFrame.pageKey()))
+                    imageComponent.setAnimations(animations);
+            }
+
+            @Override
             public void showLoading() {
+                imageComponent.setAnimationPaused(true);
                 frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                 if (navigationPanel != null) navigationPanel.setLoading(true);
                 if (readerSurface != null) readerSurface.setLoading(true);
             }
 
-            @Override public void showPages(java.util.List<org.dustyroom.be.models.PageRef> pages) {
+            @Override
+            public void showRecentBooks(List<RecentBook> books) {
+                if (readerSurface != null) readerSurface.showRecentBooks(books);
+                if (menuBar instanceof MenuBar menu) menu.showRecentBooks(books);
+            }
+
+            @Override
+            public void showPages(List<PageRef> pages) {
                 if (thumbnailPanel != null) thumbnailPanel.showPages(pages);
             }
 
@@ -90,6 +94,7 @@ public class ViewerController {
 
             @Override
             public void showError(String message) {
+                imageComponent.setAnimationPaused(false);
                 frame.setCursor(Cursor.getDefaultCursor());
                 refreshControls();
                 if (readerSurface != null) readerSurface.setLoading(false);
@@ -104,12 +109,31 @@ public class ViewerController {
         this.navigationPanel = navigationPanel;
         this.readerSurface = readerSurface;
         this.actions = actions;
+        ReaderGestures.install(imageComponent, scrollPane, () -> {
+            saveSettings();
+            refreshControls();
+        });
+        Consumer<String> openRecent = id -> openFile(new File(id));
+        readerSurface.setRecentHandlers(openRecent, session::hideRecentBook);
+        if (menuBar instanceof MenuBar menu) {
+            menu.setRecentHandlers(openRecent, session::refreshRecentBooks);
+        }
+        readerSurface.setRecentGrouping(groupRecentByFolder, grouped -> {
+            groupRecentByFolder = grouped;
+            session.setGroupRecentByFolder(grouped);
+            saveSettings();
+        });
+        session.setGroupRecentByFolder(groupRecentByFolder);
         refreshControls();
     }
 
-    public org.dustyroom.ui.components.ThumbnailPanel createThumbnailPanel() {
-        thumbnailPanel = new org.dustyroom.ui.components.ThumbnailPanel(session::thumbnail,
-                session::goToPage, this::toggleThumbnails);
+    public ThumbnailPanel createThumbnailPanel() {
+        thumbnailPanel = new ThumbnailPanel(session::thumbnail,
+                page -> {
+                    session.goToPage(page);
+                    // Leave the list's local navigation bindings after mouse or Enter activation.
+                    frame.requestFocusInWindow();
+                }, this::toggleThumbnails);
         thumbnailPanel.setExpanded(thumbnailsVisible);
         thumbnailPanel.setVisible(false);
         actions.toggleThumbnails().putValue(Action.SELECTED_KEY, thumbnailsVisible);
@@ -122,31 +146,56 @@ public class ViewerController {
         thumbnailPanel.setExpanded(thumbnailsVisible);
         thumbnailPanel.setVisible(displayedFrame != null);
         frame.revalidate();
-        SwingUtilities.invokeLater(() -> { imageComponent.updateScale(); imageComponent.repaint(); });
+        SwingUtilities.invokeLater(() -> {
+            imageComponent.updateScale();
+            imageComponent.repaint();
+        });
         saveSettings();
     }
 
+    public void showHome() {
+        if (resetting) return;
+        if (fullscreen) exitFullscreen();
+        readerSurface.showWelcome();
+        if (thumbnailPanel != null) thumbnailPanel.setVisible(false);
+        frame.setTitle("Yonaka Reader");
+        session.refreshRecentBooks();
+    }
+
+    public void openExternalFile(File file) {
+        frame.setExtendedState(frame.getExtendedState() & ~Frame.ICONIFIED);
+        frame.toFront();
+        frame.requestFocus();
+        openFile(file);
+    }
+
     public void openFile(File file) {
+        imageComponent.setAnimationPaused(true);
         session.open(file);
     }
 
     public void chooseFile() {
         if (choosingFile || resetting) return;
         choosingFile = true;
+        imageComponent.setAnimationPaused(true);
         actions.openFile().setEnabled(false);
         String requestedDirectory = lastDirectory;
-        new javax.swing.SwingWorker<File, Void>() {
-            @Override protected File doInBackground() {
-                return org.dustyroom.ui.utils.OpenDirectory.resolve(requestedDirectory, System.getProperty("user.home"));
+        new SwingWorker<File, Void>() {
+            @Override
+            protected File doInBackground() {
+                return OpenDirectory.resolve(requestedDirectory, System.getProperty("user.home"));
             }
 
-            @Override protected void done() {
+            @Override
+            protected void done() {
                 try {
                     File root = get();
                     if (!resetting) showFileChooser(root);
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
-                } catch (java.util.concurrent.ExecutionException exception) {
+                    imageComponent.setAnimationPaused(false);
+                } catch (ExecutionException exception) {
+                    imageComponent.setAnimationPaused(false);
                     DialogUtils.showError(frame, "Unable to access the last open directory.");
                 } finally {
                     choosingFile = false;
@@ -175,6 +224,8 @@ public class ViewerController {
         int result = fileChooser.showOpenDialog(frame);
         if (result == JFileChooser.APPROVE_OPTION) {
             openFile(fileChooser.getSelectedFile());
+        } else {
+            imageComponent.setAnimationPaused(false);
         }
 
         if (fullscreen) {
@@ -194,10 +245,11 @@ public class ViewerController {
             try {
                 page.commitEdit();
                 int number = ((Number) page.getValue()).intValue();
-                if (number < 1 || number > displayedFrame.pageCount()) throw new java.text.ParseException("Out of range", 0);
+                if (number < 1 || number > displayedFrame.pageCount())
+                    throw new ParseException("Out of range", 0);
                 session.goToPage(number);
                 return;
-            } catch (java.text.ParseException exception) {
+            } catch (ParseException exception) {
                 DialogUtils.showError(frame, "Enter a page number between 1 and " + displayedFrame.pageCount() + ".");
             }
         }
@@ -228,19 +280,19 @@ public class ViewerController {
     }
 
     public void fitHeight() {
-        imageComponent.setFitMode(ImageComponent.FitMode.FIT_HEIGHT);
+        imageComponent.setFitMode(FitMode.FIT_HEIGHT);
         saveSettings();
         refreshControls();
     }
 
     public void fitWidth() {
-        imageComponent.setFitMode(ImageComponent.FitMode.FIT_WIDTH);
+        imageComponent.setFitMode(FitMode.FIT_WIDTH);
         saveSettings();
         refreshControls();
     }
 
     public void fitScreen() {
-        imageComponent.setFitMode(ImageComponent.FitMode.FIT_SCREEN);
+        imageComponent.setFitMode(FitMode.FIT_SCREEN);
         saveSettings();
         refreshControls();
     }
@@ -293,8 +345,8 @@ public class ViewerController {
                 "Reset all settings and reading history?\n\n"
                         + "Saved page positions and reading modes will be removed.\n"
                         + "Your image files, folders and ZIP archives will not be deleted.\n\n"
-                        + "Manga Reader will close. The next launch will start with default settings.",
-                "Reset Manga Reader", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+                        + "Yonaka Reader will close. The next launch will start with default settings.",
+                "Reset Yonaka Reader", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
                 null, options, options[1]);
         if (choice != 0) return;
         resetting = true;
@@ -366,8 +418,8 @@ public class ViewerController {
     }
 
     private void saveSettings() {
-        double zoom = imageComponent.getFitMode() == ImageComponent.FitMode.ORIGINAL ? imageComponent.getScale() : 1.0;
-        session.saveSettings(new ReaderSettings(UiUtils.currentTheme(), imageComponent.getFitMode(), zoom, lastDirectory, thumbnailsVisible));
+        double zoom = imageComponent.getFitMode() == FitMode.ORIGINAL ? imageComponent.getScale() : 1.0;
+        session.saveSettings(new ReaderSettings(UiUtils.currentTheme(), imageComponent.getFitMode(), zoom, lastDirectory, thumbnailsVisible, groupRecentByFolder));
     }
 
     private void refreshControls() {
@@ -389,7 +441,7 @@ public class ViewerController {
             saveSettings();
         }
         frame.setTitle(viewerFrame.title());
-        scrollPane.getViewport().setViewPosition(new Point(0, 0));
+        frame.validate();
         imageComponent.setImageAndCenter(viewerFrame.image(), scrollPane);
         session.remember(viewerFrame);
         refreshControls();

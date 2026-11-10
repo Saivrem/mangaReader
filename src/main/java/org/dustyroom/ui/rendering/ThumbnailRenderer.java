@@ -1,7 +1,6 @@
 package org.dustyroom.ui.rendering;
 
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public final class ThumbnailRenderer {
@@ -10,7 +9,8 @@ public final class ThumbnailRenderer {
     // Retain enough samples for Retina and fractional desktop scaling, independently of the current monitor.
     public static final int PIXEL_DENSITY = 3;
 
-    private ThumbnailRenderer() {}
+    private ThumbnailRenderer() {
+    }
 
     public static BufferedImage render(BufferedImage image) {
         double scale = Math.min(1.0, Math.min((double) LOGICAL_WIDTH * PIXEL_DENSITY / image.getWidth(),
@@ -30,7 +30,9 @@ public final class ThumbnailRenderer {
                         nextWidth == width && nextHeight == height
                                 ? RenderingHints.VALUE_INTERPOLATION_BICUBIC : RenderingHints.VALUE_INTERPOLATION_BILINEAR);
                 graphics.drawImage(current, 0, 0, nextWidth, nextHeight, null);
-            } finally { graphics.dispose(); }
+            } finally {
+                graphics.dispose();
+            }
             current = next;
         } while (current.getWidth() != width || current.getHeight() != height);
         return current;

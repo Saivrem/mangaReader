@@ -10,6 +10,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class BoundedImageCacheTest {
     private static final long LARGE_LIMIT = 1024 * 1024;
 
+    private static PageKey key(String page) {
+        return new PageKey("source", page);
+    }
+
+    private static BufferedImage image(int width, int height) {
+        return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+    }
+
     @Test
     void evictsLeastRecentlyUsedEntry() {
         BoundedImageCache cache = new BoundedImageCache(2, LARGE_LIMIT);
@@ -82,13 +90,5 @@ class BoundedImageCacheTest {
         assertFalse(cache.contains(oversized));
         assertEquals(1, cache.size());
         assertEquals(16, cache.estimatedBytes());
-    }
-
-    private static PageKey key(String page) {
-        return new PageKey("source", page);
-    }
-
-    private static BufferedImage image(int width, int height) {
-        return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
     }
 }

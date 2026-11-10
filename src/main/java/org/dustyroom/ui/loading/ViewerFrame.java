@@ -1,7 +1,7 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.be.models.PageKey;
+import org.dustyroom.ui.navigation.ReadingMode;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

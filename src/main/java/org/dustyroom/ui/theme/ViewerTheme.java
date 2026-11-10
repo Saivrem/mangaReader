@@ -12,6 +12,11 @@ public enum ViewerTheme {
         this.resource = resource;
     }
 
-    public String label() { return label; }
-    public String resource() { return resource; }
+    public String label() {
+        return label;
+    }
+
+    public String resource() {
+        return resource;
+    }
 }
