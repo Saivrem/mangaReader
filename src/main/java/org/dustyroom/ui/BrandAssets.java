@@ -1,31 +1,36 @@
 package org.dustyroom.ui;
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BaseMultiResolutionImage;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import lombok.experimental.UtilityClass;
 
 /**
  * Decode and resize once on the startup thread, before creating Swing windows.
  */
-public final class BrandAssets {
+@UtilityClass
+public class BrandAssets {
     private static List<BufferedImage> windowIcons = List.of();
     private static Icon aboutIcon;
     private static Icon welcomeIcon;
 
-    private BrandAssets() {
-    }
-
     public static void load() {
         try (InputStream stream = BrandAssets.class.getResourceAsStream("/org/dustyroom/ui/branding/yonaka-original.png")) {
-            if (stream == null) throw new IOException("Missing Yonaka icon");
+            if (stream == null) {
+                throw new IOException("Missing Yonaka icon");
+            }
             BufferedImage source = ImageIO.read(stream);
-            if (source == null) throw new IOException("Invalid Yonaka icon");
+            if (source == null) {
+                throw new IOException("Invalid Yonaka icon");
+            }
             windowIcons = List.of(resize(source, 32), resize(source, 64), resize(source, 256));
             aboutIcon = multiResolutionIcon(source, 64);
             welcomeIcon = multiResolutionIcon(source, 96);

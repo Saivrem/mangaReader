@@ -1,8 +1,8 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.animation.AnimationDecoder;
-import org.dustyroom.be.animation.AnimationFrame;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.animation.AnimationFrame;
 import org.junit.jupiter.api.Test;
 
 import java.awt.image.BufferedImage;
@@ -40,15 +40,15 @@ class BufferedAnimationTest {
         });
         try (BufferedAnimation player = new BufferedAnimation(clip, error -> fail(error))) {
             await(() -> player.bufferedFrames() == 2);
-            assertEquals(1, player.advance(0).image().getRGB(0, 0) & 255);
+            assertEquals(1, player.advance(0).getImage().getRGB(0, 0) & 255);
             await(() -> player.bufferedFrames() == 2);
-            assertEquals(2, player.advance(TimeUnit.MILLISECONDS.toNanos(120)).image().getRGB(0, 0) & 255);
+            assertEquals(2, player.advance(TimeUnit.MILLISECONDS.toNanos(120)).getImage().getRGB(0, 0) & 255);
             await(() -> player.bufferedFrames() == 2);
             // Second deadline remains 200 ms, rather than drifting to 220 ms.
-            assertEquals(3, player.advance(TimeUnit.MILLISECONDS.toNanos(200)).image().getRGB(0, 0) & 255);
+            assertEquals(3, player.advance(TimeUnit.MILLISECONDS.toNanos(200)).getImage().getRGB(0, 0) & 255);
             assertSame(player.currentFrame(), player.currentFrame());
             await(() -> player.bufferedFrames() == 2);
-            assertEquals(5, player.advance(TimeUnit.MILLISECONDS.toNanos(450)).image().getRGB(0, 0) & 255);
+            assertEquals(5, player.advance(TimeUnit.MILLISECONDS.toNanos(450)).getImage().getRGB(0, 0) & 255);
         }
     }
 
@@ -73,7 +73,7 @@ class BufferedAnimationTest {
         try (BufferedAnimation player = new BufferedAnimation(clip, error -> fail(error))) {
             await(() -> player.bufferedFrames() == 2);
             assertEquals(2, reads.get());
-            assertEquals(1, player.advance(0).image().getRGB(0, 0) & 255);
+            assertEquals(1, player.advance(0).getImage().getRGB(0, 0) & 255);
             await(() -> reads.get() == 3);
             assertNotNull(player.advance(1)); // Before deadline: no consumption.
             assertEquals(3, reads.get());
@@ -110,12 +110,12 @@ class BufferedAnimationTest {
             for (int i = 0; i < 9; i++) {
                 await(() -> player.bufferedFrames() > 0);
                 AnimationFrame frame = player.advance(TimeUnit.MILLISECONDS.toNanos(i * 100L));
-                assertEquals(i % 3 + 1, frame.image().getRGB(0, 0) & 255);
+                assertEquals(i % 3 + 1, frame.getImage().getRGB(0, 0) & 255);
             }
             await(() -> player.finished(TimeUnit.SECONDS.toNanos(1)));
             assertEquals(3, opens.get());
             assertEquals(3, closes.get());
-            assertEquals(3, player.advance(TimeUnit.SECONDS.toNanos(2)).image().getRGB(0, 0) & 255);
+            assertEquals(3, player.advance(TimeUnit.SECONDS.toNanos(2)).getImage().getRGB(0, 0) & 255);
             assertNull(failure.get());
         }
     }

@@ -1,14 +1,16 @@
 package org.dustyroom.ui.utils;
 
 import com.formdev.flatlaf.FlatPropertiesLaf;
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
-import org.dustyroom.ui.theme.ViewerTheme;
-
-import javax.swing.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
+import org.dustyroom.be.models.state.ViewerTheme;
 
 @Slf4j
 @UtilityClass
@@ -26,7 +28,9 @@ public class UiUtils {
     public static boolean installTheme(ViewerTheme theme) {
         String path = "/org/dustyroom/ui/theme/" + theme.resource();
         try (InputStream stream = UiUtils.class.getResourceAsStream(path)) {
-            if (stream == null) throw new IOException("Missing theme: " + path);
+            if (stream == null) {
+                throw new IOException("Missing theme: " + path);
+            }
             Properties properties = new Properties();
             properties.load(stream);
             UIManager.setLookAndFeel(new FlatPropertiesLaf("Yonaka Reader " + theme.label(), properties));

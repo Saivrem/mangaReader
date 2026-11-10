@@ -14,9 +14,15 @@ public final class NaturalOrderComparator implements Comparator<String> {
 
     @Override
     public int compare(String a, String b) {
-        if (a == b) return 0;
-        if (a == null) return -1;
-        if (b == null) return 1;
+        if (a == b) {
+            return 0;
+        }
+        if (a == null) {
+            return -1;
+        }
+        if (b == null) {
+            return 1;
+        }
 
         int leftIndex = 0;
         int rightIndex = 0;
@@ -24,8 +30,12 @@ public final class NaturalOrderComparator implements Comparator<String> {
         int rightLength = b.length();
 
         while (leftIndex < leftLength || rightIndex < rightLength) {
-            if (leftIndex >= leftLength) return -1;
-            if (rightIndex >= rightLength) return 1;
+            if (leftIndex >= leftLength) {
+                return -1;
+            }
+            if (rightIndex >= rightLength) {
+                return 1;
+            }
 
             char leftChar = a.charAt(leftIndex);
             char rightChar = b.charAt(rightIndex);
@@ -35,24 +45,38 @@ public final class NaturalOrderComparator implements Comparator<String> {
             if (leftIsDigit && rightIsDigit) {
                 int leftTokenStart = leftIndex;
                 int rightTokenStart = rightIndex;
-                while (leftIndex < leftLength && Character.isDigit(a.charAt(leftIndex))) leftIndex++;
-                while (rightIndex < rightLength && Character.isDigit(b.charAt(rightIndex))) rightIndex++;
+                while (leftIndex < leftLength && Character.isDigit(a.charAt(leftIndex))) {
+                    leftIndex++;
+                }
+                while (rightIndex < rightLength && Character.isDigit(b.charAt(rightIndex))) {
+                    rightIndex++;
+                }
 
                 int cmp = compareNumericToken(a, leftTokenStart, leftIndex, b, rightTokenStart, rightIndex);
-                if (cmp != 0) return cmp;
+                if (cmp != 0) {
+                    return cmp;
+                }
             } else {
                 int leftTokenStart = leftIndex;
                 int rightTokenStart = rightIndex;
-                while (leftIndex < leftLength && !Character.isDigit(a.charAt(leftIndex))) leftIndex++;
-                while (rightIndex < rightLength && !Character.isDigit(b.charAt(rightIndex))) rightIndex++;
+                while (leftIndex < leftLength && !Character.isDigit(a.charAt(leftIndex))) {
+                    leftIndex++;
+                }
+                while (rightIndex < rightLength && !Character.isDigit(b.charAt(rightIndex))) {
+                    rightIndex++;
+                }
 
                 String leftToken = a.substring(leftTokenStart, leftIndex);
                 String rightToken = b.substring(rightTokenStart, rightIndex);
 
                 int cmp = leftToken.compareToIgnoreCase(rightToken);
-                if (cmp != 0) return cmp;
+                if (cmp != 0) {
+                    return cmp;
+                }
                 cmp = leftToken.compareTo(rightToken);
-                if (cmp != 0) return cmp;
+                if (cmp != 0) {
+                    return cmp;
+                }
             }
         }
 
@@ -65,8 +89,12 @@ public final class NaturalOrderComparator implements Comparator<String> {
 
         int leftFirstNonZero = leftStart;
         int rightFirstNonZero = rightStart;
-        while (leftFirstNonZero < leftEnd && left.charAt(leftFirstNonZero) == '0') leftFirstNonZero++;
-        while (rightFirstNonZero < rightEnd && right.charAt(rightFirstNonZero) == '0') rightFirstNonZero++;
+        while (leftFirstNonZero < leftEnd && left.charAt(leftFirstNonZero) == '0') {
+            leftFirstNonZero++;
+        }
+        while (rightFirstNonZero < rightEnd && right.charAt(rightFirstNonZero) == '0') {
+            rightFirstNonZero++;
+        }
 
         int leftSignificantLength = leftEnd - leftFirstNonZero;
         int rightSignificantLength = rightEnd - rightFirstNonZero;
@@ -77,13 +105,17 @@ public final class NaturalOrderComparator implements Comparator<String> {
         }
 
         // Both are all zeros => equal numeric value
-        if (leftSignificantLength == 0) return 0;
+        if (leftSignificantLength == 0) {
+            return 0;
+        }
 
         // Same length numeric value, compare lexicographically
         for (int i = 0; i < leftSignificantLength; i++) {
             char leftChar = left.charAt(leftFirstNonZero + i);
             char rightChar = right.charAt(rightFirstNonZero + i);
-            if (leftChar != rightChar) return Character.compare(leftChar, rightChar);
+            if (leftChar != rightChar) {
+                return Character.compare(leftChar, rightChar);
+            }
         }
 
         // Numeric values equal, order by number of leading zeros (more zeros first)

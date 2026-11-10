@@ -1,7 +1,9 @@
 package org.dustyroom.persistence;
 
-import org.dustyroom.ui.navigation.ReadingMode;
-import org.dustyroom.ui.theme.ViewerTheme;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.persistence.SqliteReaderStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -9,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.stream.Stream;
 
@@ -31,15 +32,15 @@ class RecentBooksTest {
         BookState state = book(file.toString(), 3);
         try (SqliteReaderStore store = new SqliteReaderStore(db)) {
             store.saveBook(state);
-            store.hideRecent(state.sourceId());
-            store.saveBook(book(state.sourceId(), 4));
+            store.hideRecent(state.getSourceId());
+            store.saveBook(book(state.getSourceId(), 4));
             assertTrue(store.recentBooks(12).isEmpty());
-            assertEquals(4, store.book(state.sourceId()).orElseThrow().pageNumber());
+            assertEquals(4, store.book(state.getSourceId()).orElseThrow().getPageNumber());
         }
         try (SqliteReaderStore store = new SqliteReaderStore(db)) {
             assertTrue(store.recentBooks(12).isEmpty());
-            store.showRecent(state.sourceId());
-            assertEquals(4, store.recentBooks(12).get(0).pageNumber());
+            store.showRecent(state.getSourceId());
+            assertEquals(4, store.recentBooks(12).get(0).getPageNumber());
             store.reset();
             assertTrue(store.recentBooks(12).isEmpty());
         }
@@ -56,15 +57,15 @@ class RecentBooksTest {
                 sql.execute("UPDATE books SET updated_at=CAST(substr(source_id,6) AS INTEGER)");
             }
             assertEquals(12, store.recentBooks(12).size());
-            assertEquals("book-14", store.recentBooks(12).get(0).sourceId());
+            assertEquals("book-14", store.recentBooks(12).get(0).getSourceId());
             store.saveBook(book("book-0", 5));
-            assertEquals("book-0", store.recentBooks(12).get(0).sourceId());
+            assertEquals("book-0", store.recentBooks(12).get(0).getSourceId());
             assertEquals(15, store.recentBooks(100).size());
         }
     }
 
     @Test
-    void upgradesSchemaOneWithoutLosingStateAndMakesReadableBackup() throws Exception {
+    void upgradesSchemaOneWithoutLosingStateOrCreatingCopies() throws Exception {
         Path db = directory.resolve("reader.sqlite3");
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db);
              Statement sql = connection.createStatement()) {
@@ -76,20 +77,10 @@ class RecentBooksTest {
         }
         try (SqliteReaderStore store = new SqliteReaderStore(db)) {
             assertEquals(book("saved.zip", 3), store.recentBooks(12).get(0));
-            assertEquals(ViewerTheme.LIGHT, store.settings().theme());
+            assertEquals(ViewerTheme.LIGHT, store.settings().getTheme());
         }
-        Path backup;
         try (Stream<Path> files = Files.list(directory)) {
-            backup = files.filter(p -> p.getFileName().toString().endsWith(".bak")).findFirst().orElseThrow();
-        }
-        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + backup);
-             Statement sql = connection.createStatement()) {
-            try (ResultSet result = sql.executeQuery("PRAGMA user_version")) {
-                assertEquals(1, result.getInt(1));
-            }
-            try (ResultSet result = sql.executeQuery("SELECT page_number FROM books")) {
-                assertEquals(3, result.getInt(1));
-            }
+            assertTrue(files.noneMatch(path -> path.getFileName().toString().endsWith(".bak")));
         }
     }
 }

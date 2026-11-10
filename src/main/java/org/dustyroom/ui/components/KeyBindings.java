@@ -1,10 +1,14 @@
 package org.dustyroom.ui.components;
 
+import java.awt.event.KeyEvent;
+import javax.swing.Action;
+import javax.swing.ActionMap;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.JRootPane;
+import javax.swing.KeyStroke;
 import org.dustyroom.ui.PlatformUi;
 import org.dustyroom.ui.actions.ViewerActions;
-
-import javax.swing.*;
-import java.awt.event.KeyEvent;
 
 public class KeyBindings {
 
@@ -32,6 +36,7 @@ public class KeyBindings {
 
         bindPrimary(inputMap, actionMap, actions.toggleThumbnails());
         bindPrimary(inputMap, actionMap, actions.openFile());
+        bindPrimary(inputMap, actionMap, actions.settings());
         bindPrimary(inputMap, actionMap, actions.home());
         bindPrimary(inputMap, actionMap, actions.goToPage());
         bindPrimary(inputMap, actionMap, actions.exitFullscreen());

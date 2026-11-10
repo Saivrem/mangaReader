@@ -1,15 +1,16 @@
 package org.dustyroom.ui.actions;
 
+import java.awt.HeadlessException;
+import java.awt.Toolkit;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import javax.swing.Action;
+import javax.swing.KeyStroke;
 import org.dustyroom.ui.PlatformUi;
 import org.dustyroom.ui.ViewerController;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-
 public class DefaultViewerActions implements ViewerActions {
+    private final Action openPageGrid;
     private final Action toggleThumbnails;
     private final Action openFile;
     private final Action home;
@@ -31,10 +32,12 @@ public class DefaultViewerActions implements ViewerActions {
     private final Action setMangaReadingMode;
     private final Action showAbout;
     private final Action resetApplication;
+    private final Action settings;
     private final Action goToPage;
     private final Action exitFullscreen;
 
     public DefaultViewerActions(ViewerController controller) {
+        this.openPageGrid = action("openPageGrid", "Grid", "Open page grid", null, controller::openPageGrid);
         this.toggleThumbnails = action("toggleThumbnails", "Thumbnails", "Show or hide page thumbnails (T)",
                 key(KeyEvent.VK_T), controller::toggleThumbnails);
         KeyStroke homeShortcut = menuShortcut(KeyEvent.VK_H);
@@ -78,20 +81,17 @@ public class DefaultViewerActions implements ViewerActions {
                 key(KeyEvent.VK_G), controller::choosePage);
         this.exitFullscreen = action("exitFullscreen", "Leave Full Screen", "Leave full-screen mode",
                 key(KeyEvent.VK_ESCAPE), controller::exitFullscreen);
+        this.settings = action("settings", "Settings…", "Appearance, reading defaults, library and data",
+                menuShortcut(KeyEvent.VK_COMMA), controller::showSettings);
         this.resetApplication = action("resetApplication", "Reset Application…",
-                "Reset settings and reading history", null, controller::resetApplication);
+                "Reset settings, library and reading history", null, controller::resetApplication);
         this.showAbout = action("showAbout", "About Yonaka Reader", "Show application information",
                 null, controller::showAboutDialog);
     }
 
     static Action action(String id, String name, String description,
                          KeyStroke accelerator, Runnable runnable) {
-        Action action = new AbstractAction(name) {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                runnable.run();
-            }
-        };
+        Action action = new RunnableAction(name, runnable);
         action.putValue(Action.ACTION_COMMAND_KEY, id);
         action.putValue(Action.SHORT_DESCRIPTION, description);
         if (accelerator != null) {
@@ -112,6 +112,11 @@ public class DefaultViewerActions implements ViewerActions {
 
     private static KeyStroke key(int keyCode) {
         return KeyStroke.getKeyStroke(keyCode, 0);
+    }
+
+    @Override
+    public Action openPageGrid() {
+        return openPageGrid;
     }
 
     @Override
@@ -217,6 +222,11 @@ public class DefaultViewerActions implements ViewerActions {
     @Override
     public Action exitFullscreen() {
         return exitFullscreen;
+    }
+
+    @Override
+    public Action settings() {
+        return settings;
     }
 
     @Override

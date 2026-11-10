@@ -1,9 +1,18 @@
 plugins {
-    id 'java'
+    id 'application'
+}
+
+application {
+    mainClass = 'org.dustyroom.Main'
+    applicationDefaultJvmArgs = ['--enable-native-access=ALL-UNNAMED']
+}
+
+tasks.withType(JavaExec).configureEach {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 group = 'org.dustyroom'
-version = '0.9.0'
+version = '0.10.0'
 
 java {
     toolchain {
@@ -94,3 +103,16 @@ apply from: 'gradle/macos.gradle'
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 
 apply from: 'gradle/desktop-packages.gradle'
+
+// Exercises the same JavaExec launch defaults as `run`, with future JNI restrictions enforced.
+tasks.register('launchSmoke', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('testClasses'), tasks.named('packagedStoreSmoke')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'org.dustyroom.persistence.PackagedStoreSmoke'
+    jvmArgs '--illegal-native-access=deny'
+    systemProperty 'java.awt.headless', 'true'
+    def smokeTemp = layout.buildDirectory.dir('launch-smoke-tmp')
+    doFirst { smokeTemp.get().asFile.mkdirs() }
+    systemProperty 'org.sqlite.tmpdir', smokeTemp.get().asFile.absolutePath
+}

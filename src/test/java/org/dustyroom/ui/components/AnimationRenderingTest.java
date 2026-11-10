@@ -1,13 +1,15 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.animation.AnimationDecoder;
-import org.dustyroom.be.animation.AnimationFrame;
-import org.dustyroom.ui.loading.AnimatedPage;
+import org.dustyroom.be.models.animation.AnimatedPage;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.animation.AnimationFrame;
+import org.dustyroom.be.models.state.FitMode;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;

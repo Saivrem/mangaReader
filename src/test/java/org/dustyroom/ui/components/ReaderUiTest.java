@@ -1,14 +1,16 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.persistence.ReaderSettings;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.ui.actions.ViewerActionState;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.loading.ViewerFrame;
-import org.dustyroom.ui.navigation.ReadingMode;
-import org.dustyroom.ui.theme.ViewerTheme;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
@@ -44,6 +46,8 @@ class ReaderUiTest {
             ViewerActions actions = actions();
             ViewerActionState.apply(actions, null, FitMode.FIT_SCREEN, false);
             NavigationPanel panel = new NavigationPanel(actions);
+            assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
+                    .anyMatch(button -> button.getAction() == actions.home() && button.isEnabled()));
             assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
                     .anyMatch(button -> button.getAction() == actions.firstImage()));
             assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)

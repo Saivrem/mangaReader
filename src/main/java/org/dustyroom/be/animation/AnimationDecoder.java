@@ -1,6 +1,7 @@
 package org.dustyroom.be.animation;
 
 import java.io.IOException;
+import org.dustyroom.be.models.animation.AnimationFrame;
 
 /**
  * Sequential decoder for one pass through an animation.

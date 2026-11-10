@@ -1,9 +1,8 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.be.models.PageRef;
-
 import java.awt.image.BufferedImage;
 import java.util.function.Consumer;
+import org.dustyroom.be.models.book.PageRef;
 
 @FunctionalInterface
 public interface ThumbnailLoader {

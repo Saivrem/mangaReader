@@ -1,6 +1,6 @@
 package org.dustyroom.be.iterators;
 
-import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.book.Picture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,11 +17,11 @@ class FileImageIteratorTest {
 
     private static void assertName(String expected, Picture picture) {
         assertNotNull(picture);
-        assertEquals(expected, picture.metadata().name());
+        assertEquals(expected, picture.getMetadata().getName());
     }
 
     private static void assertBlue(Picture picture) {
-        int rgb = picture.image().getRGB(1, 1);
+        int rgb = picture.getImage().getRGB(1, 1);
         assertTrue((rgb >>> 16 & 0xff) < 20);
         assertTrue((rgb >>> 8 & 0xff) < 20);
         assertTrue((rgb & 0xff) > 200);
@@ -63,10 +63,10 @@ class FileImageIteratorTest {
 
         Picture picture = new FileImageIterator(page.toFile()).next();
 
-        assertEquals("page.png", picture.metadata().name());
-        assertEquals(tempDir.getFileName().toString(), picture.metadata().fileName());
-        assertEquals(tempDir.toFile(), picture.metadata().dir());
-        assertNotNull(picture.image());
+        assertEquals("page.png", picture.getMetadata().getName());
+        assertEquals(tempDir.getFileName().toString(), picture.getMetadata().getFileName());
+        assertEquals(tempDir.toFile(), picture.getMetadata().getDir());
+        assertNotNull(picture.getImage());
     }
 
     @Test
@@ -104,9 +104,9 @@ class FileImageIteratorTest {
         assertName("page.png", iterator.next());
         assertEquals(volume2.toFile(), iterator.getVolumeRoot());
 
-        assertEquals("volume10", iterator.nextVol().metadata().fileName());
-        assertEquals("volume1", iterator.nextVol().metadata().fileName());
-        assertEquals("volume10", iterator.prevVol().metadata().fileName());
+        assertEquals("volume10", iterator.nextVol().getMetadata().getFileName());
+        assertEquals("volume1", iterator.nextVol().getMetadata().getFileName());
+        assertEquals("volume10", iterator.prevVol().getMetadata().getFileName());
 
         assertTrue(Files.exists(page1));
     }
@@ -124,12 +124,12 @@ class FileImageIteratorTest {
         assertName("page1.png", iterator.next());
 
         Picture nextVolume = iterator.nextVol();
-        assertEquals("volume2", nextVolume.metadata().fileName());
+        assertEquals("volume2", nextVolume.getMetadata().getFileName());
         assertName("page1.png", nextVolume);
         assertName("page2.png", iterator.next());
 
         Picture previousVolume = iterator.prevVol();
-        assertEquals("volume1", previousVolume.metadata().fileName());
+        assertEquals("volume1", previousVolume.getMetadata().getFileName());
         assertName("page1.png", previousVolume);
         assertName("page2.png", iterator.next());
     }

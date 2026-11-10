@@ -1,7 +1,7 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.persistence.BookState;
-import org.dustyroom.ui.navigation.ReadingMode;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;

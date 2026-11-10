@@ -1,30 +1,34 @@
 package org.dustyroom.be.animation.gif;
 
-import org.dustyroom.be.animation.AnimationClip;
-import org.w3c.dom.Node;
-
-import javax.imageio.ImageReader;
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import javax.imageio.ImageReader;
+import lombok.experimental.UtilityClass;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.w3c.dom.Node;
 
 /**
  * Sequential GIF composition. Consumed compressed bytes and prior frames are discarded.
  */
-public final class GifDecoder {
-    private GifDecoder() {
-    }
+@UtilityClass
+public class GifDecoder {
 
     public static BufferedImage firstFrame(ImageReader reader) throws IOException {
         Node metadata = reader.getStreamMetadata().getAsTree("javax_imageio_gif_stream_1.0");
         Node screen = child(metadata, "LogicalScreenDescriptor");
         int width = integer(screen, "logicalScreenWidth"), height = integer(screen, "logicalScreenHeight");
-        if (width <= 0 || height <= 0) throw new IOException("Invalid GIF canvas");
+        if (width <= 0 || height <= 0) {
+            throw new IOException("Invalid GIF canvas");
+        }
         Node frameMetadata = reader.getImageMetadata(0).getAsTree("javax_imageio_gif_image_1.0");
         Node descriptor = child(frameMetadata, "ImageDescriptor");
         BufferedImage canvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        if (!"TRUE".equals(attribute(child(frameMetadata, "GraphicControlExtension"), "transparentColorFlag")))
+        if (!"TRUE".equals(attribute(child(frameMetadata, "GraphicControlExtension"), "transparentColorFlag"))) {
             fill(canvas, 0, 0, width, height, background(metadata));
+        }
         Graphics2D g = canvas.createGraphics();
         try {
             g.drawImage(reader.read(0), integer(descriptor, "imageLeftPosition"), integer(descriptor, "imageTopPosition"), null);
@@ -43,11 +47,15 @@ public final class GifDecoder {
 
     static Color background(Node metadata) {
         Node table = child(metadata, "GlobalColorTable");
-        if (table == null) return null;
+        if (table == null) {
+            return null;
+        }
         int index = integer(table, "backgroundColorIndex");
-        for (Node entry = table.getFirstChild(); entry != null; entry = entry.getNextSibling())
-            if (integer(entry, "index") == index)
+        for (Node entry = table.getFirstChild(); entry != null; entry = entry.getNextSibling()) {
+            if (integer(entry, "index") == index) {
                 return new Color(integer(entry, "red"), integer(entry, "green"), integer(entry, "blue"));
+            }
+        }
         return null;
     }
 
@@ -74,8 +82,13 @@ public final class GifDecoder {
     }
 
     static Node child(Node parent, String name) {
-        if (parent != null) for (Node node = parent.getFirstChild(); node != null; node = node.getNextSibling())
-            if (node.getNodeName().equals(name)) return node;
+        if (parent != null) {
+            for (Node node = parent.getFirstChild(); node != null; node = node.getNextSibling()) {
+                if (node.getNodeName().equals(name)) {
+                    return node;
+                }
+            }
+        }
         return null;
     }
 

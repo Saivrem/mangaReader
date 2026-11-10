@@ -1,20 +1,20 @@
 package org.dustyroom.ui;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Desktop;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
+import javax.swing.Action;
+import javax.swing.SwingUtilities;
+import lombok.experimental.UtilityClass;
 
 /**
  * Configures UI behavior which must be decided before AWT is initialized.
  */
-public final class PlatformUi {
+@UtilityClass
+public class PlatformUi {
     private static final String SCREEN_MENU_BAR_PROPERTY = "apple.laf.useScreenMenuBar";
-
-    private PlatformUi() {
-    }
 
     public static void configure() {
         boolean macOs = isMacOs(System.getProperty("os.name", ""));
@@ -29,7 +29,9 @@ public final class PlatformUi {
     }
 
     public static void installApplicationHandlers(ViewerController controller) {
-        if (!usesScreenMenuBar() || !Desktop.isDesktopSupported()) return;
+        if (!usesScreenMenuBar() || !Desktop.isDesktopSupported()) {
+            return;
+        }
         Desktop desktop = Desktop.getDesktop();
         if (desktop.isSupported(Desktop.Action.APP_OPEN_FILE)) {
             desktop.setOpenFileHandler(event -> openFiles(event.getFiles(), controller::openExternalFile));

@@ -1,22 +1,24 @@
 package org.dustyroom.ui.rendering;
 
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.PictureMetadata;
-
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.PictureMetadata;
 
 public class SpreadRenderer {
 
     public String buildTitle(PictureMetadata metadata, PageRef secondPage) {
         if (secondPage == null) {
-            return String.format("%s - %s", metadata.fileName(), metadata.name());
+            return String.format("%s - %s", metadata.getFileName(), metadata.getName());
         }
-        return String.format("%s - %s + %s", metadata.fileName(), metadata.name(), secondPage.metadata().name());
+        return String.format("%s - %s + %s", metadata.getFileName(), metadata.getName(), secondPage.getMetadata().getName());
     }
 
     public BufferedImage compose(BufferedImage firstImage, BufferedImage secondImage, boolean rightToLeft) {
-        if (secondImage == null) return firstImage;
+        if (secondImage == null) {
+            return firstImage;
+        }
 
         BufferedImage leftImage = firstImage;
         BufferedImage rightImage = secondImage;

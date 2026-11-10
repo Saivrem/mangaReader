@@ -1,11 +1,12 @@
 package org.dustyroom.ui.components;
 
+import org.dustyroom.be.models.state.ViewerTheme;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.theme.ViewerTheme;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -39,7 +40,7 @@ class MenuBarTest {
         assertFalse(allMenuLabels(menuBar).anyMatch("Color scheme"::equals));
         assertFalse(allMenuLabels(menuBar).anyMatch(label -> label.endsWith(" theme")));
 
-        JMenu themeMenu = (JMenu) menuBar.getMenu(3).getItem(2);
+        JMenu themeMenu = (JMenu) menuBar.getMenu(3).getItem(4);
         assertEquals("Theme", themeMenu.getText());
         assertEquals(2, themeMenu.getItemCount());
         assertEquals("Ayu Dark", themeMenu.getItem(0).getText());
@@ -61,7 +62,7 @@ class MenuBarTest {
                 requested.set(theme);
                 return accept.get();
             });
-            JMenu themes = (JMenu) menuBar.getMenu(3).getItem(2);
+            JMenu themes = (JMenu) menuBar.getMenu(3).getItem(4);
             JMenuItem dark = themes.getItem(0);
             JMenuItem light = themes.getItem(1);
             light.doClick(0);
@@ -89,6 +90,11 @@ class MenuBarTest {
         private NoOpViewerActions() {
             action.putValue(Action.ACCELERATOR_KEY,
                     KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK));
+        }
+
+        @Override
+        public Action openPageGrid() {
+            return action;
         }
 
         @Override
@@ -196,6 +202,10 @@ class MenuBarTest {
         }
 
         @Override
+        public Action settings() {
+            return action;
+        }
+
         public Action resetApplication() {
             return action;
         }

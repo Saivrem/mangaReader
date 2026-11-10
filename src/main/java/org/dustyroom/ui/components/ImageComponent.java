@@ -1,16 +1,26 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.be.animation.AnimationFrame;
-import org.dustyroom.ui.loading.AnimatedPage;
-import org.dustyroom.ui.loading.BufferedAnimation;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.image.BufferedImage;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.geom.Area;
+import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JComponent;
+import javax.swing.JScrollPane;
+import javax.swing.JViewport;
+import javax.swing.Timer;
+import org.dustyroom.be.models.animation.AnimatedPage;
+import org.dustyroom.be.models.animation.AnimationFrame;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.ui.loading.BufferedAnimation;
 
 public class ImageComponent extends JComponent {
     private final Timer animationTimer = new Timer(10, event -> animate());
@@ -23,8 +33,11 @@ public class ImageComponent extends JComponent {
 
     public ImageComponent() {
         addHierarchyListener(event -> {
-            if (isShowing()) startAnimations();
-            else stopAnimations();
+            if (isShowing()) {
+                startAnimations();
+            } else {
+                stopAnimations();
+            }
         });
     }
 
@@ -33,15 +46,23 @@ public class ImageComponent extends JComponent {
         boolean changed = false;
         for (BufferedAnimation player : players) {
             AnimationFrame previous = player.currentFrame();
-            if (player.advance(now) != previous) changed = true;
+            if (player.advance(now) != previous) {
+                changed = true;
+            }
         }
-        if (players.stream().allMatch(player -> player.finished(now))) animationTimer.stop();
-        if (changed) repaint();
+        if (players.stream().allMatch(player -> player.finished(now))) {
+            animationTimer.stop();
+        }
+        if (changed) {
+            repaint();
+        }
     }
 
     private void startAnimations() {
-        if (animationPaused || !players.isEmpty() || animations.isEmpty()) return;
-        players = animations.stream().map(page -> new BufferedAnimation(page.clip(), error ->
+        if (animationPaused || !players.isEmpty() || animations.isEmpty()) {
+            return;
+        }
+        players = animations.stream().map(page -> new BufferedAnimation(page.getClip(), error ->
                 Logger.getLogger(ImageComponent.class.getName())
                         .log(Level.WARNING, "Cannot play GIF", error))).toList();
         animationTimer.start();
@@ -55,14 +76,19 @@ public class ImageComponent extends JComponent {
 
     public void setAnimationPaused(boolean paused) {
         animationPaused = paused;
-        if (paused) stopAnimations();
-        else if (isShowing()) startAnimations();
+        if (paused) {
+            stopAnimations();
+        } else if (isShowing()) {
+            startAnimations();
+        }
     }
 
     public void setAnimations(List<AnimatedPage> pages) {
         stopAnimations();
         animations = List.copyOf(pages);
-        if (isShowing()) startAnimations();
+        if (isShowing()) {
+            startAnimations();
+        }
         repaint();
     }
 
@@ -122,13 +148,17 @@ public class ImageComponent extends JComponent {
     }
 
     public void updateScale() {
-        if (image == null) return;
+        if (image == null) {
+            return;
+        }
 
         Dimension parentSize = getParent() != null
                 ? getParent().getSize()
                 : Toolkit.getDefaultToolkit().getScreenSize();
 
-        if (parentSize.width <= 0 || parentSize.height <= 0) return;
+        if (parentSize.width <= 0 || parentSize.height <= 0) {
+            return;
+        }
         switch (fitMode) {
             case FIT_WIDTH -> scale = parentSize.getWidth() / image.getWidth();
             case FIT_HEIGHT -> scale = parentSize.getHeight() / image.getHeight();
@@ -141,7 +171,9 @@ public class ImageComponent extends JComponent {
     }
 
     public void zoomAt(double factor, Point viewportAnchor, JScrollPane scroll) {
-        if (image == null || !Double.isFinite(factor) || factor <= 0) return;
+        if (image == null || !Double.isFinite(factor) || factor <= 0) {
+            return;
+        }
         JViewport viewport = scroll.getViewport();
         double oldScale = scale;
         Point oldPosition = viewport.getViewPosition();
@@ -180,7 +212,9 @@ public class ImageComponent extends JComponent {
         // JComponent has no UI delegate to clear an opaque background for us.
         g.setColor(getBackground());
         g.fillRect(0, 0, getWidth(), getHeight());
-        if (image == null) return;
+        if (image == null) {
+            return;
+        }
 
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
@@ -213,30 +247,33 @@ public class ImageComponent extends JComponent {
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         for (int i = 0; i < players.size(); i++) {
             AnimationFrame frame = players.get(i).currentFrame();
-            if (frame == null) continue;
+            if (frame == null) {
+                continue;
+            }
             AnimatedPage page = animations.get(i);
             Rectangle bounds = animationBounds(page, x, y);
             int px = bounds.x, py = bounds.y, width = bounds.width, height = bounds.height;
-            g2d.setColor(page.spread() ? Color.BLACK : getBackground());
+            g2d.setColor(page.isSpread() ? Color.BLACK : getBackground());
             g2d.fillRect(px, py, width, height);
-            g2d.drawImage(frame.image(), px, py, width, height, this);
+            g2d.drawImage(frame.getImage(), px, py, width, height, this);
         }
     }
 
     private Rectangle animationBounds(AnimatedPage page, int x, int y) {
-        return new Rectangle(x + (int) Math.round(page.x() * scale),
-                y + (int) Math.round(page.y() * scale),
-                (int) Math.round(page.width() * scale), (int) Math.round(page.height() * scale));
+        return new Rectangle(x + (int) Math.round(page.getX() * scale),
+                y + (int) Math.round(page.getY() * scale),
+                (int) Math.round(page.getWidth() * scale), (int) Math.round(page.getHeight() * scale));
     }
 
     @Override
     public Dimension getPreferredSize() {
-        if (image == null) return new Dimension(0, 0);
+        if (image == null) {
+            return new Dimension(0, 0);
+        }
         return new Dimension(
                 (int) (image.getWidth() * scale),
                 (int) (image.getHeight() * scale)
         );
     }
-
 
 }

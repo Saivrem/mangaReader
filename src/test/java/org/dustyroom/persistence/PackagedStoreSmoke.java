@@ -1,7 +1,10 @@
 package org.dustyroom.persistence;
 
-import org.dustyroom.ui.components.FitMode;
-import org.dustyroom.ui.theme.ViewerTheme;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.persistence.ReaderStore;
+import org.dustyroom.be.persistence.SqliteReaderStore;
 
 import java.nio.file.Path;
 

@@ -1,13 +1,17 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.loading.RecentBook;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridLayout;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import org.dustyroom.be.models.view.RecentBook;
 
 /**
  * Small, bounded shelf; cover updates preserve keyboard focus on existing cards.
@@ -45,23 +49,24 @@ public final class RecentBooksPanel extends JPanel {
     }
 
     public void showBooks(List<RecentBook> books) {
-        List<String> ids = books.stream().map(book -> book.state().sourceId()).toList();
+        List<String> ids = books.stream().map(book -> book.getState().getSourceId()).toList();
         if (!ids.equals(List.copyOf(entries.keySet()))) {
             entries.clear();
             cards.removeAll();
             for (RecentBook book : books) {
-                RecentBookCard card = new RecentBookCard(book.state().sourceId(), id -> open.accept(id), id -> remove.accept(id));
-                entries.put(book.state().sourceId(), card);
+                RecentBookCard card = new RecentBookCard(book.getState().getSourceId(), id -> open.accept(id), id -> remove.accept(id));
+                entries.put(book.getState().getSourceId(), card);
                 cards.add(card);
             }
         }
-        for (RecentBook book : books) entries.get(book.state().sourceId()).update(book);
+        for (RecentBook book : books) {
+            entries.get(book.getState().getSourceId()).update(book);
+        }
         remove(empty);
         remove(cards);
         add(books.isEmpty() ? empty : cards, BorderLayout.CENTER);
         revalidate();
         repaint();
     }
-
 
 }

@@ -1,9 +1,9 @@
 package org.dustyroom.be.iterators;
 
-import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.animation.AnimationDecoder;
-import org.dustyroom.be.animation.AnimationFrame;
 import org.dustyroom.be.animation.gif.GifDecoder;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.animation.AnimationFrame;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -15,6 +15,7 @@ import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataNode;
 import javax.imageio.stream.ImageOutputStream;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -38,16 +39,16 @@ class GifDecoderTest {
     void compositesOffsetsDisposalTimingAndFiniteLoopCount() throws Exception {
         byte[] gif = fixture("restoreToPrevious");
         AnimationClip clip = GifDecoder.read(() -> new ByteArrayInputStream(gif));
-        try (AnimationDecoder decoder = clip.opener().open()) {
+        try (AnimationDecoder decoder = clip.getOpener().open()) {
             AnimationFrame first = decoder.next();
             AnimationFrame second = decoder.next();
             AnimationFrame third = decoder.next();
-            assertEquals(Color.BLUE.getRGB(), second.image().getRGB(1, 1));
-            assertEquals(Color.RED.getRGB(), third.image().getRGB(1, 1));
-            assertEquals(Color.GREEN.getRGB(), third.image().getRGB(0, 0));
-            assertEquals(100, first.delayMillis());
-            assertEquals(200, second.delayMillis());
-            assertEquals(300, third.delayMillis());
+            assertEquals(Color.BLUE.getRGB(), second.getImage().getRGB(1, 1));
+            assertEquals(Color.RED.getRGB(), third.getImage().getRGB(1, 1));
+            assertEquals(Color.GREEN.getRGB(), third.getImage().getRGB(0, 0));
+            assertEquals(100, first.getDelayMillis());
+            assertEquals(200, second.getDelayMillis());
+            assertEquals(300, third.getDelayMillis());
             assertEquals(3, decoder.loops());
             Assertions.assertNull(decoder.next());
         }
@@ -59,10 +60,10 @@ class GifDecoderTest {
         Path file = Files.write(directory.resolve("animation.gif"), gif);
         try (ImageIterator source = ImageIteratorFactory.create(file.toFile())) {
             AnimationClip clip = source.animation(source.pages().get(0));
-            try (AnimationDecoder decoder = clip.opener().open()) {
+            try (AnimationDecoder decoder = clip.getOpener().open()) {
                 decoder.next();
                 decoder.next();
-                assertEquals(Color.BLUE.getRGB(), decoder.next().image().getRGB(1, 1));
+                assertEquals(Color.BLUE.getRGB(), decoder.next().getImage().getRGB(1, 1));
             }
         }
         Path archive = directory.resolve("animation.zip");
@@ -74,7 +75,7 @@ class GifDecoderTest {
         try (ImageIterator source = ImageIteratorFactory.create(archive.toFile())) {
             AnimationClip clip = source.animation(source.pages().get(0));
             source.close();
-            try (AnimationDecoder decoder = clip.opener().open()) {
+            try (AnimationDecoder decoder = clip.getOpener().open()) {
                 assertNotNull(decoder.next());
                 assertNotNull(decoder.next());
                 assertNotNull(decoder.next());
@@ -113,7 +114,7 @@ class GifDecoderTest {
         assertEquals(0, bytesRead.get());
         for (int pass = 0; pass < 2; pass++) {
             int start = bytesRead.get();
-            try (AnimationDecoder decoder = clip.opener().open()) {
+            try (AnimationDecoder decoder = clip.getOpener().open()) {
                 assertNotNull(decoder.next());
                 Assertions.assertTrue(bytesRead.get() - start < gif.length / 2);
                 for (int i = 1; i < 650; i++) assertNotNull(decoder.next());
@@ -127,10 +128,10 @@ class GifDecoderTest {
     void preservesTenMillisecondFrameDelays() throws Exception {
         byte[] gif = fixture("doNotDispose", 3, 1);
         AnimationClip clip = GifDecoder.read(() -> new ByteArrayInputStream(gif));
-        try (AnimationDecoder decoder = clip.opener().open()) {
-            assertEquals(10, decoder.next().delayMillis());
-            assertEquals(20, decoder.next().delayMillis());
-            assertEquals(30, decoder.next().delayMillis());
+        try (AnimationDecoder decoder = clip.getOpener().open()) {
+            assertEquals(10, decoder.next().getDelayMillis());
+            assertEquals(20, decoder.next().getDelayMillis());
+            assertEquals(30, decoder.next().getDelayMillis());
         }
     }
 

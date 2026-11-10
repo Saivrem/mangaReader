@@ -1,10 +1,12 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.rendering.ThumbnailRenderer;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import javax.swing.Icon;
+import org.dustyroom.ui.rendering.ThumbnailRenderer;
 
 /**
  * Logical size stays constant; Java2D uses the retained pixels at the monitor's device scale.

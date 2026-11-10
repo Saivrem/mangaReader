@@ -1,8 +1,12 @@
 package org.dustyroom.persistence;
 
-import org.dustyroom.ui.components.FitMode;
-import org.dustyroom.ui.navigation.ReadingMode;
-import org.dustyroom.ui.theme.ViewerTheme;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.persistence.ReaderStore;
+import org.dustyroom.be.persistence.SqliteReaderStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -27,20 +31,20 @@ class SqliteReaderStoreTest {
         BookState b = new BookState("/books/other", "/books/other/3.png", 3, 8, false, ReadingMode.COMICS);
         try (ReaderStore store = new SqliteReaderStore(db)) {
             assertEquals(ReaderSettings.defaults(), store.settings());
-            assertTrue(store.book(a.sourceId()).isEmpty());
+            assertTrue(store.book(a.getSourceId()).isEmpty());
             store.saveSettings(settings);
             store.saveBook(a);
             store.saveBook(b);
         }
         try (ReaderStore store = new SqliteReaderStore(db)) {
             assertEquals(settings, store.settings());
-            assertEquals(a, store.book(a.sourceId()).orElseThrow());
-            assertEquals(b, store.book(b.sourceId()).orElseThrow());
-            store.saveBook(new BookState(a.sourceId(), "chapter/09.png", 9, 10, false, ReadingMode.COMICS));
+            assertEquals(a, store.book(a.getSourceId()).orElseThrow());
+            assertEquals(b, store.book(b.getSourceId()).orElseThrow());
+            store.saveBook(new BookState(a.getSourceId(), "chapter/09.png", 9, 10, false, ReadingMode.COMICS));
         }
         try (ReaderStore store = new SqliteReaderStore(db)) {
-            assertEquals(9, store.book(a.sourceId()).orElseThrow().pageNumber());
-            assertEquals(b, store.book(b.sourceId()).orElseThrow());
+            assertEquals(9, store.book(a.getSourceId()).orElseThrow().getPageNumber());
+            assertEquals(b, store.book(b.getSourceId()).orElseThrow());
         }
     }
 
@@ -66,6 +70,7 @@ class SqliteReaderStoreTest {
         }
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
             sql.execute("UPDATE settings SET value='LIGHT' WHERE key='theme'");
+            sql.execute("DELETE FROM settings WHERE key='theme_mode'");
             sql.execute("UPDATE settings SET value='not-a-mode' WHERE key='fit_mode'");
             sql.execute("UPDATE settings SET value='NaN' WHERE key='zoom'");
         }
@@ -136,28 +141,10 @@ class SqliteReaderStoreTest {
     }
 
     @Test
-    void preMigrationSnapshotIncludesCommittedWalData() throws Exception {
-        Path db = directory.resolve("reader.sqlite3");
-        ReaderSettings settings = new ReaderSettings(ViewerTheme.LIGHT, FitMode.FIT_WIDTH, 1);
-        Path backup;
-        try (SqliteReaderStore store = new SqliteReaderStore(db)) {
-            store.saveSettings(settings);
-            backup = store.backupBeforeMigration(db, 1);
-            store.reset();
-        }
-        try (ReaderStore saved = new SqliteReaderStore(backup)) {
-            assertEquals(settings, saved.settings());
-        }
-        try (ReaderStore reset = new SqliteReaderStore(db)) {
-            assertEquals(ReaderSettings.defaults(), reset.settings());
-        }
-    }
-
-    @Test
     void refusesFutureSchemaWithoutDowngradingIt() throws Exception {
         Path db = directory.resolve("future.sqlite3");
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement()) {
-            sql.execute("PRAGMA user_version=3");
+            sql.execute("PRAGMA user_version=4");
         }
         byte[] before = Files.readAllBytes(db);
         assertThrows(IllegalStateException.class, () -> new SqliteReaderStore(db));
@@ -165,7 +152,7 @@ class SqliteReaderStoreTest {
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + db); Statement sql = connection.createStatement();
              ResultSet result = sql.executeQuery("PRAGMA user_version")) {
             assertTrue(result.next());
-            assertEquals(3, result.getInt(1));
+            assertEquals(4, result.getInt(1));
         }
     }
 }

@@ -1,13 +1,5 @@
 package org.dustyroom.be.iterators;
 
-import lombok.extern.slf4j.Slf4j;
-import org.dustyroom.be.animation.AnimationClip;
-import org.dustyroom.be.animation.gif.GifDecoder;
-import org.dustyroom.be.models.PageKey;
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.Picture;
-import org.dustyroom.be.models.PictureMetadata;
-
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -15,9 +7,16 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.dustyroom.be.animation.gif.GifDecoder;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.book.PageKey;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.Picture;
+import org.dustyroom.be.models.book.PictureMetadata;
 
-import static org.dustyroom.be.models.Direction.NEXT;
-import static org.dustyroom.be.models.Direction.PREV;
+import static org.dustyroom.be.models.direction.Direction.NEXT;
+import static org.dustyroom.be.models.direction.Direction.PREV;
 import static org.dustyroom.be.utils.FileUtils.*;
 
 @Slf4j
@@ -117,17 +116,18 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public AnimationClip animation(PageRef page) {
-        if (!page.key().sourceId().equals(volumeId(getVolumeRoot())))
+        if (!page.getKey().getSourceId().equals(volumeId(getVolumeRoot()))) {
             throw new IllegalArgumentException("Wrong source");
-        Path path = new File(page.key().pageId()).toPath();
+        }
+        Path path = new File(page.getKey().getPageId()).toPath();
         return GifDecoder.read(() -> Files.newInputStream(path));
     }
 
     @Override
     public Picture load(PageRef page) {
-        File imageFile = new File(page.key().pageId());
+        File imageFile = new File(page.getKey().getPageId());
         String expectedSource = volumeId(getVolumeRoot());
-        if (!page.key().sourceId().equals(expectedSource)) {
+        if (!page.getKey().getSourceId().equals(expectedSource)) {
             throw new ImageIteratorException("Page does not belong to the current image source", imageFile);
         }
         try (InputStream input = Files.newInputStream(imageFile.toPath())) {
@@ -135,7 +135,7 @@ public class FileImageIterator implements ImageIterator {
             if (read == null) {
                 throw new ImageIteratorException("Unsupported or corrupt image: " + imageFile.getName(), imageFile);
             }
-            return new Picture(read, page.metadata());
+            return new Picture(read, page.getMetadata());
         } catch (IOException e) {
             log.warn("Can't read the file {}", imageFile, e);
             throw new ImageIteratorException("Can't read image: " + imageFile.getName(), imageFile, e);

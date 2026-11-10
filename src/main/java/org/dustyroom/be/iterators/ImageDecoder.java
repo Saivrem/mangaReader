@@ -1,16 +1,15 @@
 package org.dustyroom.be.iterators;
 
-import org.dustyroom.be.animation.gif.GifDecoder;
-
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.awt.image.Raster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
+import org.dustyroom.be.animation.gif.GifDecoder;
 
 /**
  * Decodes images while handling JPEGs whose JFIF and Adobe color markers
@@ -23,9 +22,6 @@ final class ImageDecoder {
     private static final int JPEG_END_OF_IMAGE = 0xd9;
     private static final int JPEG_APP0 = 0xe0;
     private static final byte[] JFIF_SIGNATURE = {'J', 'F', 'I', 'F', 0};
-
-    private ImageDecoder() {
-    }
 
     static BufferedImage read(InputStream input) throws IOException {
         try (ImageInputStream imageInput = ImageIO.createImageInputStream(input)) {
@@ -42,7 +38,9 @@ final class ImageDecoder {
             try {
                 boolean jfif = isJpeg(reader) && hasJfifMarker(imageInput);
                 reader.setInput(imageInput, false, false);
-                if ("gif".equalsIgnoreCase(reader.getFormatName())) return GifDecoder.firstFrame(reader);
+                if ("gif".equalsIgnoreCase(reader.getFormatName())) {
+                    return GifDecoder.firstFrame(reader);
+                }
                 if (jfif && !reader.getImageTypes(0).hasNext()) {
                     return readUnsupportedJfif(reader);
                 }

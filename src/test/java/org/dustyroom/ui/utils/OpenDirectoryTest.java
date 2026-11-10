@@ -1,5 +1,7 @@
 package org.dustyroom.ui.utils;
 
+import org.dustyroom.be.utils.OpenDirectory;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

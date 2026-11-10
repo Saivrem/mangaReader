@@ -1,12 +1,25 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.BrandAssets;
-import org.dustyroom.ui.loading.RecentBook;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridLayout;
 import java.util.List;
 import java.util.function.Consumer;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import org.dustyroom.be.models.view.RecentBook;
+import org.dustyroom.ui.BrandAssets;
 
 /**
  * Welcome and reading views share the same window and open action.
@@ -18,6 +31,7 @@ public final class ReaderSurface extends JPanel {
     private final JPanel hero = new JPanel();
     private final JPanel compact = new JPanel(new BorderLayout(24, 0));
     private boolean reading;
+    private final JTabbedPane home = new JTabbedPane();
 
     public ReaderSurface(JScrollPane reader, Action open) {
         setLayout(cards);
@@ -35,7 +49,9 @@ public final class ReaderSurface extends JPanel {
         for (Component item : new Component[]{new JLabel(BrandAssets.welcomeIcon()),
                 Box.createVerticalStrut(24), title, Box.createVerticalStrut(16), slogan,
                 Box.createVerticalStrut(10), subtitle, Box.createVerticalStrut(24), openButton(open)}) {
-            if (item instanceof JComponent component) component.setAlignmentX(CENTER_ALIGNMENT);
+            if (item instanceof JComponent component) {
+                component.setAlignmentX(CENTER_ALIGNMENT);
+            }
             hero.add(item);
         }
         JPanel identity = new JPanel(new BorderLayout(14, 0));
@@ -50,8 +66,9 @@ public final class ReaderSurface extends JPanel {
         compact.add(openButton(open), BorderLayout.EAST);
         compact.setMaximumSize(new Dimension(760, 72));
         compact.setVisible(false);
-        for (JComponent component : new JComponent[]{hero, compact, status, recent})
+        for (JComponent component : new JComponent[]{hero, compact, status, recent}) {
             component.setAlignmentX(CENTER_ALIGNMENT);
+        }
         content.add(hero);
         content.add(compact);
         content.add(Box.createVerticalStrut(16));
@@ -63,7 +80,8 @@ public final class ReaderSurface extends JPanel {
         JScrollPane welcomeScroll = new JScrollPane(welcome);
         welcomeScroll.setBorder(BorderFactory.createEmptyBorder());
         welcomeScroll.getVerticalScrollBar().setUnitIncrement(24);
-        add(welcomeScroll, "welcome");
+        home.addTab("Recently read", welcomeScroll);
+        add(home, "welcome");
         add(reader, "reader");
         cards.show(this, "welcome");
     }
@@ -78,6 +96,15 @@ public final class ReaderSurface extends JPanel {
         button.setPreferredSize(new Dimension(190, 44));
         button.getAccessibleContext().setAccessibleName("Open an image, ZIP archive or folder");
         return button;
+    }
+
+    public void setLibrary(JComponent library, Runnable refresh) {
+        home.addTab("Library", library);
+        home.addChangeListener(event -> {
+            if (home.getSelectedComponent() == library) {
+                refresh.run();
+            }
+        });
     }
 
     public void setRecentGrouping(boolean grouped, Consumer<Boolean> change) {
@@ -106,6 +133,8 @@ public final class ReaderSurface extends JPanel {
     }
 
     public void setLoading(boolean loading) {
-        if (!reading) status.setText(loading ? "Opening your book…" : "JPG · PNG · GIF · ZIP");
+        if (!reading) {
+            status.setText(loading ? "Opening your book…" : "JPG · PNG · GIF · ZIP");
+        }
     }
 }

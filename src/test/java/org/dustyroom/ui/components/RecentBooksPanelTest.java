@@ -1,11 +1,12 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.persistence.BookState;
-import org.dustyroom.ui.loading.RecentBook;
-import org.dustyroom.ui.navigation.ReadingMode;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.view.RecentBook;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -28,12 +29,12 @@ class RecentBooksPanelTest {
             title.doClick();
             assertTrue(opened.isEmpty());
             remove.doClick();
-            assertEquals(List.of(state.sourceId()), removed);
+            assertEquals(List.of(state.getSourceId()), removed);
             panel.showBooks(List.of(new RecentBook(state, true, new BufferedImage(20, 30, BufferedImage.TYPE_INT_RGB))));
             assertTrue(buttons(panel).contains(title));
             assertTrue(title.isEnabled());
             title.doClick();
-            assertEquals(List.of(state.sourceId()), opened);
+            assertEquals(List.of(state.getSourceId()), opened);
             panel.showBooks(List.of());
             assertTrue(buttons(panel).isEmpty());
         });

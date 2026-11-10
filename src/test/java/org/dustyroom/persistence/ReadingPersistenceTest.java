@@ -1,14 +1,18 @@
 package org.dustyroom.persistence;
 
 import org.dustyroom.be.iterators.ImageIteratorFactory;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.models.view.ViewerFrame;
+import org.dustyroom.be.persistence.SqliteReaderStore;
 import org.dustyroom.ui.loading.*;
-import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import javax.imageio.ImageIO;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
@@ -80,11 +84,40 @@ class ReadingPersistenceTest {
             first.close();
             AsyncViewerSession reopened = session(database, shown);
             reopened.open(source.toFile());
-            assertEquals(2, shown.get().firstPage());
-            assertEquals(3, shown.get().lastPage());
-            assertTrue(shown.get().twoPageMode());
-            assertEquals(ReadingMode.COMICS, shown.get().readingMode());
+            assertEquals(2, shown.get().getFirstPage());
+            assertEquals(3, shown.get().getLastPage());
+            assertTrue(shown.get().isTwoPageMode());
+            assertEquals(ReadingMode.COMICS, shown.get().getReadingMode());
             reopened.close();
+        }
+    }
+
+    @Test
+    void newBooksUseDefaultsButSavedBooksKeepTheirModes() throws Exception {
+        Path firstFolder = Files.createDirectory(directory.resolve("first"));
+        Path secondFolder = Files.createDirectory(directory.resolve("second"));
+        for (Path folder : new Path[]{firstFolder, secondFolder}) {
+            for (String name : new String[]{"01.png", "02.png", "03.png"}) {
+                ImageIO.write(new BufferedImage(4, 8, BufferedImage.TYPE_INT_RGB), "png", folder.resolve(name).toFile());
+            }
+        }
+        AtomicReference<ViewerFrame> shown = new AtomicReference<>();
+        AsyncViewerSession reader = session(directory.resolve("reader.sqlite3"), shown);
+        try {
+            reader.configureDefaults(ReaderSettings.defaults().setDefaultReadingMode(ReadingMode.COMICS).setDefaultTwoPageMode(true));
+            reader.open(firstFolder.toFile());
+            assertEquals(ReadingMode.COMICS, shown.get().getReadingMode());
+            assertTrue(shown.get().isTwoPageMode());
+            reader.remember(shown.get());
+            reader.configureDefaults(ReaderSettings.defaults());
+            reader.open(secondFolder.toFile());
+            assertEquals(ReadingMode.MANGA, shown.get().getReadingMode());
+            assertFalse(shown.get().isTwoPageMode());
+            reader.open(firstFolder.toFile());
+            assertEquals(ReadingMode.COMICS, shown.get().getReadingMode());
+            assertTrue(shown.get().isTwoPageMode());
+        } finally {
+            reader.close();
         }
     }
 }

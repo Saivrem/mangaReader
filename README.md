@@ -19,7 +19,7 @@ Run the full verification and build an executable fat JAR:
 The resulting application is written to:
 
 ```text
-build/libs/yonaka-reader-0.9.0.jar
+build/libs/yonaka-reader-0.10.0.jar
 ```
 
 ## Run
@@ -27,16 +27,46 @@ build/libs/yonaka-reader-0.9.0.jar
 Open the application without an initial file:
 
 ```bash
-java -jar build/libs/yonaka-reader-0.9.0.jar
+java -jar build/libs/yonaka-reader-0.10.0.jar
 ```
+
+For development, use `./gradlew run` or the shared **Yonaka Reader** run configuration
+in IntelliJ IDEA. Both enable native access required by SQLite on Java 25. A manually
+created classpath/Main configuration must include `--enable-native-access=ALL-UNNAMED`
+in its VM options; executable JAR and native-package launches already enable it.
+`./gradlew launchSmoke` verifies SQLite access with unapproved native calls denied.
 
 Open an image, a directory of images, or a ZIP archive immediately:
 
 ```bash
-java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/page.jpg
-java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/chapter
-java -jar build/libs/yonaka-reader-0.9.0.jar /path/to/volume.zip
+java -jar build/libs/yonaka-reader-0.10.0.jar /path/to/page.jpg
+java -jar build/libs/yonaka-reader-0.10.0.jar /path/to/chapter
+java -jar build/libs/yonaka-reader-0.10.0.jar /path/to/volume.zip
 ```
+
+## Settings
+
+Open **Options → Settings…** (Command+, on macOS, Ctrl+, elsewhere).
+**Apply** saves changes; **OK** saves and closes; **Cancel** discards unapplied edits.
+
+- **Appearance:** Ayu Light, Ayu Dark, or System. System appearance is checked in the
+  background every five seconds on macOS, Windows and GNOME/Ubuntu. If detection is
+  unavailable, the last resolved theme is retained. The Theme menu selects a fixed theme.
+- **Reading:** default direction, single/two-page mode and scale for newly opened books,
+  plus thumbnail visibility. Existing books retain saved direction and spread mode;
+  these defaults do not overwrite their progress. Original size starts at 100%.
+- **Library:** remember a folder and explicitly open the existing import preview with
+  **Scan / refresh…**. Apply alone does not scan. The current shallow scan rules described
+  below still apply; recursive library discovery is not implemented.
+- **Data:** show/open the active folder or explicitly change it. An empty target receives
+  the current profile; an existing SQLite profile is opened separately without merging.
+  The reader closes after switching; launch it again. Books are never moved.
+
+Profile selection is stored in `profile.path` in the standard data directory. Moving a
+profile closes pending writes and SQLite first. A small `profile-switch.properties`
+metadata journal permits completing an interrupted move; it is not a database backup.
+A missing selected profile produces an error instead of silently creating an empty one.
+The explicit `yonaka.dataDir` launch option takes precedence and disables the folder switch.
 
 ## Recently read
 
@@ -62,7 +92,37 @@ automatic move detection and transferring progress to a new path are future libr
 
 Covers are loaded in the background and kept only in bounded memory. An unreadable
 cover uses a placeholder; opening the source reports any actual reading error.
-Existing reading history is preserved by a backed-up, transactional schema migration.
+Existing reading history is preserved by a transactional schema migration.
+
+## Library
+
+Open **File → Home → Library** to build an explicit shelf, separate from Recently read.
+Use **Add folder…** to preview and select sources before importing. One folder is one
+work: its immediate ZIP files become chapters in natural filename order; its image
+pages can be imported as a single chapter. Subfolders and symbolic links are not
+scanned. Mixed folders require explicit source selection. Invalid or empty ZIPs are
+reported in the preview. Scanning is cancellable and does not decode images.
+
+Open a work to view chapters and their saved positions. **Continue reading** opens
+the last-read chapter with the existing page, reading direction and spread mode.
+Use **Toggle finished** for explicit completion; reaching the last page does not
+mark a chapter finished automatically. Search by title/path, filter by reading or
+availability status, and sort by title, last read or date added. Covers are loaded
+in the background for at most 12 cards on the current shelf page.
+
+**Rename** changes the library title only. **Remove from library** keeps files,
+recent history, progress and completion marks. Adding the same folder again restores
+its existing identity and adds any newly selected chapters without duplicating them.
+**Refresh** checks availability and reading progress; use Add folder again to discover
+new chapters. Unavailable chapters remain listed with their saved progress. For now,
+restore their original path and refresh; attaching a moved folder is not implemented.
+Application reset in this version also clears the library, after confirmation, without deleting books.
+The additive library tables use their own schema version (1). Reader schema 2 remains
+compatible with Yonaka 0.9.0: older readers can still save settings, history and progress
+without touching the library. Reset in an older reader clears only the data it knows
+about; use this version to reset the library as well. The short-lived development
+schema 3 is recognized by its structure and converted transactionally, preserving data;
+unrecognized future schemas are never downgraded.
 
 ## Supported content
 
@@ -135,35 +195,38 @@ Moving or renaming a book creates a new history entry.
 
 Storage locations:
 
-- macOS: `~/Library/Application Support/MangaReader/reader.sqlite3`
-- Windows: `%APPDATA%/MangaReader/reader.sqlite3` (fallback: `~/AppData/Roaming/MangaReader/reader.sqlite3`)
-- Linux: `$XDG_DATA_HOME/manga-reader/reader.sqlite3` (fallback: `~/.local/share/manga-reader/reader.sqlite3`)
+- macOS: `~/Library/Application Support/YonakaReader/reader.sqlite3`
+- Windows: `%APPDATA%/YonakaReader/reader.sqlite3` (fallback: `~/AppData/Roaming/YonakaReader/reader.sqlite3`)
+- Linux: `$XDG_DATA_HOME/yonaka-reader/reader.sqlite3` (fallback: `~/.local/share/yonaka-reader/reader.sqlite3`)
 
 For portable storage, override the directory before `-jar`:
 
 ```bash
-java -Dmangareader.dataDir=./reader-data -jar build/libs/yonaka-reader-0.9.0.jar
+java -Dyonaka.dataDir=./reader-data -jar build/libs/yonaka-reader-0.10.0.jar
 ```
 
 ### Reset and compatibility
 
-Use **Options → Reset Application…** to clear settings and reading history. The
+Use **Options → Reset Application…** to clear settings, library membership, completion marks and reading history. The
 confirmation defaults to Cancel. After a successful reset the app closes; the next
 launch uses defaults. Image files, folders and ZIP archives are never deleted.
-Reset is transactional: if clearing either table fails, both retain their data.
+Reset is transactional: if clearing any table fails, all retain their data.
 Queued saves are drained before reset, and late loading callbacks cannot repopulate it.
-This is an application reset, not secure erasure of SQLite pages or backup files.
+This is an application reset, not secure erasure of SQLite pages. No automatic database copies are created.
 
 The data directory and database filename do not include the application version.
 Application releases such as 0.8 and 0.9 share the same storage location. The database
 schema version is independent: an unchanged schema is opened without running DDL.
-Future schema upgrades must use ordered transactional migrations, with a consistent
-SQLite backup taken before upgrading an existing versioned database. Backup failure
-blocks the upgrade. A newer, unsupported schema is rejected without changing the
-file; the app can still read books without saving progress. Migration failures never
-trigger an automatic wipe or database recreation.
+Schema upgrades use ordered transactional migrations without automatic backups.
+Failures roll back; migrations never trigger an automatic wipe or database recreation.
+A newer, unsupported schema is rejected without changing its contents; the app can
+still read books without saving progress. **Options → Reset Application…** remains
+available when initialization fails: after explicit confirmation it clears application
+data transactionally, allowing a fresh startup. If SQLite cannot read a corrupt database,
+reset is refused rather than deleting an unreadable file blindly.
 
-The database uses schema version 2 and WAL journaling; SQLite may create adjacent
+
+The database uses reader schema version 2 and WAL journaling; SQLite may create adjacent
 `-wal` and `-shm` files. Settings and progress are written on the background worker,
 and queued saves finish before normal application exit. A database failure is reported
 without preventing reading. No book images or archive contents are stored in the database.
@@ -211,6 +274,13 @@ is saved between launches. Click a thumbnail to open that page, or focus the lis
 select a page with the arrow keys and press Enter. The current page or spread is
 highlighted and follows reading progress. The panel is shown once a book is open.
 
+Use **View → Grid** or the **Grid** item in the reader menu next to Home (the grid button is at the foot of the sidebar in Fullscreen) to fill the reading area with a responsive
+thumbnail grid, including while in Fullscreen. Click a page or select it with the
+arrow keys and press Enter: the grid returns to the vertical sidebar and opens that
+page. **Back to reader** or **Esc** returns without changing the page. Keyboard
+navigation returns to the reader, and existing Fullscreen mode is preserved.
+The grid reuses the sidebar cache and loads only the visible area plus its margin.
+
 Thumbnails load on the background image worker below reading priority, visible pages
 first. A sliding in-memory cache keeps the visible range plus 10 pages before and
 10 after it (usually about 25–30 previews, 144 × 192 logical pixels each, backed by up to 432 × 576 pixels for HiDPI screens). Scrolling
@@ -254,7 +324,7 @@ Command-line paths containing spaces must be quoted.
 
 To uninstall, quit Yonaka Reader and move the app from Applications to Trash.
 The bundled Java is removed with it. Reading history and settings remain in
-`~/Library/Application Support/MangaReader` for future reinstalls. To clear them
+`~/Library/Application Support/YonakaReader` for future reinstalls. To clear them
 as well, use **Options → Reset Application…** before deleting the app. Books are
 never deleted by reset or uninstall.
 

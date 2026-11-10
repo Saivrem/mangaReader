@@ -1,8 +1,8 @@
 package org.dustyroom.be.animation.gif;
 
-import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import javax.imageio.stream.MemoryCacheImageInputStream;
 
 final class GifFrameInputStream extends MemoryCacheImageInputStream {
     private long lastSeek;

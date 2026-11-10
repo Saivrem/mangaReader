@@ -1,22 +1,24 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.be.models.PageKey;
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.PictureMetadata;
+import org.dustyroom.be.models.book.PageKey;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.PictureMetadata;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.models.view.RecentBook;
+import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.be.utils.Constants;
-import org.dustyroom.persistence.BookState;
 import org.dustyroom.ui.BrandAssets;
 import org.dustyroom.ui.actions.ViewerActionState;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.loading.RecentBook;
-import org.dustyroom.ui.loading.ViewerFrame;
-import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.rendering.ThumbnailRenderer;
-import org.dustyroom.ui.theme.ViewerTheme;
 import org.dustyroom.ui.utils.UiUtils;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
@@ -41,15 +43,18 @@ public final class ReaderUiPreview {
                 if (!UiUtils.installTheme(theme)) throw new IllegalStateException("Cannot install " + theme);
                 renderAbout(output, theme);
                 for (boolean loaded : new boolean[]{false, true}) {
-                    render(output, theme, loaded, 1100);
-                    render(output, theme, loaded, 940);
+                    render(output, theme, loaded, 1100, false);
+                    render(output, theme, loaded, 940, false);
+                    if (loaded) {
+                        render(output, theme, true, 940, true);
+                    }
                 }
             }
         });
     }
 
     private static void renderAbout(File output, ViewerTheme theme) {
-        JOptionPane pane = new JOptionPane(Constants.ABOUT.formatted("0.9.0"),
+        JOptionPane pane = new JOptionPane(Constants.ABOUT.formatted("0.10.0"),
                 JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION,
                 BrandAssets.aboutIcon());
         pane.setSize(520, 240);
@@ -69,7 +74,7 @@ public final class ReaderUiPreview {
         }
     }
 
-    private static void render(File output, ViewerTheme theme, boolean loaded, int width) {
+    private static void render(File output, ViewerTheme theme, boolean loaded, int width, boolean grid) {
         ViewerActions actions = actions();
         ViewerFrame frame = loaded ? new ViewerFrame(samplePage(), "Sample book", null,
                 24, 25, 180, true, ReadingMode.MANGA, null) : null;
@@ -96,9 +101,8 @@ public final class ReaderUiPreview {
                 result.accept(ThumbnailRenderer.render(samplePage())), page -> {
         }, () -> {
         });
-        if (loaded) content.add(thumbnails, BorderLayout.WEST);
-        content.add(surface, BorderLayout.CENTER);
-        content.add(navigation, BorderLayout.SOUTH);
+        content = new ReaderWorkspace(thumbnails, surface, navigation, ignored -> { });
+        thumbnails.setVisible(loaded);
         JRootPane root = new JRootPane();
         root.setJMenuBar(new MenuBar(actions, UiUtils::installTheme));
         root.setContentPane(content);
@@ -116,7 +120,14 @@ public final class ReaderUiPreview {
         layout(root);
         if (loaded) thumbnails.showSpread(24, 25);
         if (loaded) {
-            image.setImageAndCenter(frame.image(), scroll);
+            image.setImageAndCenter(frame.getImage(), scroll);
+            layout(root);
+        }
+        if (grid) {
+            thumbnails.setGridMode(true);
+            layout(root);
+            JList<?> pageList = (JList<?>) ((JScrollPane) ((BorderLayout) thumbnails.getLayout()).getLayoutComponent(BorderLayout.CENTER)).getViewport().getView();
+            pageList.ensureIndexIsVisible(23);
             layout(root);
         }
         BufferedImage screenshot = new BufferedImage(width * 2, 1440, BufferedImage.TYPE_INT_RGB);
@@ -129,7 +140,7 @@ public final class ReaderUiPreview {
         }
         try {
             ImageIO.write(screenshot, "png", new File(output,
-                    theme.name().toLowerCase() + (loaded ? "-reading-" : "-welcome-") + width + ".png"));
+                    theme.name().toLowerCase() + (grid ? "-grid-" : loaded ? "-reading-" : "-welcome-") + width + ".png"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
@@ -138,7 +149,12 @@ public final class ReaderUiPreview {
 
     private static void layout(Container container) {
         container.doLayout();
-        for (Component child : container.getComponents()) if (child instanceof Container nested) layout(nested);
+        for (Component child : container.getComponents()) {
+            if (child instanceof Container nested) {
+                layout(nested);
+            }
+        }
+        container.doLayout();
     }
 
     private static BufferedImage samplePage() {

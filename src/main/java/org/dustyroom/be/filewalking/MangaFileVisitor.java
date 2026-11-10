@@ -1,7 +1,5 @@
 package org.dustyroom.be.filewalking;
 
-import lombok.Getter;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
@@ -11,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import lombok.Getter;
 
 import static org.dustyroom.be.utils.FileUtils.isSupportedImage;
 

@@ -1,12 +1,12 @@
 package org.dustyroom.be.iterators;
 
 import java.io.File;
+import lombok.experimental.UtilityClass;
 
 import static org.dustyroom.be.utils.FileUtils.*;
 
-public final class ImageIteratorFactory {
-    private ImageIteratorFactory() {
-    }
+@UtilityClass
+public class ImageIteratorFactory {
 
     public static ImageIterator create(File source) {
         if (isZipFile.test(source)) {

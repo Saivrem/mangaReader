@@ -1,20 +1,29 @@
 package org.dustyroom.ui;
 
-import org.dustyroom.persistence.ReaderSettings;
-import org.dustyroom.persistence.ReaderStore;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.io.File;
+import javax.swing.JFrame;
+import javax.swing.JScrollPane;
+import javax.swing.Timer;
+import javax.swing.WindowConstants;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.persistence.ReaderStore;
 import org.dustyroom.ui.actions.DefaultViewerActions;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.components.*;
+import org.dustyroom.ui.components.FileDropHandler;
+import org.dustyroom.ui.components.ImageComponent;
+import org.dustyroom.ui.components.KeyBindings;
 import org.dustyroom.ui.components.MenuBar;
+import org.dustyroom.ui.components.NavigationPanel;
+import org.dustyroom.ui.components.ReaderSurface;
+import org.dustyroom.ui.components.ReaderWorkspace;
+import org.dustyroom.ui.listeners.ComponentResizeListener;
+import org.dustyroom.ui.listeners.WindowCloseListener;
 import org.dustyroom.ui.utils.DialogUtils;
-
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.File;
 
 public class ImageViewer extends JFrame {
     private static final int RESIZE_RENDER_DELAY_MS = 80;
@@ -36,7 +45,7 @@ public class ImageViewer extends JFrame {
 
         GraphicsDevice graphicsDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         imageComponent = new ImageComponent();
-        imageComponent.restoreView(settings.fitMode(), settings.zoom());
+        imageComponent.restoreView(settings.getFitMode(), settings.getZoom());
         scrollPane = new JScrollPane(imageComponent);
         viewerController = new ViewerController(this, graphicsDevice, imageComponent, scrollPane, store, settings);
         ViewerActions viewerActions = new DefaultViewerActions(viewerController);
@@ -61,24 +70,20 @@ public class ImageViewer extends JFrame {
 
         // PlatformUi configures screen-menu integration before AWT starts.
         setJMenuBar(menuBar);
-        add(viewerController.createThumbnailPanel(), BorderLayout.WEST);
-        add(readerSurface, BorderLayout.CENTER);
-        add(navigationPanel, BorderLayout.SOUTH);
+        setContentPane(new ReaderWorkspace(viewerController.createThumbnailPanel(), readerSurface,
+                navigationPanel, grid -> {
+                    imageComponent.setAnimationPaused(grid);
+                    if (!grid) {
+                        requestFocusInWindow();
+                    }
+                }));
 
-        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                if (imageComponent.getFitMode() != FitMode.ORIGINAL) {
-                    resizeRenderTimer.restart();
-                }
+        scrollPane.getViewport().addComponentListener(new ComponentResizeListener(() -> {
+            if (imageComponent.getFitMode() != FitMode.ORIGINAL) {
+                resizeRenderTimer.restart();
             }
-        });
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                viewerController.exit();
-            }
-        });
+        }));
+        addWindowListener(new WindowCloseListener(viewerController::exit));
 
         new KeyBindings().init(getRootPane(), viewerActions);
 

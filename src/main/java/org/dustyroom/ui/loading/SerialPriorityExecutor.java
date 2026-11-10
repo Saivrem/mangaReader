@@ -15,10 +15,10 @@ public final class SerialPriorityExecutor implements ViewerTaskExecutor {
             TimeUnit.MILLISECONDS,
             new PriorityBlockingQueue<>(),
             runnable -> {
-                Thread thread = new Thread(runnable, "manga-reader-image-loader");
-                thread.setDaemon(true);
-                return thread;
-            }
+        Thread thread = new Thread(runnable, "manga-reader-image-loader");
+        thread.setDaemon(true);
+        return thread;
+    }
     );
 
     @Override
@@ -35,6 +35,5 @@ public final class SerialPriorityExecutor implements ViewerTaskExecutor {
     public void close() {
         executor.shutdown();
     }
-
 
 }
