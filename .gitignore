@@ -45,6 +45,4 @@ bin/
 /reader-data/
 
 todo.txt
-# Agent guidance is maintained in the master-project AGENTS.md.
-/AGENTS.md
 docs

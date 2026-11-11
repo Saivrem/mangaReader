@@ -1,7 +1,8 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.persistence.BookState;
-import org.dustyroom.ui.navigation.ReadingMode;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.view.RecentBook;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -26,10 +27,10 @@ class RecentBookLoaderTest {
     void missingSourceRetainsProgressAndCanBecomeAvailableAgain() throws Exception {
         Path path = directory.resolve("moved");
         RecentBook missing = RecentBookLoader.inspect(state(path));
-        assertFalse(missing.available());
-        assertEquals("Page 2 / 10", missing.progress());
+        assertFalse(missing.isAvailable());
+        assertEquals("Page 2 / 10", missing.getProgress());
         Files.createDirectory(path);
-        assertTrue(RecentBookLoader.inspect(state(path)).available());
+        assertTrue(RecentBookLoader.inspect(state(path)).isAvailable());
     }
 
     @Test
@@ -43,19 +44,19 @@ class RecentBookLoaderTest {
             zip.closeEntry();
         }
         RecentBook book = RecentBookLoader.cover(RecentBookLoader.inspect(state(archive)));
-        assertTrue(book.available());
-        assertNotNull(book.cover());
-        assertEquals(0xff123456, book.cover().getRGB(0, 0));
+        assertTrue(book.isAvailable());
+        assertNotNull(book.getCover());
+        assertEquals(0xff123456, book.getCover().getRGB(0, 0));
         Files.delete(archive); // Windows also proves that ZipFile was closed.
-        assertFalse(RecentBookLoader.inspect(book.state()).available());
+        assertFalse(RecentBookLoader.inspect(book.getState()).isAvailable());
     }
 
     @Test
     void brokenCoverDoesNotDestroyHistory() throws Exception {
         Path archive = Files.writeString(directory.resolve("broken.zip"), "invalid zip");
         RecentBook book = RecentBookLoader.cover(RecentBookLoader.inspect(state(archive)));
-        assertEquals(state(archive), book.state());
-        assertTrue(book.available());
-        assertNull(book.cover());
+        assertEquals(state(archive), book.getState());
+        assertTrue(book.isAvailable());
+        assertNull(book.getCover());
     }
 }

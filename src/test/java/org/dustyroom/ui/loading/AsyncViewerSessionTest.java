@@ -1,18 +1,22 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ImageIteratorException;
-import org.dustyroom.be.models.PageKey;
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.Picture;
-import org.dustyroom.be.models.PictureMetadata;
-import org.dustyroom.persistence.BookState;
-import org.dustyroom.persistence.ReaderSettings;
-import org.dustyroom.persistence.ReaderStore;
-import org.dustyroom.ui.navigation.ReadingMode;
+import org.dustyroom.be.models.animation.AnimatedPage;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.book.PageKey;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.Picture;
+import org.dustyroom.be.models.book.PictureMetadata;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.models.view.RecentBook;
+import org.dustyroom.be.models.view.ViewerFrame;
+import org.dustyroom.be.persistence.ReaderStore;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,7 +43,7 @@ class AsyncViewerSessionTest {
             RecordingView view,
             BoundedImageCache cache
     ) {
-        return session(file -> source, tasks, ui, view, cache);
+        return session(_ -> source, tasks, ui, view, cache);
     }
 
     private static AsyncViewerSession session(
@@ -65,7 +69,7 @@ class AsyncViewerSessionTest {
     }
 
     private static ViewerFrame lastFrame(RecordingView view) {
-        return view.frames.get(view.frames.size() - 1);
+        return view.frames.getLast();
     }
 
     private static PageRef page(String source, String name) {
@@ -95,16 +99,16 @@ class AsyncViewerSessionTest {
         session.toggleTwoPageMode();
         tasks.runAll();
         ui.runAll();
-        List<AnimatedPage> manga = view.animations.get(view.animations.size() - 1);
+        List<AnimatedPage> manga = view.animations.getLast();
         assertEquals(2, manga.size());
-        assertEquals(4, manga.get(0).x());
-        assertEquals(0, manga.get(1).x());
+        assertEquals(4, manga.getFirst().getX());
+        assertEquals(0, manga.get(1).getX());
         session.setComicsReadingMode();
         tasks.runAll();
         ui.runAll();
-        List<AnimatedPage> comics = view.animations.get(view.animations.size() - 1);
-        assertEquals(0, comics.get(0).x());
-        assertEquals(4, comics.get(1).x());
+        List<AnimatedPage> comics = view.animations.getLast();
+        assertEquals(0, comics.getFirst().getX());
+        assertEquals(4, comics.get(1).getX());
         session.first();
         tasks.runAll(); // Animation callback queued, not delivered yet.
         int published = view.animations.size();
@@ -112,7 +116,7 @@ class AsyncViewerSessionTest {
         tasks.runAll();
         ui.runAll();
         assertEquals(published, view.animations.size());
-        assertEquals(3, lastFrame(view).firstPage());
+        assertEquals(3, lastFrame(view).getFirstPage());
         session.close();
         tasks.runAll();
         ui.runAll();
@@ -123,7 +127,7 @@ class AsyncViewerSessionTest {
         FakeImageIterator source = FakeImageIterator.portraits("source", "one", "two", "three", "four");
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         RecordingView view = new RecordingView();
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer());
         session.open(new File("source"));
         tasks.runAll();
@@ -131,11 +135,11 @@ class AsyncViewerSessionTest {
         session.thumbnail(3, source.ref("four"), previews::add);
         session.next();
         assertEquals(TaskPriority.INTERACTIVE, tasks.runNext());
-        assertEquals(2, lastFrame(view).firstPage());
+        assertEquals(2, lastFrame(view).getFirstPage());
         assertTrue(previews.isEmpty());
         tasks.runAll();
-        assertNotNull(previews.get(0));
-        assertEquals(2, lastFrame(view).firstPage());
+        assertNotNull(previews.getFirst());
+        assertEquals(2, lastFrame(view).getFirstPage());
         session.close();
         tasks.runAll();
     }
@@ -155,7 +159,7 @@ class AsyncViewerSessionTest {
         List<BufferedImage> previews = new ArrayList<>();
         session.thumbnail(2, old.ref("bad"), previews::add);
         tasks.runAll();
-        assertNull(previews.get(0));
+        assertNull(previews.getFirst());
         session.thumbnail(2, old.ref("bad"), previews::add);
         session.open(new File("new"));
         tasks.runAll();
@@ -174,18 +178,18 @@ class AsyncViewerSessionTest {
         MemoryStore store = new MemoryStore();
         store.books.put("source", new BookState("source", "two", 2, 3,
                 true, ReadingMode.COMICS));
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(new File("source"));
         tasks.runAll();
-        assertEquals(3, lastFrame(view).firstPage()); // identify page by name, not the old index
-        assertTrue(lastFrame(view).twoPageMode());
-        assertEquals(ReadingMode.COMICS, lastFrame(view).readingMode());
+        assertEquals(3, lastFrame(view).getFirstPage()); // identify page by name, not the old index
+        assertTrue(lastFrame(view).isTwoPageMode());
+        assertEquals(ReadingMode.COMICS, lastFrame(view).getReadingMode());
         session.remember(lastFrame(view));
-        assertEquals(2, store.books.get("source").pageNumber()); // still queued, no disk work in caller
+        assertEquals(2, store.books.get("source").getPageNumber()); // still queued, no disk work in caller
         session.close();
         tasks.runAll();
-        assertEquals(3, store.books.get("source").pageNumber());
+        assertEquals(3, store.books.get("source").getPageNumber());
         assertTrue(store.closed);
     }
 
@@ -197,11 +201,11 @@ class AsyncViewerSessionTest {
         MemoryStore store = new MemoryStore();
         store.books.put("source", new BookState("source", "deleted", 50, 100,
                 false, ReadingMode.MANGA));
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(new File("source"));
         tasks.runAll();
-        assertEquals(2, lastFrame(view).firstPage());
+        assertEquals(2, lastFrame(view).getFirstPage());
         session.close();
         tasks.runAll();
     }
@@ -216,11 +220,11 @@ class AsyncViewerSessionTest {
         MemoryStore store = new MemoryStore();
         store.books.put("source", new BookState("source", "two", 2, 2,
                 false, ReadingMode.MANGA));
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(selected.toFile());
         tasks.runAll();
-        assertEquals(1, lastFrame(view).firstPage());
+        assertEquals(1, lastFrame(view).getFirstPage());
         session.close();
         tasks.runAll();
     }
@@ -258,14 +262,14 @@ class AsyncViewerSessionTest {
                 throw new IllegalStateException("read only");
             }
         };
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(new File("source"));
         tasks.runAll();
-        session.remember(frames.get(0));
+        session.remember(frames.getFirst());
         session.next();
         tasks.runAll();
-        assertEquals(2, frames.get(frames.size() - 1).firstPage());
+        assertEquals(2, frames.getLast().getFirstPage());
         assertEquals(1, warnings.size());
         session.close();
         tasks.runAll();
@@ -278,14 +282,14 @@ class AsyncViewerSessionTest {
         ManualTaskExecutor tasks = new ManualTaskExecutor();
         RecordingView view = new RecordingView();
         MemoryStore store = new MemoryStore();
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(new File("source"));
         tasks.runAll();
         ViewerFrame oldFrame = lastFrame(view);
         session.remember(oldFrame);
         AtomicBoolean finished = new AtomicBoolean();
-        session.resetAndClose(() -> finished.set(true), message -> fail(message));
+        session.resetAndClose(() -> finished.set(true), Assertions::fail);
         session.remember(oldFrame);
         session.open(new File("source"));
         tasks.runAll();
@@ -306,7 +310,7 @@ class AsyncViewerSessionTest {
                 throw new IllegalStateException("locked");
             }
         };
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> source, tasks, Runnable::run,
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> source, tasks, Runnable::run,
                 cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
         session.open(new File("source"));
         tasks.runAll();
@@ -317,7 +321,7 @@ class AsyncViewerSessionTest {
         assertFalse(store.closed);
         session.next();
         tasks.runAll();
-        assertEquals(2, lastFrame(view).firstPage());
+        assertEquals(2, lastFrame(view).getFirstPage());
         session.close();
         tasks.runAll();
     }
@@ -345,7 +349,7 @@ class AsyncViewerSessionTest {
                 published.add(books);
             }
         };
-        AsyncViewerSession session = new AsyncViewerSession(view, file -> {
+        AsyncViewerSession session = new AsyncViewerSession(view, _ -> {
             throw new AssertionError();
         },
                 tasks, ui, cache(12), new SpreadPlanner(), new SpreadRenderer(), store);
@@ -355,14 +359,16 @@ class AsyncViewerSessionTest {
         tasks.runAll();
         ui.runAll();
         assertFalse(published.isEmpty());
-        assertTrue(published.stream().allMatch(List::isEmpty));
+        assertTrue(published
+                .stream()
+                .allMatch(List::isEmpty));
         assertTrue(store.book("missing.zip").isPresent());
         store.showRecent("missing.zip");
         session.refreshRecentBooks();
         tasks.runAll();
         int beforeReset = published.size();
         session.resetAndClose(() -> {
-        }, error -> fail(error));
+        }, Assertions::fail);
         tasks.runAll();
         ui.runAll();
         assertEquals(beforeReset, published.size());
@@ -377,18 +383,18 @@ class AsyncViewerSessionTest {
         AsyncViewerSession session = session(source, tasks, Runnable::run, view, cache(12));
         session.open(new File("source"));
         tasks.runAll();
-        assertEquals(1, lastFrame(view).firstPage());
-        assertEquals(1, lastFrame(view).lastPage());
-        assertEquals(4, lastFrame(view).pageCount());
-        assertFalse(lastFrame(view).twoPageMode());
+        assertEquals(1, lastFrame(view).getFirstPage());
+        assertEquals(1, lastFrame(view).getLastPage());
+        assertEquals(4, lastFrame(view).getPageCount());
+        assertFalse(lastFrame(view).isTwoPageMode());
         session.goToPage(2);
         session.toggleTwoPageMode();
         session.setComicsReadingMode();
         tasks.runAll();
-        assertEquals(2, lastFrame(view).firstPage());
-        assertEquals(3, lastFrame(view).lastPage());
-        assertTrue(lastFrame(view).twoPageMode());
-        assertEquals(ReadingMode.COMICS, lastFrame(view).readingMode());
+        assertEquals(2, lastFrame(view).getFirstPage());
+        assertEquals(3, lastFrame(view).getLastPage());
+        assertTrue(lastFrame(view).isTwoPageMode());
+        assertEquals(ReadingMode.COMICS, lastFrame(view).getReadingMode());
         int frameCount = view.frames.size();
         session.goToPage(0);
         tasks.runAll();
@@ -398,8 +404,8 @@ class AsyncViewerSessionTest {
         assertEquals(2, view.errors.size());
         session.goToPage(4);
         tasks.runAll();
-        assertEquals(4, lastFrame(view).firstPage());
-        assertEquals(4, lastFrame(view).lastPage());
+        assertEquals(4, lastFrame(view).getFirstPage());
+        assertEquals(4, lastFrame(view).getLastPage());
         session.close();
         tasks.runAll();
     }
@@ -419,7 +425,7 @@ class AsyncViewerSessionTest {
         assertEquals(TaskPriority.INTERACTIVE, tasks.runNext());
         assertEquals(TaskPriority.INTERACTIVE, tasks.runNext());
         assertEquals(1, view.frames.size());
-        assertTrue(view.frames.get(0).title().contains("page3"));
+        assertTrue(view.frames.getFirst().getTitle().contains("page3"));
         assertEquals(1, source.loads("page1"));
         assertEquals(0, source.loads("page2"));
         assertEquals(1, source.loads("page3"));
@@ -446,7 +452,7 @@ class AsyncViewerSessionTest {
         tasks.runNext();
         ui.runAll();
         assertEquals(1, view.frames.size());
-        assertTrue(view.frames.get(0).title().contains("page2"));
+        assertTrue(view.frames.getFirst().getTitle().contains("page2"));
 
         session.close();
         tasks.runAll();
@@ -475,7 +481,7 @@ class AsyncViewerSessionTest {
 
         assertEquals(1, first.closeCount);
         assertEquals(0, second.closeCount);
-        assertTrue(view.frames.get(view.frames.size() - 1).title().contains("new"));
+        assertTrue(view.frames.getLast().getTitle().contains("new"));
 
         session.close();
         tasks.runAll();
@@ -497,7 +503,7 @@ class AsyncViewerSessionTest {
         assertEquals(0, source.closeCount);
         session.next();
         tasks.runNext();
-        assertTrue(lastFrame(view).title().endsWith("page2"));
+        assertTrue(lastFrame(view).getTitle().endsWith("page2"));
 
         session.close();
         tasks.runAll();
@@ -521,7 +527,7 @@ class AsyncViewerSessionTest {
         assertEquals(List.of("Failed to decode page1"), view.errors);
         session.next();
         tasks.runNext();
-        assertTrue(lastFrame(view).title().endsWith("page2"));
+        assertTrue(lastFrame(view).getTitle().endsWith("page2"));
 
         session.close();
         tasks.runAll();
@@ -552,7 +558,7 @@ class AsyncViewerSessionTest {
         assertEquals(0, first.closeCount);
         assertEquals(1, broken.closeCount);
         assertEquals(List.of("Failed to decode broken-page"), view.errors);
-        assertTrue(lastFrame(view).title().endsWith("old1"));
+        assertTrue(lastFrame(view).getTitle().endsWith("old1"));
 
         session.first();
         tasks.runNext();
@@ -560,7 +566,7 @@ class AsyncViewerSessionTest {
 
         session.next();
         tasks.runNext();
-        assertTrue(lastFrame(view).title().endsWith("old2"));
+        assertTrue(lastFrame(view).getTitle().endsWith("old2"));
 
         session.close();
         tasks.runAll();
@@ -603,15 +609,15 @@ class AsyncViewerSessionTest {
         tasks.runNext();
         session.toggleTwoPageMode();
         tasks.runNext();
-        assertTrue(lastFrame(view).title().contains("page1 + page2"));
+        assertTrue(lastFrame(view).getTitle().contains("page1 + page2"));
 
         session.next();
         tasks.runNext();
-        assertTrue(lastFrame(view).title().endsWith("page3"));
+        assertTrue(lastFrame(view).getTitle().endsWith("page3"));
 
         session.previous();
         tasks.runNext();
-        assertTrue(lastFrame(view).title().contains("page1 + page2"));
+        assertTrue(lastFrame(view).getTitle().contains("page1 + page2"));
 
         session.close();
         tasks.runAll();
@@ -635,11 +641,11 @@ class AsyncViewerSessionTest {
         tasks.runNext();
         session.toggleTwoPageMode();
         tasks.runNext();
-        assertFalse(lastFrame(view).title().contains("+"));
+        assertFalse(lastFrame(view).getTitle().contains("+"));
 
         session.next();
         tasks.runNext();
-        assertTrue(lastFrame(view).title().endsWith("portrait"));
+        assertTrue(lastFrame(view).getTitle().endsWith("portrait"));
 
         session.close();
         tasks.runAll();
@@ -664,7 +670,7 @@ class AsyncViewerSessionTest {
         tasks.runNext();
 
         assertEquals(2, source.loads("page1"));
-        assertTrue(lastFrame(view).title().endsWith("page1"));
+        assertTrue(lastFrame(view).getTitle().endsWith("page1"));
 
         session.close();
         tasks.runAll();
@@ -690,7 +696,7 @@ class AsyncViewerSessionTest {
         session.first();
         tasks.runNext();
         assertEquals(2, view.frames.size());
-        assertTrue(lastFrame(view).title().endsWith("good"));
+        assertTrue(lastFrame(view).getTitle().endsWith("good"));
 
         session.close();
         tasks.runAll();
@@ -707,10 +713,10 @@ class AsyncViewerSessionTest {
         session.open(new File("source"));
         tasks.runNext();
         assertEquals(1, view.frames.size());
-        assertFalse(cache.contains(source.ref("page2").key()));
+        assertFalse(cache.contains(source.ref("page2").getKey()));
 
         assertEquals(TaskPriority.PREFETCH, tasks.runNext());
-        assertTrue(cache.contains(source.ref("page2").key()));
+        assertTrue(cache.contains(source.ref("page2").getKey()));
         assertEquals(1, view.frames.size());
 
         session.close();
@@ -810,7 +816,11 @@ class AsyncViewerSessionTest {
 
         public List<BookState> recentBooks(int limit) {
             assertFalse(closed);
-            return books.values().stream().filter(book -> !hidden.contains(book.sourceId())).limit(limit).toList();
+            return books.values()
+                    .stream()
+                    .filter(book -> !hidden.contains(book.getSourceId()))
+                    .limit(limit)
+                    .toList();
         }
 
         public void hideRecent(String id) {
@@ -834,7 +844,7 @@ class AsyncViewerSessionTest {
 
         public void saveBook(BookState state) {
             assertFalse(closed);
-            books.put(state.sourceId(), state);
+            books.put(state.getSourceId(), state);
         }
 
         public void reset() {
@@ -904,7 +914,8 @@ class AsyncViewerSessionTest {
         }
 
         TaskPriority runNext() {
-            QueuedTask next = tasks.stream()
+            QueuedTask next = tasks
+                    .stream()
                     .min(Comparator.comparing(QueuedTask::priority).thenComparingLong(QueuedTask::sequence))
                     .orElseThrow();
             tasks.remove(next);
@@ -924,8 +935,6 @@ class AsyncViewerSessionTest {
             closed = true;
         }
 
-        private record QueuedTask(TaskPriority priority, long sequence, Runnable task) {
-        }
     }
 
     private static final class FakeImageIterator implements ImageIterator {
@@ -963,7 +972,11 @@ class AsyncViewerSessionTest {
         }
 
         PageRef ref(String name) {
-            return pages.stream().filter(page -> page.key().pageId().equals(name)).findFirst().orElseThrow();
+            return pages
+                    .stream()
+                    .filter(page -> page.getKey().pageId().equals(name))
+                    .findFirst()
+                    .orElseThrow();
         }
 
         void failOn(String name) {
@@ -1052,7 +1065,7 @@ class AsyncViewerSessionTest {
 
         @Override
         public Picture load(PageRef page) {
-            String name = page.key().pageId();
+            String name = page.getKey().pageId();
             loadCounts.merge(name, 1, Integer::sum);
             CountDownLatch started = blockedLoadStarted;
             if (name.equals(blockedPage) && started != null) {
@@ -1070,17 +1083,17 @@ class AsyncViewerSessionTest {
             if (failures.contains(name)) {
                 throw new ImageIteratorException("Failed to decode " + name, new File(sourceId));
             }
-            return new Picture(images.get(name), page.metadata());
+            return new Picture(images.get(name), page.getMetadata());
         }
 
         @Override
         public PageRef switchToNextVolume() {
-            return pages.get(0);
+            return pages.getFirst();
         }
 
         @Override
         public PageRef switchToPreviousVolume() {
-            return pages.get(0);
+            return pages.getFirst();
         }
 
         @Override

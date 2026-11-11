@@ -1,6 +1,7 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.loading.RecentBook;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.view.RecentBook;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,9 +18,9 @@ public final class RecentBooksPanel extends JPanel {
     private final JPanel cards = new JPanel(new GridLayout(0, 2, 16, 16));
     private final JLabel empty = new JLabel("Your recently read books will appear here.");
     private final Map<String, RecentBookCard> entries = new LinkedHashMap<>();
-    private Consumer<String> open = id -> {
+    private Consumer<String> open = _ -> {
     };
-    private Consumer<String> remove = id -> {
+    private Consumer<String> remove = _ -> {
     };
 
     public RecentBooksPanel() {
@@ -36,7 +37,7 @@ public final class RecentBooksPanel extends JPanel {
 
     public void setGrouping(boolean grouped, Consumer<Boolean> change) {
         groupByFolder.setSelected(grouped);
-        groupByFolder.addActionListener(event -> change.accept(groupByFolder.isSelected()));
+        groupByFolder.addActionListener(_ -> change.accept(groupByFolder.isSelected()));
     }
 
     public void setHandlers(Consumer<String> open, Consumer<String> remove) {
@@ -45,23 +46,28 @@ public final class RecentBooksPanel extends JPanel {
     }
 
     public void showBooks(List<RecentBook> books) {
-        List<String> ids = books.stream().map(book -> book.state().sourceId()).toList();
+        List<String> ids = books
+                .stream()
+                .map(RecentBook::getState)
+                .map(BookState::getSourceId)
+                .toList();
         if (!ids.equals(List.copyOf(entries.keySet()))) {
             entries.clear();
             cards.removeAll();
             for (RecentBook book : books) {
-                RecentBookCard card = new RecentBookCard(book.state().sourceId(), id -> open.accept(id), id -> remove.accept(id));
-                entries.put(book.state().sourceId(), card);
+                RecentBookCard card = new RecentBookCard(book.getState().getSourceId(), id -> open.accept(id), id -> remove.accept(id));
+                entries.put(book.getState().getSourceId(), card);
                 cards.add(card);
             }
         }
-        for (RecentBook book : books) entries.get(book.state().sourceId()).update(book);
+        for (RecentBook book : books) {
+            entries.get(book.getState().getSourceId()).update(book);
+        }
         remove(empty);
         remove(cards);
         add(books.isEmpty() ? empty : cards, BorderLayout.CENTER);
         revalidate();
         repaint();
     }
-
 
 }

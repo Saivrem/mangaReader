@@ -1,8 +1,8 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.animation.AnimationDecoder;
-import org.dustyroom.be.animation.AnimationFrame;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.animation.AnimationFrame;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Semaphore;
@@ -27,32 +27,42 @@ public final class BufferedAnimation implements AutoCloseable {
                 int pass = 0;
                 while (!closed) {
                     int count = 0, loops;
-                    try (AnimationDecoder decoder = source.opener().open()) {
+                    try (AnimationDecoder decoder = source.getOpener().open()) {
                         while (!closed) {
                             // Reserve room before decoding, so a full buffer never triggers more I/O.
                             capacity.acquire();
-                            if (closed) return;
+                            if (closed) {
+                                return;
+                            }
                             AnimationFrame frame = decoder.next();
                             if (frame == null) {
                                 capacity.release();
                                 break;
                             }
-                            if (closed) return;
+                            if (closed) {
+                                return;
+                            }
                             frames.put(frame);
                             count++;
                         }
                         loops = decoder.loops();
                     }
                     pass++;
-                    if (count <= 1 || (loops > 0 && pass >= loops)) break;
+                    if (count <= 1 || (loops > 0 && pass >= loops)) {
+                        break;
+                    }
                 }
             } catch (InterruptedException cancelled) {
                 Thread.currentThread().interrupt();
             } catch (Exception error) {
-                if (!closed) errorHandler.accept(error);
+                if (!closed) {
+                    errorHandler.accept(error);
+                }
             } finally {
                 complete = true;
-                if (closed) frames.clear();
+                if (closed) {
+                    frames.clear();
+                }
             }
         }, "yonaka-gif-decoder");
         worker.setDaemon(true);
@@ -63,7 +73,9 @@ public final class BufferedAnimation implements AutoCloseable {
      * Called only by the UI thread. Late ticks catch up with the timeline; an underrun holds the current frame without blocking.
      */
     public AnimationFrame advance(long nowNanos) {
-        if (closed) return null;
+        if (closed) {
+            return null;
+        }
         // Keep an absolute media timeline: late timer ticks must not stretch every frame.
         // Bound catch-up work to the queue capacity so the EDT always remains responsive.
         for (int consumed = 0; consumed < 2 && (current == null || nowNanos >= deadline); consumed++) {
@@ -75,7 +87,7 @@ public final class BufferedAnimation implements AutoCloseable {
             capacity.release();
             long start = current == null || buffering ? nowNanos : deadline;
             current = next;
-            deadline = start + TimeUnit.MILLISECONDS.toNanos(next.delayMillis());
+            deadline = start + TimeUnit.MILLISECONDS.toNanos(next.getDelayMillis());
             buffering = false;
         }
         return current;

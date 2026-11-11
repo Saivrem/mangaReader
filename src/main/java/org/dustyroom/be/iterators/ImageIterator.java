@@ -1,9 +1,9 @@
 package org.dustyroom.be.iterators;
 
-import org.dustyroom.be.animation.AnimationClip;
-import org.dustyroom.be.models.Direction;
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.Picture;
+import org.dustyroom.be.models.direction.Direction;
 
 import java.io.File;
 import java.util.List;

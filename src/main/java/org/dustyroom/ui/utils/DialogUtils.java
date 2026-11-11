@@ -2,7 +2,6 @@ package org.dustyroom.ui.utils;
 
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.utils.Constants;
-import org.dustyroom.ui.BrandAssets;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,7 +10,7 @@ import java.awt.*;
 public class DialogUtils {
     public static void showAbout(JFrame parent) {
         JOptionPane.showMessageDialog(parent,
-                Constants.ABOUT.formatted("0.9.0"),
+                Constants.ABOUT.formatted("0.10.0"),
                 "About Yonaka Reader", JOptionPane.INFORMATION_MESSAGE,
                 BrandAssets.aboutIcon());
     }

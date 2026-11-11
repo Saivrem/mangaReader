@@ -1,16 +1,15 @@
 package org.dustyroom.be.iterators;
 
 import lombok.extern.slf4j.Slf4j;
-import org.dustyroom.be.animation.AnimationClip;
 import org.dustyroom.be.animation.gif.GifDecoder;
-import org.dustyroom.be.models.PageKey;
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.Picture;
-import org.dustyroom.be.models.PictureMetadata;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.book.PageKey;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.Picture;
+import org.dustyroom.be.models.book.PictureMetadata;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -20,10 +19,12 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static org.dustyroom.be.models.Direction.NEXT;
-import static org.dustyroom.be.models.Direction.PREV;
+import static org.dustyroom.be.models.direction.Direction.NEXT;
+import static org.dustyroom.be.models.direction.Direction.PREV;
 import static org.dustyroom.be.utils.FileUtils.isSupportedImage;
 import static org.dustyroom.be.utils.FileUtils.isZipFile;
+import static org.dustyroom.be.utils.FileUtils.normalize;
+import static org.dustyroom.be.utils.FileUtils.normalizedPath;
 import static org.dustyroom.be.utils.NaturalOrderComparator.INSTANCE;
 
 @Slf4j
@@ -54,10 +55,10 @@ public class ZipIterator implements ImageIterator {
         try {
             openedZip = new ZipFile(candidatePath);
             List<ZipEntry> entries = new ArrayList<>();
-            Enumeration<? extends ZipEntry> zipEntryEnumeration = openedZip.entries();
+            Enumeration<? extends ZipEntry> contents = openedZip.entries();
 
-            while (zipEntryEnumeration.hasMoreElements()) {
-                ZipEntry zipEntry = zipEntryEnumeration.nextElement();
+            while (contents.hasMoreElements()) {
+                ZipEntry zipEntry = contents.nextElement();
                 if (!zipEntry.isDirectory() && isSupportedImage(zipEntry.getName())) {
                     entries.add(zipEntry);
                 }
@@ -68,23 +69,24 @@ public class ZipIterator implements ImageIterator {
                 throw new ImageIteratorException("No supported images in ZIP: " + candidatePath.getName(), candidatePath);
             }
 
+            List<PageRef> pages = entries
+                    .stream()
+                    .map(entry -> pageRef(candidatePath, entry))
+                    .toList();
             ZipFile previousZip = zipFile;
             zipFile = openedZip;
             zipFilePath = candidatePath;
-            pendingZipFilePath = null;
-            pageRefs = entries.stream().map(entry -> pageRef(candidatePath, entry)).toList();
+            pageRefs = pages;
             currentIndex = 0;
             initialSelectionPending = true;
+            openedZip = null;
             closeQuietly(previousZip);
-        } catch (ImageIteratorException e) {
-            closeQuietly(openedZip);
-            pendingZipFilePath = null;
-            throw e;
         } catch (IOException e) {
-            closeQuietly(openedZip);
-            pendingZipFilePath = null;
             log.warn("Can't read the ZIP file {}", candidatePath, e);
             throw new ImageIteratorException("Can't open ZIP archive: " + candidatePath.getName(), candidatePath, e);
+        } finally {
+            pendingZipFilePath = null;
+            closeQuietly(openedZip);
         }
     }
 
@@ -137,25 +139,20 @@ public class ZipIterator implements ImageIterator {
     @Override
     public AnimationClip animation(PageRef page) {
         ensureOpen();
-        if (!page.key().sourceId().equals(sourceId(zipFilePath))) throw new IllegalArgumentException("Wrong source");
+        if (!page.getKey().sourceId().equals(normalizedPath(zipFilePath))) {
+            throw new IllegalArgumentException("Wrong source");
+        }
         // Playback owns an independent archive handle, including after switching volumes.
         File archive = zipFilePath;
-        String entryName = page.key().pageId();
+        String entryName = page.getKey().pageId();
         return GifDecoder.read(() -> {
             ZipFile zip = new ZipFile(archive);
             try {
                 ZipEntry entry = zip.getEntry(entryName);
-                if (entry == null) throw new IOException("Missing GIF entry: " + entryName);
-                return new FilterInputStream(zip.getInputStream(entry)) {
-                    @Override
-                    public void close() throws IOException {
-                        try {
-                            super.close();
-                        } finally {
-                            zip.close();
-                        }
-                    }
-                };
+                if (entry == null) {
+                    throw new IOException("Missing GIF entry: " + entryName);
+                }
+                return new ZipEntryInputStream(zip.getInputStream(entry), zip);
             } catch (IOException | RuntimeException error) {
                 try {
                     zip.close();
@@ -170,13 +167,13 @@ public class ZipIterator implements ImageIterator {
     @Override
     public Picture load(PageRef page) {
         ensureOpen();
-        String currentSourceId = sourceId(zipFilePath);
-        if (!page.key().sourceId().equals(currentSourceId)) {
+        String currentSourceId = normalizedPath(zipFilePath);
+        if (!page.getKey().sourceId().equals(currentSourceId)) {
             throw new ImageIteratorException("Page does not belong to the current ZIP source", zipFilePath);
         }
-        ZipEntry entry = zipFile.getEntry(page.key().pageId());
+        ZipEntry entry = zipFile.getEntry(page.getKey().pageId());
         if (entry == null || entry.isDirectory()) {
-            throw new ImageIteratorException("ZIP entry no longer exists: " + page.key().pageId(), zipFilePath);
+            throw new ImageIteratorException("ZIP entry no longer exists: " + page.getKey().pageId(), zipFilePath);
         }
         log.debug("File: {}", entry.getName());
         try (InputStream input = zipFile.getInputStream(entry)) {
@@ -187,7 +184,7 @@ public class ZipIterator implements ImageIterator {
                         zipFilePath
                 );
             }
-            return new Picture(read, page.metadata());
+            return new Picture(read, page.getMetadata());
         } catch (IOException e) {
             log.warn("Can't read image {} from {}", entry.getName(), zipFilePath, e);
             throw new ImageIteratorException(
@@ -278,17 +275,9 @@ public class ZipIterator implements ImageIterator {
 
     private PageRef pageRef(File source, ZipEntry entry) {
         return new PageRef(
-                new PageKey(sourceId(source), entry.getName()),
+                new PageKey(source.getPath(), entry.getName()),
                 new PictureMetadata(entry.getName(), source.getName(), source.getParentFile())
         );
-    }
-
-    private String sourceId(File source) {
-        return source == null ? "" : source.toPath().toAbsolutePath().normalize().toString();
-    }
-
-    private File normalize(File source) {
-        return source == null ? null : source.toPath().toAbsolutePath().normalize().toFile();
     }
 
     private Picture consumeVolumeSelection(PageRef page) {

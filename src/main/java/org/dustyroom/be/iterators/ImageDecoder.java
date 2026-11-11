@@ -24,9 +24,6 @@ final class ImageDecoder {
     private static final int JPEG_APP0 = 0xe0;
     private static final byte[] JFIF_SIGNATURE = {'J', 'F', 'I', 'F', 0};
 
-    private ImageDecoder() {
-    }
-
     static BufferedImage read(InputStream input) throws IOException {
         try (ImageInputStream imageInput = ImageIO.createImageInputStream(input)) {
             if (imageInput == null) {
@@ -42,7 +39,9 @@ final class ImageDecoder {
             try {
                 boolean jfif = isJpeg(reader) && hasJfifMarker(imageInput);
                 reader.setInput(imageInput, false, false);
-                if ("gif".equalsIgnoreCase(reader.getFormatName())) return GifDecoder.firstFrame(reader);
+                if ("gif".equalsIgnoreCase(reader.getFormatName())) {
+                    return GifDecoder.firstFrame(reader);
+                }
                 if (jfif && !reader.getImageTypes(0).hasNext()) {
                     return readUnsupportedJfif(reader);
                 }
@@ -151,6 +150,6 @@ final class ImageDecoder {
     }
 
     private static int clamp(int value) {
-        return Math.max(0, Math.min(255, value));
+        return Math.clamp(value, 0, 255);
     }
 }

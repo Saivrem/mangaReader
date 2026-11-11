@@ -1,7 +1,7 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.persistence.BookState;
-import org.dustyroom.ui.loading.RecentBook;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.view.RecentBook;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,23 +30,23 @@ final class RecentBookCard extends JPanel {
         details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
         title.setHorizontalAlignment(SwingConstants.LEFT);
         title.putClientProperty("JButton.buttonType", "borderless");
-        title.addActionListener(event -> open.accept(id));
+        title.addActionListener(_ -> open.accept(id));
         title.setToolTipText(id);
         bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 5));
         JButton hide = new JButton("Remove from recent");
         hide.putClientProperty("JButton.buttonType", "borderless");
         hide.setToolTipText("Keep this book and its saved reading position");
         hide.getAccessibleContext().setAccessibleName("Remove " + new File(id).getName() + " from recent");
-        hide.addActionListener(event -> remove.accept(id));
+        hide.addActionListener(_ -> remove.accept(id));
         chapters.putClientProperty("JButton.buttonType", "borderless");
-        chapters.addActionListener(event -> {
+        chapters.addActionListener(_ -> {
             JPopupMenu menu = new JPopupMenu();
-            for (BookState chapter : current.chapters().stream().limit(20).toList()) {
+            for (BookState chapter : current.menuChapters()) {
                 JMenuItem entry = new JMenuItem();
                 entry.putClientProperty("html.disable", true);
-                entry.setText(new File(chapter.sourceId()).getName() + " — " + chapter.pageNumber() + "/" + chapter.pageCount());
-                entry.setToolTipText(chapter.sourceId());
-                entry.addActionListener(click -> open.accept(chapter.sourceId()));
+                entry.setText(new File(chapter.getSourceId()).getName() + " — " + chapter.getPageNumber() + "/" + chapter.getPageCount());
+                entry.setToolTipText(chapter.getSourceId());
+                entry.addActionListener(_ -> open.accept(chapter.getSourceId()));
                 menu.add(entry);
             }
             menu.show(chapters, 0, chapters.getHeight());
@@ -60,20 +60,22 @@ final class RecentBookCard extends JPanel {
 
     void update(RecentBook book) {
         current = book;
-        chapters.setVisible(book.chapters().size() > 1);
-        chapters.setText("Chapters (" + book.chapters().size() + ") ▾");
-        chapters.setToolTipText("Up to 20 recently read chapters; continue: " + new File(book.state().sourceId()).getName());
+        chapters.setVisible(book.getChapters().size() > 1);
+        chapters.setText("Chapters (" + book.getChapters().size() + ") ▾");
+        chapters.setToolTipText("Up to 20 recently read chapters; continue: " + new File(book.getState().getSourceId()).getName());
         // Treat filenames as plain text, never as Swing HTML markup.
         title.putClientProperty("html.disable", true);
-        title.setText(book.title());
-        title.setEnabled(book.available());
-        title.getAccessibleContext().setAccessibleName("Continue " + book.title() + ", " + book.progress());
-        progress.setText(book.progress());
-        bar.setValue((int) (100L * book.state().pageNumber() / Math.max(1, book.state().pageCount())));
-        availability.setText(book.available() ? " " : "Moved, missing or unavailable");
-        availability.setToolTipText(book.state().sourceId());
-        if (book.cover() != null) {
-            cover.setIcon(new RecentCoverIcon(book.cover()));
-        } else cover.setIcon(new ReaderIcon(ReaderIconKind.OPEN));
+        title.setText(book.getTitle());
+        title.setEnabled(book.isAvailable());
+        title.getAccessibleContext().setAccessibleName("Continue " + book.getTitle() + ", " + book.getProgress());
+        progress.setText(book.getProgress());
+        bar.setValue((int) (100L * book.getState().getPageNumber() / Math.max(1, book.getState().getPageCount())));
+        availability.setText(book.isAvailable() ? " " : "Moved, missing or unavailable");
+        availability.setToolTipText(book.getState().getSourceId());
+        if (book.getCover() != null) {
+            cover.setIcon(new RecentCoverIcon(book.getCover()));
+        } else {
+            cover.setIcon(new ReaderIcon(ReaderIconKind.OPEN));
+        }
     }
 }

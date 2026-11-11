@@ -1,6 +1,6 @@
 package org.dustyroom.ui.navigation;
 
-import org.dustyroom.be.models.PageShape;
+import org.dustyroom.be.models.book.PageShape;
 
 public class SpreadPlanner {
 

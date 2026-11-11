@@ -1,6 +1,6 @@
 package org.dustyroom.ui.utils;
 
-import org.dustyroom.ui.theme.ViewerTheme;
+import org.dustyroom.be.models.state.ViewerTheme;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;

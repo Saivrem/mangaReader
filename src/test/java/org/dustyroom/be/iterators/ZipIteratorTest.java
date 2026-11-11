@@ -1,6 +1,6 @@
 package org.dustyroom.be.iterators;
 
-import org.dustyroom.be.models.Picture;
+import org.dustyroom.be.models.book.Picture;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -22,7 +22,7 @@ class ZipIteratorTest {
 
     private static void assertName(String expected, Picture picture) {
         assertNotNull(picture);
-        assertEquals(expected, picture.metadata().name());
+        assertEquals(expected, picture.getMetadata().getName());
     }
 
     @Test
@@ -62,10 +62,10 @@ class ZipIteratorTest {
 
         try (ZipIterator iterator = new ZipIterator(zip.toFile())) {
             Picture picture = iterator.next();
-            assertEquals("chapter2/page01.png", picture.metadata().name());
-            assertEquals("volume.zip", picture.metadata().fileName());
-            assertEquals(tempDir.toFile(), picture.metadata().dir());
-            assertNotNull(picture.image());
+            assertEquals("chapter2/page01.png", picture.getMetadata().getName());
+            assertEquals("volume.zip", picture.getMetadata().getFileName());
+            assertEquals(tempDir.toFile(), picture.getMetadata().getDir());
+            assertNotNull(picture.getImage());
         }
     }
 
@@ -95,7 +95,7 @@ class ZipIteratorTest {
 
         try (ZipIterator iterator = new ZipIterator(zip.toFile())) {
             Picture picture = iterator.next();
-            int rgb = picture.image().getRGB(1, 1);
+            int rgb = picture.getImage().getRGB(1, 1);
             assertTrue((rgb >>> 16 & 0xff) < 20);
             assertTrue((rgb >>> 8 & 0xff) < 20);
             assertTrue((rgb & 0xff) > 200);
@@ -123,9 +123,9 @@ class ZipIteratorTest {
         writeZip(tempDir.resolve("volume10.ZIP"), "other.png");
 
         try (ZipIterator iterator = new ZipIterator(volume1.toFile())) {
-            assertEquals("volume1.zip", iterator.next().metadata().fileName());
+            assertEquals("volume1.zip", iterator.next().getMetadata().getFileName());
             assertThrows(ImageIteratorException.class, iterator::nextVol);
-            assertEquals("volume1.zip", iterator.next().metadata().fileName());
+            assertEquals("volume1.zip", iterator.next().getMetadata().getFileName());
         }
     }
 
@@ -136,11 +136,11 @@ class ZipIteratorTest {
         writeZip(tempDir.resolve("volume10.zip"), "ten.png");
 
         try (ZipIterator iterator = new ZipIterator(volume1.toFile())) {
-            assertEquals("volume1.zip", iterator.next().metadata().fileName());
-            assertEquals("volume2.ZIP", iterator.nextVol().metadata().fileName());
-            assertEquals("volume10.zip", iterator.nextVol().metadata().fileName());
-            assertEquals("volume1.zip", iterator.nextVol().metadata().fileName());
-            assertEquals("volume10.zip", iterator.prevVol().metadata().fileName());
+            assertEquals("volume1.zip", iterator.next().getMetadata().getFileName());
+            assertEquals("volume2.ZIP", iterator.nextVol().getMetadata().getFileName());
+            assertEquals("volume10.zip", iterator.nextVol().getMetadata().getFileName());
+            assertEquals("volume1.zip", iterator.nextVol().getMetadata().getFileName());
+            assertEquals("volume10.zip", iterator.prevVol().getMetadata().getFileName());
         }
     }
 
@@ -153,12 +153,12 @@ class ZipIteratorTest {
             assertName("page1.png", iterator.next());
 
             Picture nextVolume = iterator.nextVol();
-            assertEquals("volume2.zip", nextVolume.metadata().fileName());
+            assertEquals("volume2.zip", nextVolume.getMetadata().getFileName());
             assertName("page1.png", nextVolume);
             assertName("page2.png", iterator.next());
 
             Picture previousVolume = iterator.prevVol();
-            assertEquals("volume1.zip", previousVolume.metadata().fileName());
+            assertEquals("volume1.zip", previousVolume.getMetadata().getFileName());
             assertName("page1.png", previousVolume);
             assertName("page2.png", iterator.next());
         }
@@ -173,7 +173,7 @@ class ZipIteratorTest {
         try (ZipIterator iterator = new ZipIterator(relativeZip.toFile())) {
             assertTrue(iterator.getVolumeRoot().isAbsolute());
             assertEquals(zip, iterator.getVolumeRoot().toPath());
-            assertEquals(zip.getParent().toFile(), iterator.next().metadata().dir());
+            assertEquals(zip.getParent().toFile(), iterator.next().getMetadata().getDir());
         }
     }
 

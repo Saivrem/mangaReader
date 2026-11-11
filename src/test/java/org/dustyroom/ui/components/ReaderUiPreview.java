@@ -1,18 +1,19 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.be.models.PageKey;
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.PictureMetadata;
+import org.dustyroom.be.models.book.PageKey;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.PictureMetadata;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.models.view.RecentBook;
+import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.be.utils.Constants;
-import org.dustyroom.persistence.BookState;
-import org.dustyroom.ui.BrandAssets;
 import org.dustyroom.ui.actions.ViewerActionState;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.loading.RecentBook;
-import org.dustyroom.ui.loading.ViewerFrame;
-import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.rendering.ThumbnailRenderer;
-import org.dustyroom.ui.theme.ViewerTheme;
+import org.dustyroom.ui.utils.BrandAssets;
 import org.dustyroom.ui.utils.UiUtils;
 
 import javax.imageio.ImageIO;
@@ -32,24 +33,31 @@ import java.util.stream.IntStream;
  * Headless visual fixture; writes previews only when explicitly run.
  */
 public final class ReaderUiPreview {
-    public static void main(String[] args) throws Exception {
+    static void main(String[] args) throws Exception {
         File output = new File("build/ui-preview");
-        if (!output.isDirectory() && !output.mkdirs()) throw new IllegalStateException("Cannot create " + output);
+        if (!output.isDirectory() && !output.mkdirs()) {
+            throw new IllegalStateException("Cannot create " + output);
+        }
         BrandAssets.load();
         SwingUtilities.invokeAndWait(() -> {
             for (ViewerTheme theme : ViewerTheme.values()) {
-                if (!UiUtils.installTheme(theme)) throw new IllegalStateException("Cannot install " + theme);
+                if (!UiUtils.installTheme(theme)) {
+                    throw new IllegalStateException("Cannot install " + theme);
+                }
                 renderAbout(output, theme);
                 for (boolean loaded : new boolean[]{false, true}) {
-                    render(output, theme, loaded, 1100);
-                    render(output, theme, loaded, 940);
+                    render(output, theme, loaded, 1100, false);
+                    render(output, theme, loaded, 940, false);
+                    if (loaded) {
+                        render(output, theme, true, 940, true);
+                    }
                 }
             }
         });
     }
 
     private static void renderAbout(File output, ViewerTheme theme) {
-        JOptionPane pane = new JOptionPane(Constants.ABOUT.formatted("0.9.0"),
+        JOptionPane pane = new JOptionPane(Constants.ABOUT.formatted("0.10.0"),
                 JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION,
                 BrandAssets.aboutIcon());
         pane.setSize(520, 240);
@@ -69,7 +77,7 @@ public final class ReaderUiPreview {
         }
     }
 
-    private static void render(File output, ViewerTheme theme, boolean loaded, int width) {
+    private static void render(File output, ViewerTheme theme, boolean loaded, int width, boolean grid) {
         ViewerActions actions = actions();
         ViewerFrame frame = loaded ? new ViewerFrame(samplePage(), "Sample book", null,
                 24, 25, 180, true, ReadingMode.MANGA, null) : null;
@@ -81,24 +89,23 @@ public final class ReaderUiPreview {
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(UIManager.getColor("Viewer.background"));
         ReaderSurface surface = new ReaderSurface(scroll, actions.openFile());
-        if (!loaded) surface.showRecentBooks(IntStream.range(0, 6).mapToObj(i ->
-                new RecentBook(new BookState(
-                        "/books/" + (i == 0 ? "夜中/Chapter 03.zip" : "Volume " + (i + 1) + ".zip"),
-                        "page-24", 24 + i, 180, true, ReadingMode.MANGA), i != 2,
-                        i == 2 ? null : ThumbnailRenderer.render(samplePage()),
-                        i == 0 ? IntStream.range(1, 4).mapToObj(chapter ->
-                                new BookState("/books/夜中/Chapter 0" + chapter + ".zip", "page", 24, 180, true, ReadingMode.MANGA)).toList()
-                                : List.of(new BookState("/books/Volume " + (i + 1) + ".zip", "page", 24 + i, 180, true, ReadingMode.MANGA)))).toList());
+        if (!loaded) {
+            List<RecentBook> books = IntStream
+                    .range(0, 6)
+                    .mapToObj(ReaderUiPreview::sampleBook)
+                    .toList();
+            surface.showRecentBooks(books);
+        }
+
         NavigationPanel navigation = new NavigationPanel(actions);
         navigation.updateState(frame, FitMode.FIT_SCREEN);
-        JPanel content = new JPanel(new BorderLayout());
-        ThumbnailPanel thumbnails = new ThumbnailPanel((index, page, result) ->
-                result.accept(ThumbnailRenderer.render(samplePage())), page -> {
+        ThumbnailPanel thumbnails = new ThumbnailPanel((_, _, result) ->
+                result.accept(ThumbnailRenderer.render(samplePage())), _ -> {
         }, () -> {
         });
-        if (loaded) content.add(thumbnails, BorderLayout.WEST);
-        content.add(surface, BorderLayout.CENTER);
-        content.add(navigation, BorderLayout.SOUTH);
+        JPanel content = new ReaderWorkspace(thumbnails, surface, navigation, _ -> {
+        });
+        thumbnails.setVisible(loaded);
         JRootPane root = new JRootPane();
         root.setJMenuBar(new MenuBar(actions, UiUtils::installTheme));
         root.setContentPane(content);
@@ -106,17 +113,29 @@ public final class ReaderUiPreview {
         host.add(root);
         host.setSize(width, 720);
         root.setSize(width, 720);
-        if (loaded) surface.showReading();
         if (loaded) {
+            surface.showReading();
             host.addNotify();
-            thumbnails.showPages(IntStream.range(0, 180).mapToObj(i ->
-                    new PageRef(new PageKey("preview", "page" + i),
-                            new PictureMetadata("page" + i, "preview", new File(".")))).toList());
+            List<PageRef> pages = IntStream
+                    .range(0, 180)
+                    .mapToObj(index -> {
+                        String name = "page" + index;
+                        return new PageRef(new PageKey("preview", name), new PictureMetadata(name, "preview", new File(".")));
+                    })
+                    .toList();
+            thumbnails.showPages(pages);
         }
         layout(root);
-        if (loaded) thumbnails.showSpread(24, 25);
         if (loaded) {
-            image.setImageAndCenter(frame.image(), scroll);
+            thumbnails.showSpread(24, 25);
+            image.setImageAndCenter(frame.getImage(), scroll);
+            layout(root);
+        }
+        if (grid) {
+            thumbnails.setGridMode(true);
+            layout(root);
+            JList<?> pageList = (JList<?>) ((JScrollPane) ((BorderLayout) thumbnails.getLayout()).getLayoutComponent(BorderLayout.CENTER)).getViewport().getView();
+            pageList.ensureIndexIsVisible(23);
             layout(root);
         }
         BufferedImage screenshot = new BufferedImage(width * 2, 1440, BufferedImage.TYPE_INT_RGB);
@@ -129,16 +148,42 @@ public final class ReaderUiPreview {
         }
         try {
             ImageIO.write(screenshot, "png", new File(output,
-                    theme.name().toLowerCase() + (loaded ? "-reading-" : "-welcome-") + width + ".png"));
+                    theme.name().toLowerCase() + (grid ? "-grid-" : loaded ? "-reading-" : "-welcome-") + width + ".png"));
         } catch (IOException exception) {
             throw new IllegalStateException(exception);
         }
-        if (loaded) host.removeNotify();
+        if (loaded) {
+            host.removeNotify();
+        }
+    }
+
+    private static RecentBook sampleBook(int index) {
+        String path = index == 0 ? "/books/夜中/Chapter 03.zip" : "/books/Volume " + (index + 1) + ".zip";
+        BookState state = new BookState(path, "page-24", 24 + index, 180, true, ReadingMode.MANGA);
+        List<BookState> chapters;
+        if (index == 0) {
+            chapters = IntStream
+                    .range(1, 4)
+                    .mapToObj(number -> new BookState("/books/夜中/Chapter 0" + number + ".zip",
+                            "page", 24, 180, true, ReadingMode.MANGA))
+                    .toList();
+        } else {
+            chapters = List.of(new BookState(path, "page", 24 + index, 180, true, ReadingMode.MANGA));
+        }
+
+        boolean available = index != 2;
+        BufferedImage cover = available ? ThumbnailRenderer.render(samplePage()) : null;
+        return new RecentBook(state, available, cover, chapters);
     }
 
     private static void layout(Container container) {
         container.doLayout();
-        for (Component child : container.getComponents()) if (child instanceof Container nested) layout(nested);
+        for (Component child : container.getComponents()) {
+            if (child instanceof Container nested) {
+                layout(nested);
+            }
+        }
+        container.doLayout();
     }
 
     private static BufferedImage samplePage() {
@@ -176,7 +221,7 @@ public final class ReaderUiPreview {
     private static ViewerActions actions() {
         Map<String, Action> values = new HashMap<>();
         return (ViewerActions) Proxy.newProxyInstance(ViewerActions.class.getClassLoader(),
-                new Class<?>[]{ViewerActions.class}, (proxy, method, arguments) ->
+                new Class<?>[]{ViewerActions.class}, (_, method, _) ->
                         values.computeIfAbsent(method.getName(), name -> new AbstractAction(name) {
                             @Override
                             public void actionPerformed(ActionEvent event) {

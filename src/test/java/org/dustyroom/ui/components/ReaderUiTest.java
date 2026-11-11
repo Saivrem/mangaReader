@@ -1,11 +1,12 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.persistence.ReaderSettings;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.ui.actions.ViewerActionState;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.loading.ViewerFrame;
-import org.dustyroom.ui.navigation.ReadingMode;
-import org.dustyroom.ui.theme.ViewerTheme;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
@@ -22,15 +23,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ReaderUiTest {
     private static Stream<Component> children(Container parent) {
-        return Arrays.stream(parent.getComponents()).flatMap(component ->
-                component instanceof Container container
+        return Arrays
+                .stream(parent.getComponents())
+                .flatMap(component -> component instanceof Container container
                         ? Stream.concat(Stream.of(component), children(container)) : Stream.of(component));
     }
 
     private static ViewerActions actions() {
         Map<String, Action> actions = new HashMap<>();
         return (ViewerActions) Proxy.newProxyInstance(ViewerActions.class.getClassLoader(),
-                new Class<?>[]{ViewerActions.class}, (proxy, method, arguments) ->
+                new Class<?>[]{ViewerActions.class}, (_, method, _) ->
                         actions.computeIfAbsent(method.getName(), name -> new AbstractAction(name) {
                             @Override
                             public void actionPerformed(ActionEvent event) {
@@ -44,6 +46,8 @@ class ReaderUiTest {
             ViewerActions actions = actions();
             ViewerActionState.apply(actions, null, FitMode.FIT_SCREEN, false);
             NavigationPanel panel = new NavigationPanel(actions);
+            assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
+                    .anyMatch(button -> button.getAction() == actions.home() && button.isEnabled()));
             assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)
                     .anyMatch(button -> button.getAction() == actions.firstImage()));
             assertTrue(children(panel).filter(AbstractButton.class::isInstance).map(AbstractButton.class::cast)

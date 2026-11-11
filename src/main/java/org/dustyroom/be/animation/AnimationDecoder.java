@@ -1,5 +1,7 @@
 package org.dustyroom.be.animation;
 
+import org.dustyroom.be.models.animation.AnimationFrame;
+
 import java.io.IOException;
 
 /**

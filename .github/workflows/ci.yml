@@ -2,8 +2,9 @@ name: Build and test
 
 on:
   push:
+    branches: [main]
   pull_request:
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
@@ -14,86 +15,42 @@ concurrency:
 
 jobs:
   verify:
-    name: Java 25 / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '25'
-      # Also validates the checked-in Gradle Wrapper JAR.
-      - uses: gradle/actions/setup-gradle@v5
-      - name: Tests, fat JAR and packaged SQLite smoke test
-        run: bash ./gradlew --no-daemon clean test fatJar packagedStoreSmoke
-      - name: Upload test reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-reports-${{ matrix.os }}
-          path: |
-            build/reports/tests/test/
-            build/test-results/test/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Upload runnable JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: yonaka-reader-${{ matrix.os }}
-          path: build/libs/*.jar
-          if-no-files-found: error
-          retention-days: 14
-
-  macos-dmg:
-    name: macOS DMG / Apple Silicon
-    runs-on: macos-15
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '25'
-          architecture: aarch64
-      - uses: gradle/actions/setup-gradle@v5
-      - name: Test and build standalone DMG
-        run: bash ./gradlew --no-daemon clean test packageDmg
-      - uses: actions/upload-artifact@v4
-        with:
-          name: YonakaReader-macOS-arm64-dmg
-          path: build/macos/dmg/*.dmg
-          if-no-files-found: error
-          retention-days: 14
-
-  native-packages:
-    name: Native packages / ${{ matrix.platform }}
+    name: Test and package / ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
+          - os: macos-15
+            platform: macos
+            arch: aarch64
+            tasks: packageDmg
+            artifact: YonakaReader-macOS-arm64-dmg
+            packages: build/macos/dmg/*.dmg
           - os: windows-2022
             platform: windows
+            arch: x64
             tasks: packageMsi packageWindowsZip
+            artifact: YonakaReader-windows-x64
+            packages: |
+              build/desktop-packages/windows/msi/*.msi
+              build/desktop-packages/windows/portable/*
           - os: ubuntu-22.04
             platform: linux
+            arch: x64
             tasks: packageDeb packageLinuxTar
+            artifact: YonakaReader-linux-x64
+            packages: |
+              build/desktop-packages/linux/deb/*.deb
+              build/desktop-packages/linux/portable/*
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
-          architecture: x64
+          architecture: ${{ matrix.arch }}
       - uses: gradle/actions/setup-gradle@v5
       - name: Install DEB packaging tools
         if: runner.os == 'Linux'
@@ -111,30 +68,37 @@ jobs:
             throw 'WiX 3 candle.exe and light.exe are required by JDK 25 jpackage.'
           }
           $wixBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      - name: Test and build native packages
+      - name: Test, verify SQLite and build packages
         shell: bash
-        run: bash ./gradlew --no-daemon clean test ${{ matrix.tasks }}
+        run: bash ./gradlew --no-daemon clean test fatJar packagedStoreSmoke ${{ matrix.tasks }}
       - name: Verify extracted installer runtime
+        if: runner.os != 'macOS'
         shell: bash
         run: python packaging/tools/verify_installer.py ${{ matrix.platform }}
       - name: Verify installation and uninstallation
+        if: runner.os != 'macOS'
         shell: bash
         run: python packaging/tools/verify_uninstall.py ${{ matrix.platform }}
       - name: Upload native packages
         uses: actions/upload-artifact@v4
         with:
-          name: YonakaReader-${{ matrix.platform }}-x64
-          path: |
-            build/desktop-packages/${{ matrix.platform }}/msi/*.msi
-            build/desktop-packages/${{ matrix.platform }}/deb/*.deb
-            build/desktop-packages/${{ matrix.platform }}/portable/*
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.packages }}
           if-no-files-found: error
           retention-days: 14
-      - name: Upload packaging test reports
+      - name: Upload runnable JAR
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: yonaka-reader-jar
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: packaging-reports-${{ matrix.platform }}
+          name: test-reports-${{ matrix.platform }}
           path: |
             build/reports/tests/test/
             build/test-results/test/

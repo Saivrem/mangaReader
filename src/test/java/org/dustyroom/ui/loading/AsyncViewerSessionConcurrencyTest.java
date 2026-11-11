@@ -1,10 +1,11 @@
 package org.dustyroom.ui.loading;
 
 import org.dustyroom.be.iterators.ImageIterator;
-import org.dustyroom.be.models.PageKey;
-import org.dustyroom.be.models.PageRef;
-import org.dustyroom.be.models.Picture;
-import org.dustyroom.be.models.PictureMetadata;
+import org.dustyroom.be.models.book.PageKey;
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.be.models.book.Picture;
+import org.dustyroom.be.models.book.PictureMetadata;
+import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,7 @@ class AsyncViewerSessionConcurrencyTest {
     private static AsyncViewerSession session(BlockingIterator source, RecordingView view) {
         return new AsyncViewerSession(
                 view,
-                file -> source,
+                _ -> source,
                 new SerialPriorityExecutor(),
                 Runnable::run,
                 new BoundedImageCache(4, 1024 * 1024),
@@ -137,7 +138,7 @@ class AsyncViewerSessionConcurrencyTest {
         public Picture load(PageRef page) {
             loadStarted.countDown();
             await(releaseLoad);
-            return new Picture(new BufferedImage(4, 8, BufferedImage.TYPE_INT_ARGB), page.metadata());
+            return new Picture(new BufferedImage(4, 8, BufferedImage.TYPE_INT_ARGB), page.getMetadata());
         }
 
         @Override

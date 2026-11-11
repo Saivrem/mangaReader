@@ -6,7 +6,9 @@ import javax.imageio.event.IIOReadProgressListener;
 final class GifCancellationListener implements IIOReadProgressListener {
 
     public void imageProgress(ImageReader source, float progress) {
-        if (Thread.currentThread().isInterrupted()) source.abort();
+        if (Thread.currentThread().isInterrupted()) {
+            source.abort();
+        }
     }
 
     public void sequenceStarted(ImageReader source, int index) {

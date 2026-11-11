@@ -1,6 +1,6 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.be.models.PageRef;
+import org.dustyroom.be.models.book.PageRef;
 
 import java.awt.image.BufferedImage;
 import java.util.function.Consumer;

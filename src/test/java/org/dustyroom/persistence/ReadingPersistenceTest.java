@@ -1,29 +1,27 @@
 package org.dustyroom.persistence;
 
 import org.dustyroom.be.iterators.ImageIteratorFactory;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.ui.loading.*;
-import org.dustyroom.ui.navigation.ReadingMode;
 import org.dustyroom.ui.navigation.SpreadPlanner;
 import org.dustyroom.ui.rendering.SpreadRenderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.nio.file.Files;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
+import static org.dustyroom.be.iterators.ImageTestFixtures.writeImage;
+import static org.dustyroom.be.iterators.ImageTestFixtures.writeZip;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ReadingPersistenceTest {
-    @TempDir
-    Path directory;
+class ReadingPersistenceTest extends BasePersistenceTest {
 
-    private static AsyncViewerSession session(Path database, AtomicReference<ViewerFrame> shown) {
+    private AsyncViewerSession session(AtomicReference<ViewerFrame> shown) {
         ViewerView view = new ViewerView() {
             public void showLoading() {
             }
@@ -51,40 +49,63 @@ class ReadingPersistenceTest {
         };
         return new AsyncViewerSession(view, ImageIteratorFactory::create, direct, Runnable::run,
                 new BoundedImageCache(12, 1024 * 1024), new SpreadPlanner(), new SpreadRenderer(),
-                new SqliteReaderStore(database));
+                openStore());
     }
 
-    @Test
-    void resumesRealFolderAndZipWithReopenedDatabase() throws Exception {
-        Path folder = Files.createDirectory(directory.resolve("pages"));
-        Path archive = directory.resolve("book.zip");
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        ImageIO.write(new BufferedImage(4, 8, BufferedImage.TYPE_INT_RGB), "png", bytes);
-        try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(archive))) {
-            for (String page : new String[]{"01.png", "02.png", "03.png"}) {
-                Files.write(folder.resolve(page), bytes.toByteArray());
-                zip.putNextEntry(new ZipEntry("chapter/" + page));
-                zip.write(bytes.toByteArray());
-                zip.closeEntry();
-            }
+    private Path createBook(String name) throws IOException {
+        Path source = directory.resolve(name);
+        if (name.endsWith(".zip")) {
+            return writeZip(source, "chapter/01.png", "chapter/02.png", "chapter/03.png");
         }
-        Path database = directory.resolve("reader.sqlite3");
-        for (Path source : new Path[]{folder, archive}) {
-            AtomicReference<ViewerFrame> shown = new AtomicReference<>();
-            AsyncViewerSession first = session(database, shown);
+
+        for (String page : new String[]{"01.png", "02.png", "03.png"}) {
+            writeImage(source, page);
+        }
+        return source;
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"pages", "book.zip"})
+    void resumesReadingAfterReopen(String name) throws IOException {
+        Path source = createBook(name);
+        AtomicReference<ViewerFrame> shown = new AtomicReference<>();
+        try (AsyncViewerSession first = session(shown)) {
             first.open(source.toFile());
             first.goToPage(2);
             first.toggleTwoPageMode();
             first.setComicsReadingMode();
             first.remember(shown.get());
-            first.close();
-            AsyncViewerSession reopened = session(database, shown);
+        }
+
+        shown.set(null);
+        try (AsyncViewerSession reopened = session(shown)) {
             reopened.open(source.toFile());
-            assertEquals(2, shown.get().firstPage());
-            assertEquals(3, shown.get().lastPage());
-            assertTrue(shown.get().twoPageMode());
-            assertEquals(ReadingMode.COMICS, shown.get().readingMode());
-            reopened.close();
+            ViewerFrame frame = shown.get();
+            assertEquals(2, frame.getFirstPage());
+            assertEquals(3, frame.getLastPage());
+            assertTrue(frame.isTwoPageMode());
+            assertEquals(ReadingMode.COMICS, frame.getReadingMode());
+        }
+    }
+
+    @Test
+    void newBooksUseDefaultsButSavedBooksKeepTheirModes() throws IOException {
+        Path firstFolder = createBook("first");
+        Path secondFolder = createBook("second");
+        AtomicReference<ViewerFrame> shown = new AtomicReference<>();
+        try (AsyncViewerSession reader = session(shown)) {
+            reader.configureDefaults(ReaderSettings.defaults().setDefaultReadingMode(ReadingMode.COMICS).setDefaultTwoPageMode(true));
+            reader.open(firstFolder.toFile());
+            assertEquals(ReadingMode.COMICS, shown.get().getReadingMode());
+            assertTrue(shown.get().isTwoPageMode());
+            reader.remember(shown.get());
+            reader.configureDefaults(ReaderSettings.defaults());
+            reader.open(secondFolder.toFile());
+            assertEquals(ReadingMode.MANGA, shown.get().getReadingMode());
+            assertFalse(shown.get().isTwoPageMode());
+            reader.open(firstFolder.toFile());
+            assertEquals(ReadingMode.COMICS, shown.get().getReadingMode());
+            assertTrue(shown.get().isTwoPageMode());
         }
     }
 }

@@ -1,9 +1,12 @@
 package org.dustyroom.be.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.stream.Stream;
 
-public final class Constants {
+@UtilityClass
+public class Constants {
     public static final List<String> IMAGE_FORMATS = List.of("jpg", "jpeg", "png", "gif");
     public static final List<String> ARCHIVE_FORMATS = List.of("zip");
     public static final String[] SUPPORTED_FORMATS = Stream.concat(
@@ -14,11 +17,9 @@ public final class Constants {
     public static final String ABOUT = """
             Yonaka Reader ・ 夜中
             もう少し読んでいましょう.
-            
+
             Version %s
             Author: Denys Sheviakov
             """;
 
-    private Constants() {
-    }
 }

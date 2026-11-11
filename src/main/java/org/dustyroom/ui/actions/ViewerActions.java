@@ -3,6 +3,8 @@ package org.dustyroom.ui.actions;
 import javax.swing.*;
 
 public interface ViewerActions {
+    Action openPageGrid();
+
     Action toggleThumbnails();
 
     Action openFile();
@@ -44,6 +46,8 @@ public interface ViewerActions {
     Action goToPage();
 
     Action exitFullscreen();
+
+    Action settings();
 
     Action resetApplication();
 

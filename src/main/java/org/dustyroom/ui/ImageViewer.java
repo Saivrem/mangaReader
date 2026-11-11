@@ -1,19 +1,20 @@
 package org.dustyroom.ui;
 
-import org.dustyroom.persistence.ReaderSettings;
-import org.dustyroom.persistence.ReaderStore;
+import org.dustyroom.be.models.state.FitMode;
+import org.dustyroom.be.models.state.ReaderSettings;
+import org.dustyroom.be.persistence.ReaderStore;
 import org.dustyroom.ui.actions.DefaultViewerActions;
 import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.components.*;
 import org.dustyroom.ui.components.MenuBar;
+import org.dustyroom.ui.listeners.ComponentResizeListener;
+import org.dustyroom.ui.listeners.WindowCloseListener;
+import org.dustyroom.ui.utils.BrandAssets;
 import org.dustyroom.ui.utils.DialogUtils;
+import org.dustyroom.ui.utils.PlatformUi;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 
 public class ImageViewer extends JFrame {
@@ -36,11 +37,11 @@ public class ImageViewer extends JFrame {
 
         GraphicsDevice graphicsDevice = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
         imageComponent = new ImageComponent();
-        imageComponent.restoreView(settings.fitMode(), settings.zoom());
+        imageComponent.restoreView(settings.getFitMode(), settings.getZoom());
         scrollPane = new JScrollPane(imageComponent);
         viewerController = new ViewerController(this, graphicsDevice, imageComponent, scrollPane, store, settings);
         ViewerActions viewerActions = new DefaultViewerActions(viewerController);
-        resizeRenderTimer = new Timer(RESIZE_RENDER_DELAY_MS, e -> applyResizeRender());
+        resizeRenderTimer = new Timer(RESIZE_RENDER_DELAY_MS, _ -> applyResizeRender());
         resizeRenderTimer.setRepeats(false);
 
         menuBar = new MenuBar(viewerActions, viewerController::setTheme);
@@ -61,24 +62,20 @@ public class ImageViewer extends JFrame {
 
         // PlatformUi configures screen-menu integration before AWT starts.
         setJMenuBar(menuBar);
-        add(viewerController.createThumbnailPanel(), BorderLayout.WEST);
-        add(readerSurface, BorderLayout.CENTER);
-        add(navigationPanel, BorderLayout.SOUTH);
+        setContentPane(new ReaderWorkspace(viewerController.createThumbnailPanel(), readerSurface,
+                navigationPanel, grid -> {
+            imageComponent.setAnimationPaused(grid);
+            if (!grid) {
+                requestFocusInWindow();
+            }
+        }));
 
-        scrollPane.getViewport().addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                if (imageComponent.getFitMode() != FitMode.ORIGINAL) {
-                    resizeRenderTimer.restart();
-                }
+        scrollPane.getViewport().addComponentListener(new ComponentResizeListener(() -> {
+            if (imageComponent.getFitMode() != FitMode.ORIGINAL) {
+                resizeRenderTimer.restart();
             }
-        });
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                viewerController.exit();
-            }
-        });
+        }));
+        addWindowListener(new WindowCloseListener(viewerController::exit));
 
         new KeyBindings().init(getRootPane(), viewerActions);
 

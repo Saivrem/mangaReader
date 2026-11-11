@@ -1,6 +1,6 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.be.models.PageKey;
+import org.dustyroom.be.models.book.PageKey;
 
 import java.awt.image.BufferedImage;
 import java.util.Iterator;
@@ -76,6 +76,5 @@ public final class BoundedImageCache {
     private long saturatedAdd(long left, long right) {
         return Long.MAX_VALUE - left < right ? Long.MAX_VALUE : left + right;
     }
-
 
 }

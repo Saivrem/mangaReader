@@ -12,11 +12,11 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-final class ImageTestFixtures {
+public final class ImageTestFixtures {
     private ImageTestFixtures() {
     }
 
-    static Path writeImage(Path directory, String name) throws IOException {
+    public static Path writeImage(Path directory, String name) throws IOException {
         Files.createDirectories(directory);
         Path target = directory.resolve(name);
         ImageIO.write(image(), extension(name), target.toFile());
@@ -56,7 +56,7 @@ final class ImageTestFixtures {
         return conflicting;
     }
 
-    static Path writeZip(Path target, String... imageEntries) throws IOException {
+    public static Path writeZip(Path target, String... imageEntries) throws IOException {
         Map<String, byte[]> entries = new LinkedHashMap<>();
         for (String entry : imageEntries) {
             entries.put(entry, pngBytes());

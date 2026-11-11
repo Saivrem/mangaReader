@@ -1,8 +1,8 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.persistence.BookState;
-import org.dustyroom.ui.loading.RecentBook;
-import org.dustyroom.ui.navigation.ReadingMode;
+import org.dustyroom.be.models.direction.ReadingMode;
+import org.dustyroom.be.models.state.BookState;
+import org.dustyroom.be.models.view.RecentBook;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
@@ -22,18 +22,26 @@ class RecentBooksPanelTest {
             panel.setHandlers(opened::add, removed::add);
             BookState state = new BookState("/books/volume.zip", "p2", 2, 10, false, ReadingMode.MANGA);
             panel.showBooks(List.of(new RecentBook(state, false, null)));
-            JButton title = buttons(panel).stream().filter(b -> b.getText().equals("volume.zip")).findFirst().orElseThrow();
-            JButton remove = buttons(panel).stream().filter(b -> b.getText().equals("Remove from recent")).findFirst().orElseThrow();
+            JButton title = buttons(panel)
+                    .stream()
+                    .filter(b -> b.getText().equals("volume.zip"))
+                    .findFirst()
+                    .orElseThrow();
+            JButton remove = buttons(panel)
+                    .stream()
+                    .filter(b -> b.getText().equals("Remove from recent"))
+                    .findFirst()
+                    .orElseThrow();
             assertFalse(title.isEnabled());
             title.doClick();
             assertTrue(opened.isEmpty());
             remove.doClick();
-            assertEquals(List.of(state.sourceId()), removed);
+            assertEquals(List.of(state.getSourceId()), removed);
             panel.showBooks(List.of(new RecentBook(state, true, new BufferedImage(20, 30, BufferedImage.TYPE_INT_RGB))));
             assertTrue(buttons(panel).contains(title));
             assertTrue(title.isEnabled());
             title.doClick();
-            assertEquals(List.of(state.sourceId()), opened);
+            assertEquals(List.of(state.getSourceId()), opened);
             panel.showBooks(List.of());
             assertTrue(buttons(panel).isEmpty());
         });

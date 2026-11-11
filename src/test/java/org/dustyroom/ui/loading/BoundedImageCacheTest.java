@@ -1,6 +1,6 @@
 package org.dustyroom.ui.loading;
 
-import org.dustyroom.be.models.PageKey;
+import org.dustyroom.be.models.book.PageKey;
 import org.junit.jupiter.api.Test;
 
 import java.awt.image.BufferedImage;

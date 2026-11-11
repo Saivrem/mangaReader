@@ -1,16 +1,16 @@
 package org.dustyroom.ui.rendering;
 
+import lombok.experimental.UtilityClass;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public final class ThumbnailRenderer {
+@UtilityClass
+public class ThumbnailRenderer {
     public static final int LOGICAL_WIDTH = 144;
     public static final int LOGICAL_HEIGHT = 192;
     // Retain enough samples for Retina and fractional desktop scaling, independently of the current monitor.
     public static final int PIXEL_DENSITY = 3;
-
-    private ThumbnailRenderer() {
-    }
 
     public static BufferedImage render(BufferedImage image) {
         double scale = Math.min(1.0, Math.min((double) LOGICAL_WIDTH * PIXEL_DENSITY / image.getWidth(),

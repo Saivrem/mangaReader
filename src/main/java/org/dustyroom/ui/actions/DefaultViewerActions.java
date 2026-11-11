@@ -1,15 +1,20 @@
 package org.dustyroom.ui.actions;
 
-import org.dustyroom.ui.PlatformUi;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 import org.dustyroom.ui.ViewerController;
+import org.dustyroom.ui.utils.PlatformUi;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
+@Getter
+@Accessors(fluent = true)
 public class DefaultViewerActions implements ViewerActions {
+    private final Action openPageGrid;
     private final Action toggleThumbnails;
     private final Action openFile;
     private final Action home;
@@ -31,10 +36,12 @@ public class DefaultViewerActions implements ViewerActions {
     private final Action setMangaReadingMode;
     private final Action showAbout;
     private final Action resetApplication;
+    private final Action settings;
     private final Action goToPage;
     private final Action exitFullscreen;
 
     public DefaultViewerActions(ViewerController controller) {
+        this.openPageGrid = action("openPageGrid", "Grid", "Open page grid", null, controller::openPageGrid);
         this.toggleThumbnails = action("toggleThumbnails", "Thumbnails", "Show or hide page thumbnails (T)",
                 key(KeyEvent.VK_T), controller::toggleThumbnails);
         KeyStroke homeShortcut = menuShortcut(KeyEvent.VK_H);
@@ -78,20 +85,17 @@ public class DefaultViewerActions implements ViewerActions {
                 key(KeyEvent.VK_G), controller::choosePage);
         this.exitFullscreen = action("exitFullscreen", "Leave Full Screen", "Leave full-screen mode",
                 key(KeyEvent.VK_ESCAPE), controller::exitFullscreen);
+        this.settings = action("settings", "Settings…", "Appearance, reading defaults, library and data",
+                menuShortcut(KeyEvent.VK_COMMA), controller::showSettings);
         this.resetApplication = action("resetApplication", "Reset Application…",
-                "Reset settings and reading history", null, controller::resetApplication);
+                "Reset settings, library and reading history", null, controller::resetApplication);
         this.showAbout = action("showAbout", "About Yonaka Reader", "Show application information",
                 null, controller::showAboutDialog);
     }
 
     static Action action(String id, String name, String description,
                          KeyStroke accelerator, Runnable runnable) {
-        Action action = new AbstractAction(name) {
-            @Override
-            public void actionPerformed(ActionEvent event) {
-                runnable.run();
-            }
-        };
+        Action action = new RunnableAction(name, runnable);
         action.putValue(Action.ACTION_COMMAND_KEY, id);
         action.putValue(Action.SHORT_DESCRIPTION, description);
         if (accelerator != null) {
@@ -112,120 +116,5 @@ public class DefaultViewerActions implements ViewerActions {
 
     private static KeyStroke key(int keyCode) {
         return KeyStroke.getKeyStroke(keyCode, 0);
-    }
-
-    @Override
-    public Action toggleThumbnails() {
-        return toggleThumbnails;
-    }
-
-    @Override
-    public Action home() {
-        return home;
-    }
-
-    @Override
-    public Action openFile() {
-        return openFile;
-    }
-
-    @Override
-    public Action exit() {
-        return exit;
-    }
-
-    @Override
-    public Action fitHeight() {
-        return fitHeight;
-    }
-
-    @Override
-    public Action fitWidth() {
-        return fitWidth;
-    }
-
-    @Override
-    public Action fitScreen() {
-        return fitScreen;
-    }
-
-    @Override
-    public Action zoomIn() {
-        return zoomIn;
-    }
-
-    @Override
-    public Action zoomOut() {
-        return zoomOut;
-    }
-
-    @Override
-    public Action nextImage() {
-        return nextImage;
-    }
-
-    @Override
-    public Action prevImage() {
-        return prevImage;
-    }
-
-    @Override
-    public Action firstImage() {
-        return firstImage;
-    }
-
-    @Override
-    public Action lastImage() {
-        return lastImage;
-    }
-
-    @Override
-    public Action nextVolume() {
-        return nextVolume;
-    }
-
-    @Override
-    public Action prevVolume() {
-        return prevVolume;
-    }
-
-    @Override
-    public Action toggleFullscreen() {
-        return toggleFullscreen;
-    }
-
-    @Override
-    public Action toggleTwoPageMode() {
-        return toggleTwoPageMode;
-    }
-
-    @Override
-    public Action setComicsReadingMode() {
-        return setComicsReadingMode;
-    }
-
-    @Override
-    public Action setMangaReadingMode() {
-        return setMangaReadingMode;
-    }
-
-    @Override
-    public Action goToPage() {
-        return goToPage;
-    }
-
-    @Override
-    public Action exitFullscreen() {
-        return exitFullscreen;
-    }
-
-    @Override
-    public Action resetApplication() {
-        return resetApplication;
-    }
-
-    @Override
-    public Action showAbout() {
-        return showAbout;
     }
 }
