@@ -291,8 +291,10 @@ so the remaining pages can still be browsed.
 ## Continuous integration
 
 GitHub Actions runs tests, builds the runnable JAR and checks packaged SQLite on
-Linux, macOS and Windows using Java 25 for pushes and pull requests. Test reports
-and successful JAR builds are available as workflow artifacts for 14 days.
+Linux, macOS and Windows using Java 25. CI runs on pushes to `main` and when a
+pull request targeting `main` is opened, reopened or updated. Each platform runs
+its tests once and builds its native packages in the same job. Test reports,
+native packages and one runnable JAR are available as artifacts for 14 days.
 The packaged SQLite check can also be run locally:
 
 ```shell
