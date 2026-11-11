@@ -1,25 +1,12 @@
 package org.dustyroom.ui.components;
 
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.util.List;
-import java.util.function.Consumer;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
 import org.dustyroom.be.models.view.RecentBook;
 import org.dustyroom.ui.utils.BrandAssets;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Welcome and reading views share the same window and open action.
@@ -30,8 +17,8 @@ public final class ReaderSurface extends JPanel {
     private final RecentBooksPanel recent = new RecentBooksPanel();
     private final JPanel hero = new JPanel();
     private final JPanel compact = new JPanel(new BorderLayout(24, 0));
-    private boolean reading;
     private final JTabbedPane home = new JTabbedPane();
+    private boolean reading;
 
     public ReaderSurface(JScrollPane reader, Action open) {
         setLayout(cards);
@@ -100,7 +87,7 @@ public final class ReaderSurface extends JPanel {
 
     public void setLibrary(JComponent library, Runnable refresh) {
         home.addTab("Library", library);
-        home.addChangeListener(event -> {
+        home.addChangeListener(_ -> {
             if (home.getSelectedComponent() == library) {
                 refresh.run();
             }

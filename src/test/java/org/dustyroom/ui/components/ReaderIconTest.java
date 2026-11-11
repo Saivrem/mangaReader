@@ -1,8 +1,9 @@
 package org.dustyroom.ui.components;
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 import org.junit.jupiter.api.Test;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

@@ -1,11 +1,12 @@
 package org.dustyroom.ui.components;
 
-import java.awt.BorderLayout;
+import javax.swing.*;
+import java.awt.*;
 import java.util.function.Consumer;
-import javax.swing.JComponent;
-import javax.swing.JPanel;
 
-/** Reuses the thumbnail list and cache when switching between sidebar and page grid. */
+/**
+ * Reuses the thumbnail list and cache when switching between sidebar and page grid.
+ */
 public final class ReaderWorkspace extends JPanel {
     private final ThumbnailPanel thumbnails;
     private final JComponent reader;

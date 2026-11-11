@@ -1,13 +1,16 @@
 package org.dustyroom.ui.settings;
 
+import lombok.Setter;
+
+import org.dustyroom.be.models.state.ThemeMode;
+import org.dustyroom.be.models.state.ViewerTheme;
+import org.dustyroom.be.settings.SystemThemeDetector;
+
+import javax.swing.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import javax.swing.SwingUtilities;
-import org.dustyroom.be.models.state.ThemeMode;
-import org.dustyroom.be.models.state.ViewerTheme;
-import org.dustyroom.be.settings.SystemThemeDetector;
 
 public final class SystemThemeMonitor implements AutoCloseable {
     private final ScheduledExecutorService worker = Executors.newSingleThreadScheduledExecutor(task -> {
@@ -15,6 +18,7 @@ public final class SystemThemeMonitor implements AutoCloseable {
         thread.setDaemon(true);
         return thread;
     });
+    @Setter
     private volatile ThemeMode mode;
     private volatile boolean closed;
 
@@ -29,10 +33,6 @@ public final class SystemThemeMonitor implements AutoCloseable {
                 }));
             }
         }, 0, 5, TimeUnit.SECONDS);
-    }
-
-    public void setMode(ThemeMode mode) {
-        this.mode = mode;
     }
 
     @Override

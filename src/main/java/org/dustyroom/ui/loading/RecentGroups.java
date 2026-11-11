@@ -1,13 +1,10 @@
 package org.dustyroom.ui.loading;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.models.state.BookState;
+
+import java.nio.file.Path;
+import java.util.*;
 
 /**
  * Explicit folder grouping, not guessing series names from filenames.
@@ -16,7 +13,7 @@ import org.dustyroom.be.models.state.BookState;
 public class RecentGroups {
 
     public static List<List<BookState>> select(List<BookState> history, boolean grouped, int limit) {
-        Map<String, List<BookState>> groups = new LinkedHashMap<String, List<BookState>>();
+        Map<String, List<BookState>> groups = new LinkedHashMap<>();
         for (BookState book : history) {
             String key = "book:" + book.getSourceId();
             if (grouped && book.getSourceId().toLowerCase(Locale.ROOT).endsWith(".zip")) {
@@ -28,11 +25,14 @@ public class RecentGroups {
             if (groups.containsKey(key)) {
                 groups.get(key).add(book);
             } else if (groups.size() < limit) {
-                List<BookState> books = new ArrayList<BookState>();
+                List<BookState> books = new ArrayList<>();
                 books.add(book);
                 groups.put(key, books);
             }
         }
-        return groups.values().stream().map(List::copyOf).toList();
+        return groups.values()
+                .stream()
+                .map(List::copyOf)
+                .toList();
     }
 }

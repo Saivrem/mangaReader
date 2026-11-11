@@ -1,12 +1,9 @@
 package org.dustyroom.be.models.library;
 
-import java.util.List;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
+
+import java.util.List;
 
 @Getter
 @EqualsAndHashCode
@@ -17,26 +14,16 @@ public final class LibraryImport {
     private String root;
     private String title;
     private List<LibrarySource> sources;
-    private List<String> warnings;
 
     @Builder
-    public LibraryImport(String root, String title, List<LibrarySource> sources, List<String> warnings) {
-        sources = List.copyOf(sources);
-        warnings = List.copyOf(warnings);
-
+    public LibraryImport(String root, String title, List<LibrarySource> sources) {
         this.root = root;
         this.title = title;
-        this.sources = sources;
-        this.warnings = warnings;
+        this.sources = List.copyOf(sources);
     }
 
     public LibraryImport setSources(List<LibrarySource> sources) {
         this.sources = List.copyOf(sources);
-        return this;
-    }
-
-    public LibraryImport setWarnings(List<String> warnings) {
-        this.warnings = List.copyOf(warnings);
         return this;
     }
 }

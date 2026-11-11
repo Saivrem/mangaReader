@@ -1,7 +1,7 @@
 package org.dustyroom.ui.actions;
 
+import javax.swing.*;
 import java.awt.event.ActionEvent;
-import javax.swing.AbstractAction;
 
 public final class RunnableAction extends AbstractAction {
     private final Runnable callback;

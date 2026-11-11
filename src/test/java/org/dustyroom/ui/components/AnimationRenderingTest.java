@@ -7,34 +7,67 @@ import org.dustyroom.be.models.animation.AnimationFrame;
 import org.dustyroom.be.models.state.FitMode;
 import org.junit.jupiter.api.Test;
 
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
-
-import java.awt.Color;
-import java.awt.Graphics2D;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AnimationRenderingTest {
+    private static BufferedImage solid(Color color) {
+        BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(color);
+        graphics.fillRect(0, 0, 20, 20);
+        graphics.dispose();
+        return image;
+    }
+
+    private static BufferedImage render(ImageComponent component) {
+        BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            component.paint(graphics);
+        } finally {
+            graphics.dispose();
+        }
+        return image;
+    }
+
     @Test
     void unchangedFramesDoNotFloodTheEventThreadAndPauseClosesTheSource() throws Exception {
         AtomicInteger paints = new AtomicInteger();
         CountDownLatch closed = new CountDownLatch(1);
         ImageComponent component = new ImageComponent() {
-            @Override public boolean isShowing() { return true; }
-            @Override public void repaint() { paints.incrementAndGet(); }
+            @Override
+            public boolean isShowing() {
+                return true;
+            }
+
+            @Override
+            public void repaint() {
+                paints.incrementAndGet();
+            }
         };
         BufferedImage source = solid(Color.RED);
         BufferedImage animated = solid(Color.BLUE);
         AnimationClip clip = new AnimationClip(() -> new AnimationDecoder() {
-            public AnimationFrame next() { return new AnimationFrame(animated, 5000); }
-            public int loops() { return 0; }
-            public void close() { closed.countDown(); }
+            public AnimationFrame next() {
+                return new AnimationFrame(animated, 5000);
+            }
+
+            public int loops() {
+                return 0;
+            }
+
+            public void close() {
+                closed.countDown();
+            }
         });
         try {
             SwingUtilities.invokeAndWait(() -> {
@@ -70,7 +103,10 @@ class AnimationRenderingTest {
     void pausedComponentDoesNotStartDecodingWhileAnotherFileIsLoading() throws Exception {
         AtomicInteger opens = new AtomicInteger();
         ImageComponent component = new ImageComponent() {
-            @Override public boolean isShowing() { return true; }
+            @Override
+            public boolean isShowing() {
+                return true;
+            }
         };
         AnimationClip clip = new AnimationClip(() -> {
             opens.incrementAndGet();
@@ -83,21 +119,5 @@ class AnimationRenderingTest {
         Thread.sleep(100);
         assertEquals(0, opens.get());
         SwingUtilities.invokeAndWait(() -> component.setAnimations(List.of()));
-    }
-
-    private static BufferedImage solid(Color color) {
-        BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D graphics = image.createGraphics();
-        graphics.setColor(color);
-        graphics.fillRect(0, 0, 20, 20);
-        graphics.dispose();
-        return image;
-    }
-
-    private static BufferedImage render(ImageComponent component) {
-        BufferedImage image = new BufferedImage(20, 20, BufferedImage.TYPE_INT_RGB);
-        Graphics2D graphics = image.createGraphics();
-        try { component.paint(graphics); } finally { graphics.dispose(); }
-        return image;
     }
 }

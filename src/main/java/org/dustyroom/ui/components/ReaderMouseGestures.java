@@ -1,16 +1,12 @@
 package org.dustyroom.ui.components;
 
-import java.awt.Cursor;
-import java.awt.Point;
+import lombok.RequiredArgsConstructor;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.JViewport;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 final class ReaderMouseGestures extends MouseAdapter {
@@ -31,7 +27,7 @@ final class ReaderMouseGestures extends MouseAdapter {
             boolean horizontal = event.isShiftDown();
             JScrollBar bar = horizontal ? scroll.getHorizontalScrollBar() : scroll.getVerticalScrollBar();
             double delta = event.getPreciseWheelRotation() * (event.getScrollType() == MouseWheelEvent.WHEEL_BLOCK_SCROLL
-                            ? bar.getBlockIncrement() : 48 * Math.max(1, event.getScrollAmount()));
+                    ? bar.getBlockIncrement() : 48 * Math.max(1, event.getScrollAmount()));
             double total = delta + (horizontal ? horizontalRemainder : verticalRemainder);
             int pixels = (int) total;
             if (horizontal) {
@@ -61,9 +57,9 @@ final class ReaderMouseGestures extends MouseAdapter {
         }
         Point now = SwingUtilities.convertPoint(image, event.getPoint(), scroll.getViewport());
         JViewport viewport = scroll.getViewport();
-        viewport.setViewPosition(new Point(
-                        Math.max(0, Math.min(origin.x + pressed.x - now.x, image.getWidth() - viewport.getWidth())),
-                        Math.max(0, Math.min(origin.y + pressed.y - now.y, image.getHeight() - viewport.getHeight()))));
+        int x = origin.x + pressed.x - now.x;
+        int y = origin.y + pressed.y - now.y;
+        image.setViewportPosition(viewport, x, y);
     }
 
     @Override

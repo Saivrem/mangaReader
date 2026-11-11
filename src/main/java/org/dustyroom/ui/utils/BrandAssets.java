@@ -1,25 +1,33 @@
 package org.dustyroom.ui.utils;
 
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
+import lombok.experimental.UtilityClass;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BaseMultiResolutionImage;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import lombok.experimental.UtilityClass;
 
 /**
  * Decode and resize once on the startup thread, before creating Swing windows.
  */
 @UtilityClass
 public class BrandAssets {
+    @Getter
+    @Accessors(fluent = true)
     private static List<BufferedImage> windowIcons = List.of();
+    @Getter
+    @Accessors(fluent = true)
     private static Icon aboutIcon;
+    @Getter
+    @Accessors(fluent = true)
     private static Icon welcomeIcon;
 
     public static void load() {
@@ -38,18 +46,6 @@ public class BrandAssets {
             // Branding must never prevent opening a book.
             Logger.getLogger(BrandAssets.class.getName()).warning(exception.getMessage());
         }
-    }
-
-    public static List<BufferedImage> windowIcons() {
-        return windowIcons;
-    }
-
-    public static Icon aboutIcon() {
-        return aboutIcon;
-    }
-
-    public static Icon welcomeIcon() {
-        return welcomeIcon;
     }
 
     private static Icon multiResolutionIcon(BufferedImage source, int logicalSize) {

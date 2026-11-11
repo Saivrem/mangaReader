@@ -1,9 +1,5 @@
 package org.dustyroom.ui.loading;
 
-import java.awt.image.BufferedImage;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.iterators.ImageIterator;
 import org.dustyroom.be.iterators.ImageIteratorFactory;
@@ -11,6 +7,11 @@ import org.dustyroom.be.models.book.PageRef;
 import org.dustyroom.be.models.state.BookState;
 import org.dustyroom.be.models.view.RecentBook;
 import org.dustyroom.ui.rendering.ThumbnailRenderer;
+
+import java.awt.image.BufferedImage;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Filesystem checks and decoding belong on a worker, never on Swing's EDT.
@@ -29,6 +30,11 @@ public class RecentBookLoader {
         return new RecentBook(state, available, null);
     }
 
+    static RecentBook inspectGroup(List<BookState> chapters) {
+        RecentBook book = inspect(chapters.getFirst());
+        return book.setChapters(chapters);
+    }
+
     public static RecentBook cover(RecentBook book) {
         if (!book.isAvailable()) {
             return book;
@@ -36,7 +42,7 @@ public class RecentBookLoader {
         try (ImageIterator source = ImageIteratorFactory.create(Path.of(book.getState().getSourceId()).toFile())) {
             List<PageRef> pages = source.pages();
             if (!pages.isEmpty()) {
-                BufferedImage image = source.load(pages.get(0)).getImage();
+                BufferedImage image = source.load(pages.getFirst()).getImage();
                 return new RecentBook(book.getState(), true, ThumbnailRenderer.render(image), book.getChapters());
             }
         } catch (RuntimeException ignored) {

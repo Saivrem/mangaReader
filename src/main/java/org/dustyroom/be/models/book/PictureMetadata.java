@@ -1,12 +1,9 @@
 package org.dustyroom.be.models.book;
 
-import java.io.File;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
+
+import java.io.File;
 
 @Getter
 @EqualsAndHashCode

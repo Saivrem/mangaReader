@@ -1,14 +1,13 @@
 package org.dustyroom.be.animation.gif;
 
-import java.awt.AlphaComposite;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import javax.imageio.ImageReader;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.models.animation.AnimationClip;
 import org.w3c.dom.Node;
+
+import javax.imageio.ImageReader;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 
 /**
  * Sequential GIF composition. Consumed compressed bytes and prior frames are discarded.

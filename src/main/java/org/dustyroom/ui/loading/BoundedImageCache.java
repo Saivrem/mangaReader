@@ -1,10 +1,11 @@
 package org.dustyroom.ui.loading;
 
+import org.dustyroom.be.models.book.PageKey;
+
 import java.awt.image.BufferedImage;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.dustyroom.be.models.book.PageKey;
 
 public final class BoundedImageCache {
     private final int maxEntries;
@@ -25,7 +26,7 @@ public final class BoundedImageCache {
 
     public synchronized BufferedImage get(PageKey key) {
         CacheEntry entry = entries.get(key);
-        return entry == null ? null : entry.getImage();
+        return entry == null ? null : entry.image();
     }
 
     public synchronized void put(PageKey key, BufferedImage image) {
@@ -35,7 +36,7 @@ public final class BoundedImageCache {
         }
         CacheEntry previous = entries.put(key, new CacheEntry(image, weight));
         if (previous != null) {
-            estimatedBytes -= previous.getWeight();
+            estimatedBytes -= previous.weight();
         }
         estimatedBytes = saturatedAdd(estimatedBytes, weight);
         evictIfNeeded();
@@ -62,7 +63,7 @@ public final class BoundedImageCache {
         Iterator<Map.Entry<PageKey, CacheEntry>> iterator = entries.entrySet().iterator();
         while ((entries.size() > maxEntries || estimatedBytes > maxBytes) && iterator.hasNext()) {
             CacheEntry eldest = iterator.next().getValue();
-            estimatedBytes -= eldest.getWeight();
+            estimatedBytes -= eldest.weight();
             iterator.remove();
         }
     }

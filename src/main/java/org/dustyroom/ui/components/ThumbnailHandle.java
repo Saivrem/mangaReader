@@ -1,12 +1,9 @@
 package org.dustyroom.ui.components;
 
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import javax.swing.JButton;
-import javax.swing.UIManager;
 import lombok.RequiredArgsConstructor;
+
+import javax.swing.*;
+import java.awt.*;
 
 @RequiredArgsConstructor
 final class ThumbnailHandle extends JButton {

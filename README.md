@@ -56,8 +56,7 @@ Open **Options → Settings…** (Command+, on macOS, Ctrl+, elsewhere).
   plus thumbnail visibility. Existing books retain saved direction and spread mode;
   these defaults do not overwrite their progress. Original size starts at 100%.
 - **Library:** remember a folder and explicitly open the existing import preview with
-  **Scan / refresh…**. Apply alone does not scan. The current shallow scan rules described
-  below still apply; recursive library discovery is not implemented.
+  **Scan / refresh…**. Apply alone does not scan. The preview includes the selected directory and its immediate subfolders.
 - **Data:** show/open the active folder or explicitly change it. An empty target receives
   the current profile; an existing SQLite profile is opened separately without merging.
   The reader closes after switching; launch it again. Books are never moved.
@@ -97,11 +96,16 @@ Existing reading history is preserved by a transactional schema migration.
 ## Library
 
 Open **File → Home → Library** to build an explicit shelf, separate from Recently read.
-Use **Add folder…** to preview and select sources before importing. One folder is one
-work: its immediate ZIP files become chapters in natural filename order; its image
-pages can be imported as a single chapter. Subfolders and symbolic links are not
-scanned. Mixed folders require explicit source selection. Invalid or empty ZIPs are
-reported in the preview. Scanning is cancellable and does not decode images.
+Use **Add folder…** to scan a library root. Each ZIP directly in the root becomes a
+book named after the file. Loose images in the root share one book. Each immediate
+subfolder becomes a book containing its ZIP chapters in natural order and its loose
+images as one chapter. Deeper directories and symbolic links are skipped.
+
+Review book titles and select chapters before importing. A subfolder containing
+both images and ZIPs starts unchecked so you can choose which to include. Unreadable
+ZIPs and archives without supported pages are reported in the preview. Scanning can
+be cancelled. Previously imported chapters keep their original book and reading state
+when the same files are found from another root.
 
 Open a work to view chapters and their saved positions. **Continue reading** opens
 the last-read chapter with the existing page, reading direction and spread mode.
@@ -262,11 +266,7 @@ The main entry point is `org.dustyroom.Main`.
 
 - Image rotation is not supported.
 
-## Development notes
-
-Repository-specific guidance for coding agents and contributors is available in [`AGENTS.md`](AGENTS.md).
-
-### Page thumbnails
+## Page thumbnails
 
 Click the centered handle on the sidebar edge, or use **View → Thumbnails** / **T**,
 to show or hide the left page panel. The handle remains available when collapsed; its visibility
@@ -288,7 +288,7 @@ evicts previews outside this window and loads the newly needed pages one at a ti
 Changing books clears the preview cache. Unreadable previews retain their page number
 so the remaining pages can still be browsed.
 
-### Continuous integration
+## Continuous integration
 
 GitHub Actions runs tests, builds the runnable JAR and checks packaged SQLite on
 Linux, macOS and Windows using Java 25 for pushes and pull requests. Test reports
@@ -302,7 +302,7 @@ The packaged SQLite check can also be run locally:
 These checks cover headless behavior; native menus, drag-and-drop and display
 scaling still need manual desktop verification on each platform.
 
-### Standalone macOS application
+## Standalone macOS application
 
 On macOS with JDK 25 and Python 3, run:
 
@@ -344,7 +344,7 @@ the app preserves reading history and preferences. The macOS icon is generated f
 `src/main/resources/org/dustyroom/ui/branding/yonaka-original.png` at standard and Retina sizes.
 The original crescent icon is preserved alongside it as `yonaka-original.png`.
 
-### Windows packages
+## Windows packages
 
 Build on Windows x64 with JDK 25. MSI packaging also requires **WiX Toolset 3.x**
 (`candle.exe` and `light.exe` on `PATH`; WiX 4/5 alone are not compatible with this
@@ -367,7 +367,7 @@ The binaries are currently unsigned. SmartScreen may warn about an unknown publi
 Smart App Control or managed-device policies can block unsigned software. There is
 no Apple-style notarization step, but trusted signing remains a separate release task.
 
-### Ubuntu packages
+## Ubuntu packages
 
 Build on Ubuntu 22.04 or newer with JDK 25 and `fakeroot` (`sudo apt install fakeroot`).
 CI targets Ubuntu 22.04 x64 to avoid unnecessarily raising the system-library baseline.

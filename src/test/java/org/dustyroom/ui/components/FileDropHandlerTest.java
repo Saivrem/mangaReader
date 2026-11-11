@@ -1,5 +1,6 @@
 package org.dustyroom.ui.components;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
@@ -35,11 +36,11 @@ class FileDropHandlerTest {
     void handsOffSinglePathsWithoutRequiringFilesystemAccess() throws Exception {
         List<File> opened = new ArrayList<>();
         SwingUtilities.invokeAndWait(() -> {
-            FileDropHandler handler = new FileDropHandler(opened::add, message -> fail(message));
+            FileDropHandler handler = new FileDropHandler(opened::add, Assertions::fail);
             for (String path : new String[]{"chapter/page.png", "日本語 book.zip", "chapter folder"}) {
                 File file = new File(path);
                 assertTrue(handler.importData(support(List.of(file))));
-                assertEquals(file, opened.get(opened.size() - 1));
+                assertEquals(file, opened.getLast());
             }
             assertEquals(3, opened.size());
         });

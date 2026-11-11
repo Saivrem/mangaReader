@@ -1,7 +1,8 @@
 package org.dustyroom.be.iterators;
 
-import java.io.File;
 import lombok.Getter;
+
+import java.io.File;
 
 @Getter
 public class ImageIteratorException extends RuntimeException {

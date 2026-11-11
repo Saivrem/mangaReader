@@ -1,31 +1,21 @@
 package org.dustyroom.ui;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.io.File;
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.Timer;
-import javax.swing.WindowConstants;
 import org.dustyroom.be.models.state.FitMode;
 import org.dustyroom.be.models.state.ReaderSettings;
 import org.dustyroom.be.persistence.ReaderStore;
 import org.dustyroom.ui.actions.DefaultViewerActions;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.components.FileDropHandler;
-import org.dustyroom.ui.components.ImageComponent;
-import org.dustyroom.ui.components.KeyBindings;
+import org.dustyroom.ui.components.*;
 import org.dustyroom.ui.components.MenuBar;
-import org.dustyroom.ui.components.NavigationPanel;
-import org.dustyroom.ui.components.ReaderSurface;
-import org.dustyroom.ui.components.ReaderWorkspace;
 import org.dustyroom.ui.listeners.ComponentResizeListener;
 import org.dustyroom.ui.listeners.WindowCloseListener;
 import org.dustyroom.ui.utils.BrandAssets;
 import org.dustyroom.ui.utils.DialogUtils;
 import org.dustyroom.ui.utils.PlatformUi;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
 
 public class ImageViewer extends JFrame {
     private static final int RESIZE_RENDER_DELAY_MS = 80;
@@ -51,7 +41,7 @@ public class ImageViewer extends JFrame {
         scrollPane = new JScrollPane(imageComponent);
         viewerController = new ViewerController(this, graphicsDevice, imageComponent, scrollPane, store, settings);
         ViewerActions viewerActions = new DefaultViewerActions(viewerController);
-        resizeRenderTimer = new Timer(RESIZE_RENDER_DELAY_MS, e -> applyResizeRender());
+        resizeRenderTimer = new Timer(RESIZE_RENDER_DELAY_MS, _ -> applyResizeRender());
         resizeRenderTimer.setRepeats(false);
 
         menuBar = new MenuBar(viewerActions, viewerController::setTheme);
@@ -74,11 +64,11 @@ public class ImageViewer extends JFrame {
         setJMenuBar(menuBar);
         setContentPane(new ReaderWorkspace(viewerController.createThumbnailPanel(), readerSurface,
                 navigationPanel, grid -> {
-                    imageComponent.setAnimationPaused(grid);
-                    if (!grid) {
-                        requestFocusInWindow();
-                    }
-                }));
+            imageComponent.setAnimationPaused(grid);
+            if (!grid) {
+                requestFocusInWindow();
+            }
+        }));
 
         scrollPane.getViewport().addComponentListener(new ComponentResizeListener(() -> {
             if (imageComponent.getFitMode() != FitMode.ORIGINAL) {

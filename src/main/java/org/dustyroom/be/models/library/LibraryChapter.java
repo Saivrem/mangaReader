@@ -1,10 +1,6 @@
 package org.dustyroom.be.models.library;
 
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
 
 @Getter
@@ -31,6 +27,10 @@ public final class LibraryChapter {
     }
 
     public String getProgress() {
-        return finished ? "Finished" : pageCount > 0 ? "Page " + page + " / " + pageCount : "Unread";
+        if (finished) {
+            return "Finished";
+        }
+
+        return pageCount > 0 ? "Page " + page + " / " + pageCount : "Unread";
     }
 }

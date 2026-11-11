@@ -1,16 +1,15 @@
 package org.dustyroom.ui.components;
 
-import java.awt.Point;
+import org.dustyroom.be.utils.OSUtils;
+import lombok.experimental.UtilityClass;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.function.DoubleConsumer;
 import java.util.logging.Logger;
-import javax.swing.JComponent;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import lombok.experimental.UtilityClass;
 
 /**
  * Precise wheel scrolling, pointer-anchored zoom and grab-to-pan, without image I/O.
@@ -22,7 +21,7 @@ public class ReaderGestures {
         scroll.setWheelScrollingEnabled(false);
         scroll.getVerticalScrollBar().setUnitIncrement(48);
         scroll.getHorizontalScrollBar().setUnitIncrement(48);
-        Timer save = new Timer(200, event -> changed.run());
+        Timer save = new Timer(200, _ -> changed.run());
         save.setRepeats(false);
         MouseAdapter mouse = new ReaderMouseGestures(image, scroll, save);
         scroll.addMouseWheelListener(mouse);
@@ -36,7 +35,7 @@ public class ReaderGestures {
     }
 
     private static void installMacMagnification(JComponent component, DoubleConsumer zoom) {
-        if (!System.getProperty("os.name", "").startsWith("Mac")) {
+        if (!OSUtils.isMac(OSUtils.currentName())) {
             return;
         }
         try {

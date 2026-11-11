@@ -1,34 +1,5 @@
 package org.dustyroom.ui;
 
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.GraphicsDevice;
-import java.awt.Window;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.text.ParseException;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.JComponent;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
-import javax.swing.JViewport;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.border.Border;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import org.dustyroom.be.models.animation.AnimatedPage;
 import org.dustyroom.be.models.book.PageKey;
 import org.dustyroom.be.models.book.PageRef;
@@ -40,16 +11,12 @@ import org.dustyroom.be.models.view.RecentBook;
 import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.be.persistence.ReaderStore;
 import org.dustyroom.be.settings.ProfileManager;
-import org.dustyroom.be.utils.OpenDirectory;
+import org.dustyroom.be.utils.FileUtils;
 import org.dustyroom.be.utils.StorageUtils;
 import org.dustyroom.ui.actions.ViewerActionState;
 import org.dustyroom.ui.actions.ViewerActions;
-import org.dustyroom.ui.components.ImageComponent;
+import org.dustyroom.ui.components.*;
 import org.dustyroom.ui.components.MenuBar;
-import org.dustyroom.ui.components.NavigationPanel;
-import org.dustyroom.ui.components.ReaderGestures;
-import org.dustyroom.ui.components.ReaderSurface;
-import org.dustyroom.ui.components.ThumbnailPanel;
 import org.dustyroom.ui.library.LibraryController;
 import org.dustyroom.ui.loading.AsyncViewerSession;
 import org.dustyroom.ui.loading.BackgroundTask;
@@ -60,12 +27,25 @@ import org.dustyroom.ui.settings.SystemThemeMonitor;
 import org.dustyroom.ui.utils.DialogUtils;
 import org.dustyroom.ui.utils.UiUtils;
 
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.text.ParseException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+
+import static org.dustyroom.be.utils.FileUtils.normalizedPath;
 import static javax.swing.JFileChooser.FILES_AND_DIRECTORIES;
 import static org.dustyroom.be.utils.Constants.SUPPORTED_FORMATS;
 import static org.dustyroom.ui.utils.DialogUtils.showAbout;
 
 public class ViewerController implements SettingsHost, ViewerView {
-    private ReaderSettings preferences;
     private final Path database;
     private final SystemThemeMonitor themeMonitor;
     private final JFrame frame;
@@ -73,7 +53,7 @@ public class ViewerController implements SettingsHost, ViewerView {
     private final ImageComponent imageComponent;
     private final JScrollPane scrollPane;
     private final AsyncViewerSession session;
-
+    private ReaderSettings preferences;
     private JComponent menuBar;
     private NavigationPanel navigationPanel;
     private ReaderSurface readerSurface;
@@ -139,10 +119,10 @@ public class ViewerController implements SettingsHost, ViewerView {
     public ThumbnailPanel createThumbnailPanel() {
         thumbnailPanel = new ThumbnailPanel(session::thumbnail,
                 page -> {
-            session.goToPage(page);
+                    session.goToPage(page);
                     // Leave the list's local navigation bindings after mouse or Enter activation.
-            frame.requestFocusInWindow();
-        }, this::toggleThumbnails);
+                    frame.requestFocusInWindow();
+                }, this::toggleThumbnails);
         thumbnailPanel.setExpanded(thumbnailsVisible);
         thumbnailPanel.setVisible(false);
         actions.toggleThumbnails().putValue(Action.SELECTED_KEY, thumbnailsVisible);
@@ -210,9 +190,7 @@ public class ViewerController implements SettingsHost, ViewerView {
         imageComponent.setAnimationPaused(true);
         actions.openFile().setEnabled(false);
         String requestedDirectory = lastDirectory;
-        new BackgroundTask<File>(cancelled -> {
-            return OpenDirectory.resolve(requestedDirectory, System.getProperty("user.home"));
-        }, task -> {
+        new BackgroundTask<>(_ -> FileUtils.resolve(requestedDirectory, System.getProperty("user.home")), task -> {
             try {
                 File root = task.get();
                 if (!resetting) {
@@ -389,10 +367,13 @@ public class ViewerController implements SettingsHost, ViewerView {
         }
         Object[] options = {"Reset and quit", "Cancel"};
         int choice = JOptionPane.showOptionDialog(frame,
-                "Reset all settings, library and reading history?\n\n"
-                        + "Saved page positions and reading modes will be removed.\n"
-                        + "Your image files, folders and ZIP archives will not be deleted.\n\n"
-                        + "Yonaka Reader will close. The next launch will start with default settings.",
+                """
+                        Reset all settings, library and reading history?
+
+                        Saved page positions and reading modes will be removed.
+                        Your image files, folders and ZIP archives will not be deleted.
+
+                        Yonaka Reader will close. The next launch will start with default settings.""",
                 "Reset Yonaka Reader", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
                 null, options, options[1]);
         if (choice != 0) {
@@ -562,7 +543,7 @@ public class ViewerController implements SettingsHost, ViewerView {
             } catch (IOException exception) {
                 throw new IllegalStateException(exception.getMessage(), exception);
             }
-        }).whenComplete((ignored, error) -> SwingUtilities.invokeLater(() -> {
+        }).whenComplete((_, error) -> SwingUtilities.invokeLater(() -> {
             if (error != null) {
                 profileSwitchPending = false;
                 DialogUtils.showError(frame, "Cannot select this data folder: " + error.getCause().getMessage());
@@ -578,9 +559,11 @@ public class ViewerController implements SettingsHost, ViewerView {
                 } catch (IOException exception) {
                     throw new IllegalStateException(exception.getMessage(), exception);
                 }
-            }).whenComplete((result, failure) -> SwingUtilities.invokeLater(() -> {
+            }).whenComplete((_, failure) -> SwingUtilities.invokeLater(() -> {
                 if (failure != null) {
-                    DialogUtils.showError(frame, "Profile switch failed. Restart the reader to reopen the previous profile.\n" + failure.getCause().getMessage());
+                    DialogUtils.showError(frame, """
+                            Profile switch failed. Restart the reader to reopen the previous profile.
+                            %s""".formatted(failure.getCause().getMessage()));
                 }
                 System.exit(failure == null ? 0 : 1);
             })));
@@ -603,7 +586,7 @@ public class ViewerController implements SettingsHost, ViewerView {
         thumbnailPanel.setVisible(true);
         thumbnailPanel.showSpread(viewerFrame.getFirstPage(), viewerFrame.getLastPage());
         readerSurface.showReading();
-        String openedDirectory = viewerFrame.getDirectory().toPath().toAbsolutePath().normalize().toString();
+        String openedDirectory = normalizedPath(viewerFrame.getDirectory());
         if (!openedDirectory.equals(lastDirectory)) {
             lastDirectory = openedDirectory;
             saveSettings();

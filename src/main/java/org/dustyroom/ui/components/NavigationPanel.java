@@ -1,26 +1,14 @@
 package org.dustyroom.ui.components;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-import javax.swing.AbstractButton;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JRadioButtonMenuItem;
-import javax.swing.JToggleButton;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import org.dustyroom.be.models.direction.ReadingMode;
 import org.dustyroom.be.models.state.FitMode;
 import org.dustyroom.be.models.view.ViewerFrame;
 import org.dustyroom.ui.actions.ViewerActions;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 
 public class NavigationPanel extends JPanel {
     private final JButton position;
@@ -57,7 +45,7 @@ public class NavigationPanel extends JPanel {
         fitMenu.addSeparator();
         fitMenu.add(actions.zoomIn());
         fitMenu.add(actions.zoomOut());
-        fit.addActionListener(event -> {
+        fit.addActionListener(_ -> {
             SwingUtilities.updateComponentTreeUI(fitMenu);
             fitMenu.show(fit, 0, fit.getHeight());
         });
@@ -65,7 +53,7 @@ public class NavigationPanel extends JPanel {
         settings.add(fit);
         JPopupMenu readingMenu = new JPopupMenu();
         radioItems(readingMenu, actions.setMangaReadingMode(), actions.setComicsReadingMode());
-        direction.addActionListener(event -> {
+        direction.addActionListener(_ -> {
             SwingUtilities.updateComponentTreeUI(readingMenu);
             readingMenu.show(direction, 0, direction.getHeight());
         });
@@ -90,7 +78,7 @@ public class NavigationPanel extends JPanel {
         button.putClientProperty("JButton.buttonType", "toolBarButton");
         button.setToolTipText("Reader menu");
         button.getAccessibleContext().setAccessibleName("Reader menu");
-        button.addActionListener(event -> {
+        button.addActionListener(_ -> {
             SwingUtilities.updateComponentTreeUI(menu);
             menu.show(button, 0, -menu.getPreferredSize().height);
         });

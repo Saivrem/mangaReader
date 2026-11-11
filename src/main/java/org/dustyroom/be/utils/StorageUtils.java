@@ -1,51 +1,51 @@
 package org.dustyroom.be.utils;
 
-import java.nio.file.Path;
-import java.util.Locale;
-import java.util.Map;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 import org.dustyroom.be.settings.ProfileManager;
+
+import java.nio.file.Path;
+import java.util.Map;
+
+import static org.dustyroom.be.utils.OSUtils.isMac;
+import static org.dustyroom.be.utils.OSUtils.isWindows;
 
 @UtilityClass
 public final class StorageUtils {
 
+    private static final String DATA_DIRECTORY = "yonaka.dataDir";
+
     public static Path database() {
-        return ProfileManager.resolve(standardDirectory(), System.getProperty("yonaka.dataDir"));
+        return ProfileManager.resolve(standardDirectory(), System.getProperty(DATA_DIRECTORY));
     }
 
     public static Path standardDirectory() {
-        return directory(null, System.getProperty("os.name", ""), System.getProperty("user.home"), System.getenv());
+        return directory(OSUtils.currentName(), System.getProperty("user.home"), System.getenv());
     }
 
     public static boolean isDirectoryOverridden() {
-        String override = System.getProperty("yonaka.dataDir");
-        return override != null && !override.isBlank();
+        String override = System.getProperty(DATA_DIRECTORY);
+        return StringUtils.isNotBlank(override);
     }
 
-    private static boolean isMac(String os) {
-        String platform = os.toLowerCase(Locale.ROOT);
-        return platform.startsWith("mac") || platform.startsWith("darwin");
-    }
-
-    private static boolean isWindows(String os) {
-        return os.toLowerCase(Locale.ROOT).startsWith("windows");
-    }
-
-    static Path directory(String override, String os, String home, Map<String, String> environment) {
-        if (override != null && !override.isBlank()) {
-            return Path.of(override).toAbsolutePath().normalize();
-        }
+    static Path directory(String os, String home, Map<String, String> environment) {
         if (isMac(os)) {
             return Path.of(home, "Library", "Application Support", "YonakaReader");
         }
+
         if (isWindows(os)) {
             String appData = environment.get("APPDATA");
-            return (appData == null || appData.isBlank() ? Path.of(home, "AppData", "Roaming") : Path.of(appData))
-                    .resolve("YonakaReader");
+            Path root = StringUtils.isNotBlank(appData) ? Path.of(appData) : Path.of(home, "AppData", "Roaming");
+            return root.resolve("YonakaReader");
         }
+
+        Path fallback = Path.of(home, ".local", "share");
         String xdg = environment.get("XDG_DATA_HOME");
-        Path root = xdg != null && !xdg.isBlank() && Path.of(xdg).isAbsolute()
-                ? Path.of(xdg) : Path.of(home, ".local", "share");
+        Path root = StringUtils.isNotBlank(xdg) ? Path.of(xdg) : fallback;
+        if (!root.isAbsolute()) {
+            root = fallback;
+        }
+
         return root.resolve("yonaka-reader");
     }
 }

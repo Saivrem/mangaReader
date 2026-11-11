@@ -1,8 +1,9 @@
 package org.dustyroom.ui.listeners;
 
+import lombok.RequiredArgsConstructor;
+
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public final class MenuOpenListener implements MenuListener {

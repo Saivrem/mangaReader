@@ -3,6 +3,7 @@ package org.dustyroom.ui.loading;
 import org.dustyroom.be.animation.AnimationDecoder;
 import org.dustyroom.be.models.animation.AnimationClip;
 import org.dustyroom.be.models.animation.AnimationFrame;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.awt.image.BufferedImage;
@@ -34,19 +35,28 @@ class BufferedAnimationTest {
     void lateTicksDoNotAccumulateDelayAndPaintingDoesNotAdvancePlayback() {
         AnimationClip clip = new AnimationClip(() -> new AnimationDecoder() {
             private int index;
-            public AnimationFrame next() { return frame(++index); }
-            public int loops() { return 0; }
-            public void close() { }
+
+            public AnimationFrame next() {
+                return frame(++index);
+            }
+
+            public int loops() {
+                return 0;
+            }
+
+            public void close() {
+            }
         });
-        try (BufferedAnimation player = new BufferedAnimation(clip, error -> fail(error))) {
+        try (BufferedAnimation player = new BufferedAnimation(clip, Assertions::fail)) {
             await(() -> player.bufferedFrames() == 2);
             assertEquals(1, player.advance(0).getImage().getRGB(0, 0) & 255);
             await(() -> player.bufferedFrames() == 2);
             assertEquals(2, player.advance(TimeUnit.MILLISECONDS.toNanos(120)).getImage().getRGB(0, 0) & 255);
             await(() -> player.bufferedFrames() == 2);
             // Second deadline remains 200 ms, rather than drifting to 220 ms.
-            assertEquals(3, player.advance(TimeUnit.MILLISECONDS.toNanos(200)).getImage().getRGB(0, 0) & 255);
-            assertSame(player.currentFrame(), player.currentFrame());
+            AnimationFrame expected = player.advance(TimeUnit.MILLISECONDS.toNanos(200));
+            assertEquals(3, expected.getImage().getRGB(0, 0) & 255);
+            assertSame(expected, player.currentFrame());
             await(() -> player.bufferedFrames() == 2);
             assertEquals(5, player.advance(TimeUnit.MILLISECONDS.toNanos(450)).getImage().getRGB(0, 0) & 255);
         }
@@ -70,7 +80,7 @@ class BufferedAnimationTest {
                 closed.countDown();
             }
         });
-        try (BufferedAnimation player = new BufferedAnimation(clip, error -> fail(error))) {
+        try (BufferedAnimation player = new BufferedAnimation(clip, Assertions::fail)) {
             await(() -> player.bufferedFrames() == 2);
             assertEquals(2, reads.get());
             assertEquals(1, player.advance(0).getImage().getRGB(0, 0) & 255);

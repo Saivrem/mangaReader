@@ -1,12 +1,9 @@
 package org.dustyroom.be.models.library;
 
-import java.util.List;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
+
+import java.util.List;
 
 @Getter
 @EqualsAndHashCode
@@ -22,16 +19,11 @@ public final class LibraryWork {
 
     @Builder
     public LibraryWork(String id, String title, String root, long addedAt, List<LibraryChapter> chapters) {
-        chapters = List.copyOf(chapters);
-        if (chapters.isEmpty()) {
-            throw new IllegalArgumentException("A library work must contain a chapter.");
-        }
-
         this.id = id;
         this.title = title;
         this.root = root;
         this.addedAt = addedAt;
-        this.chapters = chapters;
+        setChapters(chapters);
     }
 
     public LibraryChapter getResumeChapter() {
@@ -45,10 +37,14 @@ public final class LibraryWork {
     }
 
     public long getCompleted() {
-        return chapters.stream().filter(LibraryChapter::isFinished).count();
+        return chapters
+                .stream()
+                .filter(LibraryChapter::isFinished)
+                .count();
     }
+
     public long getLastRead() {
-        return chapters.stream().mapToLong(LibraryChapter::getLastRead).max().orElse(0);
+        return getResumeChapter().getLastRead();
     }
 
     public LibraryWork setChapters(List<LibraryChapter> chapters) {

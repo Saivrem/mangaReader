@@ -8,6 +8,7 @@ import java.nio.file.Path;
 
 import static org.dustyroom.be.iterators.ImageTestFixtures.writeImage;
 import static org.dustyroom.be.iterators.ImageTestFixtures.writeZip;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -26,6 +27,18 @@ class ImageIteratorFactoryTest {
             assertInstanceOf(FileImageIterator.class, imageIterator);
             assertInstanceOf(FileImageIterator.class, directoryIterator);
             assertInstanceOf(ZipIterator.class, archiveIterator);
+        }
+    }
+
+    @Test
+    void folderWithImagesOnlyInSubfoldersIsNotAReadableVolume() throws Exception {
+        Path chapter = tempDir.resolve("chapter");
+        writeImage(chapter, "page.png");
+
+        assertThrows(ImageIteratorException.class, () -> ImageIteratorFactory.create(tempDir.toFile()));
+        try (ImageIterator volume = ImageIteratorFactory.create(chapter.toFile())) {
+            assertEquals(1, volume.pages().size());
+            assertEquals(chapter.toString(), volume.pages().getFirst().getKey().sourceId());
         }
     }
 

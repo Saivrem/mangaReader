@@ -12,10 +12,7 @@ import org.dustyroom.ui.utils.UiUtils;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,21 +20,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** Explicit headless preview; does not open or modify the real reader database. */
+/**
+ * Explicit headless preview; does not open or modify the real reader database.
+ */
 public final class LibraryUiPreview {
-    public static void main(String[] args) throws Exception {
+    static void main(String[] args) throws Exception {
         Path output = Path.of("build/ui-preview");
         Files.createDirectories(output);
         AsyncViewerSession session = new AsyncViewerSession(new ViewerView() {
-            public void showLoading() { }
-            public void showFrame(ViewerFrame frame) { }
-            public void showError(String message) { }
+            public void showLoading() {
+            }
+
+            public void showFrame(ViewerFrame frame) {
+            }
+
+            public void showError(String message) {
+            }
         });
         try {
             SwingUtilities.invokeAndWait(() -> {
                 for (ViewerTheme theme : ViewerTheme.values()) {
                     UiUtils.installTheme(theme);
-                    LibraryController controller = new LibraryController(session, ignored -> { });
+                    LibraryController controller = new LibraryController(session, _ -> {
+                    });
                     LibraryPanel panel = controller.panel();
                     List<LibraryWork> works = new ArrayList<>();
                     for (int index = 0; index < 3; index++) {
@@ -55,7 +60,9 @@ public final class LibraryUiPreview {
                     write(panel, output.resolve("chapters-" + theme.name().toLowerCase() + ".png"));
                 }
             });
-        } finally { session.close(); }
+        } finally {
+            session.close();
+        }
     }
 
     private static JButton findButton(Container parent, String title) {
@@ -77,8 +84,15 @@ public final class LibraryUiPreview {
     private static void write(JComponent component, Path file) {
         BufferedImage image = new BufferedImage(component.getWidth(), component.getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = image.createGraphics();
-        try { component.printAll(graphics); } finally { graphics.dispose(); }
-        try { ImageIO.write(image, "png", file.toFile()); }
-        catch (Exception exception) { throw new IllegalStateException(exception); }
+        try {
+            component.printAll(graphics);
+        } finally {
+            graphics.dispose();
+        }
+        try {
+            ImageIO.write(image, "png", file.toFile());
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
     }
 }

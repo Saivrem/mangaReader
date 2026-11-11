@@ -15,7 +15,6 @@ import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataNode;
 import javax.imageio.stream.ImageOutputStream;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -59,7 +58,7 @@ class GifDecoderTest {
         byte[] gif = fixture("doNotDispose");
         Path file = Files.write(directory.resolve("animation.gif"), gif);
         try (ImageIterator source = ImageIteratorFactory.create(file.toFile())) {
-            AnimationClip clip = source.animation(source.pages().get(0));
+            AnimationClip clip = source.animation(source.pages().getFirst());
             try (AnimationDecoder decoder = clip.getOpener().open()) {
                 decoder.next();
                 decoder.next();
@@ -73,7 +72,7 @@ class GifDecoderTest {
             zip.closeEntry();
         }
         try (ImageIterator source = ImageIteratorFactory.create(archive.toFile())) {
-            AnimationClip clip = source.animation(source.pages().get(0));
+            AnimationClip clip = source.animation(source.pages().getFirst());
             source.close();
             try (AnimationDecoder decoder = clip.getOpener().open()) {
                 assertNotNull(decoder.next());

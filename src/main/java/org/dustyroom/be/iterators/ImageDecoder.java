@@ -1,15 +1,16 @@
 package org.dustyroom.be.iterators;
 
+import org.dustyroom.be.animation.gif.GifDecoder;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.awt.image.Raster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.ImageInputStream;
-import org.dustyroom.be.animation.gif.GifDecoder;
 
 /**
  * Decodes images while handling JPEGs whose JFIF and Adobe color markers
@@ -149,6 +150,6 @@ final class ImageDecoder {
     }
 
     private static int clamp(int value) {
-        return Math.max(0, Math.min(255, value));
+        return Math.clamp(value, 0, 255);
     }
 }

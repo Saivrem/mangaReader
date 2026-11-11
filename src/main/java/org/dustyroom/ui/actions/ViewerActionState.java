@@ -1,11 +1,12 @@
 package org.dustyroom.ui.actions;
 
-import java.util.List;
-import javax.swing.Action;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.models.direction.ReadingMode;
 import org.dustyroom.be.models.state.FitMode;
 import org.dustyroom.be.models.view.ViewerFrame;
+
+import javax.swing.*;
+import java.util.List;
 
 /**
  * Publishes the displayed state to shared menu, toolbar and keyboard actions.

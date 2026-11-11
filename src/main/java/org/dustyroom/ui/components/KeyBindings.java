@@ -1,14 +1,10 @@
 package org.dustyroom.ui.components;
 
-import java.awt.event.KeyEvent;
-import javax.swing.Action;
-import javax.swing.ActionMap;
-import javax.swing.InputMap;
-import javax.swing.JComponent;
-import javax.swing.JRootPane;
-import javax.swing.KeyStroke;
-import org.dustyroom.ui.utils.PlatformUi;
 import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.utils.PlatformUi;
+
+import javax.swing.*;
+import java.awt.event.KeyEvent;
 
 public class KeyBindings {
 

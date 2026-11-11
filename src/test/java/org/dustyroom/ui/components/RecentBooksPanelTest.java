@@ -6,7 +6,6 @@ import org.dustyroom.be.models.view.RecentBook;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -23,8 +22,16 @@ class RecentBooksPanelTest {
             panel.setHandlers(opened::add, removed::add);
             BookState state = new BookState("/books/volume.zip", "p2", 2, 10, false, ReadingMode.MANGA);
             panel.showBooks(List.of(new RecentBook(state, false, null)));
-            JButton title = buttons(panel).stream().filter(b -> b.getText().equals("volume.zip")).findFirst().orElseThrow();
-            JButton remove = buttons(panel).stream().filter(b -> b.getText().equals("Remove from recent")).findFirst().orElseThrow();
+            JButton title = buttons(panel)
+                    .stream()
+                    .filter(b -> b.getText().equals("volume.zip"))
+                    .findFirst()
+                    .orElseThrow();
+            JButton remove = buttons(panel)
+                    .stream()
+                    .filter(b -> b.getText().equals("Remove from recent"))
+                    .findFirst()
+                    .orElseThrow();
             assertFalse(title.isEnabled());
             title.doClick();
             assertTrue(opened.isEmpty());

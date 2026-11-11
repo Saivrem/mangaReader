@@ -1,36 +1,17 @@
 package org.dustyroom.ui.settings;
 
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Window;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.concurrent.CompletableFuture;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import org.dustyroom.be.models.direction.ReadingMode;
 import org.dustyroom.be.models.state.FitMode;
 import org.dustyroom.be.models.state.ReaderSettings;
 import org.dustyroom.be.models.state.ThemeMode;
 import org.dustyroom.be.settings.ProfileManager;
 import org.dustyroom.be.utils.StorageUtils;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 
 public final class SettingsDialog extends JDialog {
     private final SettingsHost host;
@@ -73,9 +54,9 @@ public final class SettingsDialog extends JDialog {
         buttons.add(cancel);
         buttons.add(apply);
         buttons.add(ok);
-        cancel.addActionListener(event -> dispose());
-        apply.addActionListener(event -> save(false));
-        ok.addActionListener(event -> save(true));
+        cancel.addActionListener(_ -> dispose());
+        apply.addActionListener(_ -> save(false));
+        ok.addActionListener(_ -> save(true));
         content.add(categories, BorderLayout.WEST);
         content.add(pages, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
@@ -85,6 +66,22 @@ public final class SettingsDialog extends JDialog {
         setMinimumSize(new Dimension(760, 450));
         pack();
         setLocationRelativeTo(owner);
+    }
+
+    private static JPanel top(JPanel content) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(content, BorderLayout.NORTH);
+        return panel;
+    }
+
+    private static JTextArea note(String text) {
+        JTextArea note = new JTextArea(text, 3, 36);
+        note.setLineWrap(true);
+        note.setWrapStyleWord(true);
+        note.setEditable(false);
+        note.setOpaque(false);
+        note.setFont(UIManager.getFont("Label.font"));
+        return note;
     }
 
     private JPanel appearance() {
@@ -110,14 +107,14 @@ public final class SettingsDialog extends JDialog {
         panel.row(new JLabel("Library folder"));
         panel.row(library);
         JButton browse = new JButton("Browse…");
-        browse.addActionListener(event -> {
+        browse.addActionListener(_ -> {
             Path selected = chooseDirectory("Library folder");
             if (selected != null) {
                 library.setText(selected.toString());
             }
         });
         panel.row(browse);
-        scan.addActionListener(event -> {
+        scan.addActionListener(_ -> {
             if (library.getText().isBlank()) {
                 error("Choose a library folder first.");
                 return;
@@ -143,7 +140,7 @@ public final class SettingsDialog extends JDialog {
         panel.row(path);
         JButton open = new JButton("Open folder");
         open.setEnabled(directory != null && Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN));
-        open.addActionListener(event -> CompletableFuture.runAsync(() -> {
+        open.addActionListener(_ -> CompletableFuture.runAsync(() -> {
             try {
                 Desktop.getDesktop().open(directory.toFile());
             } catch (IOException | RuntimeException exception) {
@@ -152,7 +149,7 @@ public final class SettingsDialog extends JDialog {
         }));
         panel.row(open);
         changeData.setEnabled(directory != null && !StorageUtils.isDirectoryOverridden());
-        changeData.addActionListener(event -> chooseProfile());
+        changeData.addActionListener(_ -> chooseProfile());
         panel.row(changeData);
         panel.row(note(StorageUtils.isDirectoryOverridden()
                 ? "The data folder is fixed by the launch option yonaka.dataDir."
@@ -175,10 +172,16 @@ public final class SettingsDialog extends JDialog {
                 error("Cannot inspect the selected folder.");
                 return;
             }
-            String message = existing
-                    ? "Open the profile in this folder on next launch?\nThe current profile will stay in its current folder."
+            String question = existing
+                    ? """
+                      Open the profile in this folder on next launch?
+                      The current profile will stay in its current folder."""
                     : "Move the current settings, history and library to this folder?";
-            message += "\n\nUnapplied settings in this dialog will be discarded.\nYonaka Reader will close. Your books will not be moved.";
+            String message = """
+                    %s
+
+                    Unapplied settings in this dialog will be discarded.
+                    Yonaka Reader will close. Your books will not be moved.""".formatted(question);
             if (JOptionPane.showConfirmDialog(this, message, "Change data folder", JOptionPane.OK_CANCEL_OPTION,
                     JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION) {
                 host.switchDataDirectory(selected, existing, this::dispose);
@@ -246,21 +249,5 @@ public final class SettingsDialog extends JDialog {
 
     private void error(String message) {
         JOptionPane.showMessageDialog(this, message, "Settings", JOptionPane.ERROR_MESSAGE);
-    }
-
-    private static JPanel top(JPanel content) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(content, BorderLayout.NORTH);
-        return panel;
-    }
-
-    private static JTextArea note(String text) {
-        JTextArea note = new JTextArea(text, 3, 36);
-        note.setLineWrap(true);
-        note.setWrapStyleWord(true);
-        note.setEditable(false);
-        note.setOpaque(false);
-        note.setFont(UIManager.getFont("Label.font"));
-        return note;
     }
 }

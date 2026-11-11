@@ -1,17 +1,20 @@
 package org.dustyroom.be.animation.gif;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
+import org.dustyroom.be.animation.AnimationDecoder;
+import org.dustyroom.be.models.animation.AnimationFrame;
+import org.w3c.dom.Node;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.metadata.IIOMetadataNode;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.metadata.IIOMetadataNode;
-import org.dustyroom.be.animation.AnimationDecoder;
-import org.dustyroom.be.models.animation.AnimationFrame;
-import org.w3c.dom.Node;
 
 import static org.dustyroom.be.animation.gif.GifDecoder.*;
 
@@ -19,9 +22,12 @@ final class GifSequenceDecoder implements AnimationDecoder {
     private final InputStream input;
     private final GifFrameInputStream stream;
     private final ImageReader reader;
-    private BufferedImage canvas;
     private final Color background;
-    private int index, loops = 1;
+    private BufferedImage canvas;
+    private int index;
+    @Getter
+    @Accessors(fluent = true)
+    private int loops = 1;
 
     GifSequenceDecoder(InputStream input) throws IOException {
         this.input = input;
@@ -96,11 +102,6 @@ final class GifSequenceDecoder implements AnimationDecoder {
         // Forward-only reading: do not retain compressed data for the entire animation.
         stream.discardPreviousFrames();
         return new AnimationFrame(composed, delay == 0 ? 100 : delay);
-    }
-
-    @Override
-    public int loops() {
-        return loops;
     }
 
     @Override

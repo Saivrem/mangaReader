@@ -1,12 +1,8 @@
 package org.dustyroom.be.iterators;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
 import lombok.extern.slf4j.Slf4j;
 import org.dustyroom.be.animation.gif.GifDecoder;
 import org.dustyroom.be.models.animation.AnimationClip;
@@ -14,6 +10,14 @@ import org.dustyroom.be.models.book.PageKey;
 import org.dustyroom.be.models.book.PageRef;
 import org.dustyroom.be.models.book.Picture;
 import org.dustyroom.be.models.book.PictureMetadata;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import static org.dustyroom.be.models.direction.Direction.NEXT;
 import static org.dustyroom.be.models.direction.Direction.PREV;
@@ -23,9 +27,12 @@ import static org.dustyroom.be.utils.FileUtils.*;
 public class FileImageIterator implements ImageIterator {
     private List<File> fileList = List.of();
     private List<PageRef> pageRefs = List.of();
+    @Getter
     private File volumeRoot;
     private File pendingFile;
     private int currentIndex = -1;
+    @Getter
+    @Accessors(fluent = true)
     private int initialPageIndex = -1;
     private boolean initialSelectionPending;
 
@@ -38,44 +45,29 @@ public class FileImageIterator implements ImageIterator {
     public void init() {
         File candidate = pendingFile != null ? pendingFile : currentFile();
         try {
-            File candidateVolumeRoot;
-            List<File> candidateFiles;
-            int candidateIndex;
-
-            if (isImage.test(candidate)) {
-                candidateVolumeRoot = candidate.getParentFile();
-                candidateFiles = getSortedFiles(candidateVolumeRoot, isImage);
-                int selectedIndex = candidateFiles.indexOf(candidate);
-                candidateIndex = Math.max(selectedIndex, 0);
-            } else if (containsImages.test(candidate)) {
-                candidateVolumeRoot = candidate;
-                candidateFiles = getSortedFiles(candidate, isImage);
-                candidateIndex = 0;
-            } else {
-                candidateVolumeRoot = null;
-                candidateFiles = List.of();
-                candidateIndex = -1;
-            }
-
-            if (candidateFiles.isEmpty()) {
+            boolean singleImage = isImage.test(candidate);
+            File root = singleImage ? candidate.getParentFile() : candidate;
+            List<File> files = getSortedFiles(root, isImage);
+            if (files.isEmpty()) {
                 throw new ImageIteratorException("No supported images found", candidate);
             }
 
-            List<PageRef> candidatePageRefs = candidateFiles.stream().map(this::pageRef).toList();
-            volumeRoot = candidateVolumeRoot;
-            fileList = candidateFiles;
-            pageRefs = candidatePageRefs;
+            int candidateIndex = singleImage ? Math.max(files.indexOf(candidate), 0) : 0;
+            String sourceId = root.getPath();
+            List<PageRef> pages = files
+                    .stream()
+                    .map(image -> pageRef(root, sourceId, image))
+                    .toList();
+
+            volumeRoot = root;
+            fileList = files;
+            pageRefs = pages;
             currentIndex = candidateIndex;
             initialPageIndex = candidateIndex;
             initialSelectionPending = true;
         } finally {
             pendingFile = null;
         }
-    }
-
-    @Override
-    public File getVolumeRoot() {
-        return volumeRoot;
     }
 
     @Override
@@ -116,18 +108,18 @@ public class FileImageIterator implements ImageIterator {
 
     @Override
     public AnimationClip animation(PageRef page) {
-        if (!page.getKey().getSourceId().equals(volumeId(getVolumeRoot()))) {
+        if (!page.getKey().sourceId().equals(normalizedPath(getVolumeRoot()))) {
             throw new IllegalArgumentException("Wrong source");
         }
-        Path path = new File(page.getKey().getPageId()).toPath();
+        Path path = Path.of(page.getKey().pageId());
         return GifDecoder.read(() -> Files.newInputStream(path));
     }
 
     @Override
     public Picture load(PageRef page) {
-        File imageFile = new File(page.getKey().getPageId());
-        String expectedSource = volumeId(getVolumeRoot());
-        if (!page.getKey().getSourceId().equals(expectedSource)) {
+        File imageFile = new File(page.getKey().pageId());
+        String expectedSource = normalizedPath(getVolumeRoot());
+        if (!page.getKey().sourceId().equals(expectedSource)) {
             throw new ImageIteratorException("Page does not belong to the current image source", imageFile);
         }
         try (InputStream input = Files.newInputStream(imageFile.toPath())) {
@@ -160,11 +152,6 @@ public class FileImageIterator implements ImageIterator {
     }
 
     @Override
-    public int initialPageIndex() {
-        return initialPageIndex;
-    }
-
-    @Override
     public PageRef switchToNextVolume() {
         return switchVolume(containsImages, NEXT);
     }
@@ -174,16 +161,11 @@ public class FileImageIterator implements ImageIterator {
         return switchVolume(containsImages, PREV);
     }
 
-    private PageRef pageRef(File imageFile) {
-        File directory = imageFile.getParentFile();
+    private PageRef pageRef(File directory, String sourceId, File imageFile) {
         return new PageRef(
-                new PageKey(volumeId(directory), imageFile.toPath().toAbsolutePath().normalize().toString()),
+                new PageKey(sourceId, imageFile.getPath()),
                 new PictureMetadata(imageFile.getName(), directory.getName(), directory)
         );
-    }
-
-    private String volumeId(File directory) {
-        return directory == null ? "" : directory.toPath().toAbsolutePath().normalize().toString();
     }
 
     private Picture consumeVolumeSelection(PageRef page) {
@@ -204,9 +186,5 @@ public class FileImageIterator implements ImageIterator {
             return fileList.get(currentIndex);
         }
         return volumeRoot;
-    }
-
-    private File normalize(File source) {
-        return source == null ? null : source.toPath().toAbsolutePath().normalize().toFile();
     }
 }

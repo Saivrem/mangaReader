@@ -1,33 +1,22 @@
 package org.dustyroom.ui.components;
 
-import java.awt.BorderLayout;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GridBagLayout;
-import java.awt.Rectangle;
+import lombok.Getter;
+import lombok.Setter;
+
+import org.dustyroom.be.models.book.PageRef;
+import org.dustyroom.ui.actions.RunnableAction;
+import org.dustyroom.ui.listeners.ComponentResizeListener;
+import org.dustyroom.ui.listeners.ComponentShownListener;
+import org.dustyroom.ui.listeners.MouseClickListener;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntConsumer;
 import java.util.function.Consumer;
-import javax.swing.JComponent;
-import org.dustyroom.ui.listeners.ComponentResizeListener;
-import javax.swing.BorderFactory;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.KeyStroke;
-import javax.swing.ListSelectionModel;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingUtilities;
-import org.dustyroom.be.models.book.PageRef;
-import org.dustyroom.ui.actions.RunnableAction;
-import org.dustyroom.ui.listeners.ComponentShownListener;
-import org.dustyroom.ui.listeners.MouseClickListener;
+import java.util.function.IntConsumer;
 
 /**
  * EDT-owned, virtualized list. Only one thumbnail request is outstanding at a time.
@@ -42,8 +31,11 @@ public final class ThumbnailPanel extends JPanel {
     private final JPanel rail = new JPanel(new GridBagLayout());
     private final JButton gridButton = new JButton(new ReaderIcon(ReaderIconKind.PAGE_GRID, 16));
     private final IntConsumer navigate;
-    private Consumer<Boolean> gridChanged = ignored -> { };
+    @Setter
+    private Consumer<Boolean> gridChanged = _ -> {
+    };
     private boolean fullscreen;
+    @Getter
     private boolean gridMode;
     private boolean expanded;
     private List<PageRef> pages = List.of();
@@ -58,7 +50,7 @@ public final class ThumbnailPanel extends JPanel {
 
         gridButton.setToolTipText("Expand page grid");
         gridButton.getAccessibleContext().setAccessibleName("Expand page grid");
-        gridButton.addActionListener(event -> setGridMode(!gridMode));
+        gridButton.addActionListener(_ -> setGridMode(!gridMode));
         gridButton.setEnabled(false);
         gridButton.putClientProperty("JButton.buttonType", "toolBarButton");
         gridButton.setVisible(false);
@@ -82,7 +74,7 @@ public final class ThumbnailPanel extends JPanel {
 
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getViewport().addChangeListener(e -> pump());
+        scroll.getViewport().addChangeListener(_ -> pump());
         scroll.getViewport().addComponentListener(new ComponentResizeListener(this::pump));
         getActionMap().put("closeGrid", new RunnableAction("Return to reader", () -> setGridMode(false)));
         add(scroll, BorderLayout.CENTER);
@@ -93,7 +85,7 @@ public final class ThumbnailPanel extends JPanel {
         handle.setFocusPainted(false);
         handle.setRolloverEnabled(true);
         handle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        handle.addActionListener(e -> hide.run());
+        handle.addActionListener(_ -> hide.run());
         rail.add(handle);
         add(rail, BorderLayout.EAST);
         add(gridButton, BorderLayout.SOUTH);
@@ -111,14 +103,6 @@ public final class ThumbnailPanel extends JPanel {
 
     private void updateGridButton() {
         gridButton.setVisible(gridMode || (fullscreen && expanded));
-    }
-
-    public boolean isGridMode() {
-        return gridMode;
-    }
-
-    public void setGridChanged(Consumer<Boolean> gridChanged) {
-        this.gridChanged = gridChanged;
     }
 
     public void setGridMode(boolean gridMode) {
@@ -260,19 +244,17 @@ public final class ThumbnailPanel extends JPanel {
         if (cache.containsKey(index)) {
             return false;
         }
-        int target = index;
         List<PageRef> captured = pages;
         pending = true;
         loader.load(index, pages.get(index), image -> {
             pending = false;
-            if (pages == captured && target >= windowStart && target <= windowEnd) {
+            if (pages == captured && index >= windowStart && index <= windowEnd) {
                 // Empty icon marks an unreadable page; retry only if it leaves and re-enters the window.
-                cache.put(target, image == null ? new ImageIcon() : new ThumbnailIcon(image));
-                list.repaint(list.getCellBounds(target, target));
+                cache.put(index, image == null ? new ImageIcon() : new ThumbnailIcon(image));
+                list.repaint(list.getCellBounds(index, index));
             }
             pump();
         });
         return true;
     }
-
 }

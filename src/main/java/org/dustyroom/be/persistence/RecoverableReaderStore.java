@@ -1,12 +1,15 @@
 package org.dustyroom.be.persistence;
 
-import java.nio.file.Path;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.dustyroom.be.models.state.BookState;
 import org.dustyroom.be.models.state.ReaderSettings;
 
-/** Session-only reading after a storage failure, with an explicitly confirmed recovery path. */
+import java.nio.file.Path;
+import java.util.Optional;
+
+/**
+ * Session-only reading after a storage failure, with an explicitly confirmed recovery path.
+ */
 @RequiredArgsConstructor
 public final class RecoverableReaderStore implements ReaderStore {
     private final Path database;

@@ -1,7 +1,7 @@
 package org.dustyroom.ui.components;
 
-import org.dustyroom.ui.utils.PlatformUi;
 import org.dustyroom.ui.actions.ViewerActions;
+import org.dustyroom.ui.utils.PlatformUi;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
@@ -43,7 +43,7 @@ class KeyBindingsTest {
         return (ViewerActions) Proxy.newProxyInstance(
                 ViewerActions.class.getClassLoader(),
                 new Class<?>[]{ViewerActions.class},
-                (proxy, method, arguments) -> actions.get(method.getName()));
+                (_, method, _) -> actions.get(method.getName()));
     }
 
     @Test

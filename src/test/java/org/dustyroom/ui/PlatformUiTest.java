@@ -13,7 +13,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlatformUiTest {
@@ -25,7 +24,7 @@ class PlatformUiTest {
             assertTrue(SwingUtilities.isEventDispatchThread());
             opened.add(file);
         });
-        PlatformUi.openFiles(List.of(), file -> {
+        PlatformUi.openFiles(List.of(), _ -> {
             throw new AssertionError("Empty event");
         });
         SwingUtilities.invokeAndWait(() -> {
@@ -47,19 +46,5 @@ class PlatformUiTest {
         }
         Assertions.assertEquals(
                 Set.of(Constants.SUPPORTED_FORMATS), extensions);
-    }
-
-
-    @Test
-    void detectsMacOsNames() {
-        assertTrue(PlatformUi.isMacOs("Mac OS X"));
-        assertTrue(PlatformUi.isMacOs("Darwin"));
-    }
-
-    @Test
-    void doesNotTreatWindowsOrLinuxAsMacOs() {
-        assertFalse(PlatformUi.isMacOs("Windows 11"));
-        assertFalse(PlatformUi.isMacOs("Linux"));
-        assertFalse(PlatformUi.isMacOs(""));
     }
 }

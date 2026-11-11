@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -34,7 +33,7 @@ class MenuBarTest {
     @Test
     void offersExactlyTwoApplicationThemes() {
         NoOpViewerActions actions = new NoOpViewerActions();
-        MenuBar menuBar = new MenuBar(actions, theme -> true);
+        MenuBar menuBar = new MenuBar(actions, _ -> true);
 
         assertEquals(5, menuBar.getMenuCount());
         assertFalse(allMenuLabels(menuBar).anyMatch("Color scheme"::equals));

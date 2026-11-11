@@ -1,21 +1,35 @@
 package org.dustyroom.be.settings;
 
+import org.dustyroom.be.utils.OSUtils;
+import org.dustyroom.be.models.state.ViewerTheme;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.dustyroom.be.models.state.ViewerTheme;
 
-/** Platform probes run on a background worker with a timeout, never on the EDT. */
+/**
+ * Platform probes run on a background worker with a timeout, never on the EDT.
+ */
 public final class SystemThemeDetector {
+    static Optional<ViewerTheme> parseWindows(String output) {
+        if (output.matches("(?s).*AppsUseLightTheme\\s+REG_DWORD\\s+0x0\\s*")) {
+            return Optional.of(ViewerTheme.DARK);
+        }
+        if (output.matches("(?s).*AppsUseLightTheme\\s+REG_DWORD\\s+0x1\\s*")) {
+            return Optional.of(ViewerTheme.LIGHT);
+        }
+        return Optional.empty();
+    }
+
     public Optional<ViewerTheme> detect() {
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        if (os.startsWith("mac") || os.startsWith("darwin")) {
+        String os = OSUtils.currentName();
+        if (OSUtils.isMac(os)) {
             return command(true, "defaults", "read", "-g", "AppleInterfaceStyle")
                     .map(value -> value.contains("Dark") ? ViewerTheme.DARK : ViewerTheme.LIGHT);
         }
-        if (os.startsWith("windows")) {
+        if (OSUtils.isWindows(os)) {
             return command("reg", "query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                     "/v", "AppsUseLightTheme").flatMap(SystemThemeDetector::parseWindows);
         }
@@ -28,16 +42,6 @@ public final class SystemThemeDetector {
         }
         return command("gsettings", "get", "org.gnome.desktop.interface", "gtk-theme")
                 .map(value -> value.toLowerCase(Locale.ROOT).contains("dark") ? ViewerTheme.DARK : ViewerTheme.LIGHT);
-    }
-
-    static Optional<ViewerTheme> parseWindows(String output) {
-        if (output.matches("(?s).*AppsUseLightTheme\\s+REG_DWORD\\s+0x0\\s*")) {
-            return Optional.of(ViewerTheme.DARK);
-        }
-        if (output.matches("(?s).*AppsUseLightTheme\\s+REG_DWORD\\s+0x1\\s*")) {
-            return Optional.of(ViewerTheme.LIGHT);
-        }
-        return Optional.empty();
     }
 
     private Optional<String> command(String... command) {

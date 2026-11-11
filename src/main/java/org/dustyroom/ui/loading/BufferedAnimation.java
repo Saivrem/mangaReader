@@ -1,12 +1,13 @@
 package org.dustyroom.ui.loading;
 
+import org.dustyroom.be.animation.AnimationDecoder;
+import org.dustyroom.be.models.animation.AnimationClip;
+import org.dustyroom.be.models.animation.AnimationFrame;
+
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.dustyroom.be.animation.AnimationDecoder;
-import org.dustyroom.be.models.animation.AnimationClip;
-import org.dustyroom.be.models.animation.AnimationFrame;
 
 /**
  * Two queued frames per visible page. All decoding and resource cleanup run off the EDT.

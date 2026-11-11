@@ -24,7 +24,7 @@ class AsyncViewerSessionConcurrencyTest {
     private static AsyncViewerSession session(BlockingIterator source, RecordingView view) {
         return new AsyncViewerSession(
                 view,
-                file -> source,
+                _ -> source,
                 new SerialPriorityExecutor(),
                 Runnable::run,
                 new BoundedImageCache(4, 1024 * 1024),

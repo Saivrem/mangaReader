@@ -1,19 +1,5 @@
 package org.dustyroom.ui.components;
 
-import java.awt.event.KeyEvent;
-import java.io.File;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import javax.swing.Action;
-import javax.swing.ButtonGroup;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JRadioButtonMenuItem;
 import org.dustyroom.be.models.state.BookState;
 import org.dustyroom.be.models.state.ViewerTheme;
 import org.dustyroom.be.models.view.RecentBook;
@@ -21,12 +7,21 @@ import org.dustyroom.ui.actions.ViewerActions;
 import org.dustyroom.ui.listeners.MenuOpenListener;
 import org.dustyroom.ui.utils.UiUtils;
 
+import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.io.File;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 public class MenuBar extends JMenuBar {
     private final JMenu recentMenu = menu("Open Recent", KeyEvent.VK_R);
     private final JMenuItem home;
     private final Map<ViewerTheme, JRadioButtonMenuItem> themeItems = new EnumMap<>(ViewerTheme.class);
     private ViewerTheme selectedTheme = UiUtils.currentTheme();
-    private Consumer<String> openRecent = id -> {
+    private Consumer<String> openRecent = _ -> {
     };
     private List<RecentBook> recentBooks = List.of();
 
@@ -80,31 +75,6 @@ public class MenuBar extends JMenuBar {
         add(helpMenu);
     }
 
-    private JMenu themeMenu(Predicate<ViewerTheme> selectTheme) {
-        JMenu menu = menu("Theme", KeyEvent.VK_T);
-        ButtonGroup group = new ButtonGroup();
-        for (ViewerTheme theme : ViewerTheme.values()) {
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(theme.label());
-            item.setSelected(theme == UiUtils.currentTheme());
-            item.addActionListener(event -> {
-                if (selectTheme.test(theme)) {
-                    selectedTheme = theme;
-                }
-                // Also restore the previous selection if installation failed.
-                showTheme(selectedTheme);
-            });
-            group.add(item);
-            themeItems.put(theme, item);
-            menu.add(item);
-        }
-        return menu;
-    }
-
-    public void showTheme(ViewerTheme theme) {
-        selectedTheme = theme;
-        themeItems.get(theme).setSelected(true);
-    }
-
     private static JMenu menu(String name, int mnemonic) {
         JMenu menu = new JMenu(name);
         menu.setMnemonic(mnemonic);
@@ -154,6 +124,31 @@ public class MenuBar extends JMenuBar {
         }
     }
 
+    private JMenu themeMenu(Predicate<ViewerTheme> selectTheme) {
+        JMenu menu = menu("Theme", KeyEvent.VK_T);
+        ButtonGroup group = new ButtonGroup();
+        for (ViewerTheme theme : ViewerTheme.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(theme.label());
+            item.setSelected(theme == UiUtils.currentTheme());
+            item.addActionListener(_ -> {
+                if (selectTheme.test(theme)) {
+                    selectedTheme = theme;
+                }
+                // Also restore the previous selection if installation failed.
+                showTheme(selectedTheme);
+            });
+            group.add(item);
+            themeItems.put(theme, item);
+            menu.add(item);
+        }
+        return menu;
+    }
+
+    public void showTheme(ViewerTheme theme) {
+        selectedTheme = theme;
+        themeItems.get(theme).setSelected(true);
+    }
+
     public void setRecentHandlers(Consumer<String> open, Runnable refresh) {
         openRecent = open;
 
@@ -183,7 +178,7 @@ public class MenuBar extends JMenuBar {
             item.setText(book.getTitle() + " — " + book.getProgress() + (book.isAvailable() ? "" : " (unavailable)"));
             item.setToolTipText(book.getState().getSourceId());
             item.setEnabled(book.isAvailable());
-            item.addActionListener(event -> openRecent.accept(book.getState().getSourceId()));
+            item.addActionListener(_ -> openRecent.accept(book.getState().getSourceId()));
             if (book.getChapters().size() > 1) {
                 JMenu group = new JMenu();
                 group.putClientProperty("html.disable", true);
@@ -191,12 +186,12 @@ public class MenuBar extends JMenuBar {
                 item.setText("Continue — " + new File(book.getState().getSourceId()).getName());
                 group.add(item);
                 group.addSeparator();
-                for (BookState chapter : book.getChapters().stream().limit(20).toList()) {
+                for (BookState chapter : book.menuChapters()) {
                     JMenuItem entry = new JMenuItem();
                     entry.putClientProperty("html.disable", true);
                     entry.setText(new File(chapter.getSourceId()).getName());
                     entry.setToolTipText(chapter.getSourceId());
-                    entry.addActionListener(event -> openRecent.accept(chapter.getSourceId()));
+                    entry.addActionListener(_ -> openRecent.accept(chapter.getSourceId()));
                     group.add(entry);
                 }
                 recentMenu.add(group);

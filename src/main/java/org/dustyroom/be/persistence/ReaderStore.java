@@ -1,11 +1,12 @@
 package org.dustyroom.be.persistence;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
 import org.dustyroom.be.library.LibraryStore;
 import org.dustyroom.be.models.state.BookState;
 import org.dustyroom.be.models.state.ReaderSettings;
+
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Synchronous API. Call on the startup or session worker thread, never on the EDT.

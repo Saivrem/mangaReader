@@ -1,10 +1,10 @@
 package org.dustyroom.ui.utils;
 
-import java.awt.Component;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.utils.Constants;
+
+import javax.swing.*;
+import java.awt.*;
 
 @UtilityClass
 public class DialogUtils {

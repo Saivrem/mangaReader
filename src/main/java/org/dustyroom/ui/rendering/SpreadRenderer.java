@@ -1,10 +1,10 @@
 package org.dustyroom.ui.rendering;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 import org.dustyroom.be.models.book.PageRef;
 import org.dustyroom.be.models.book.PictureMetadata;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
 
 public class SpreadRenderer {
 

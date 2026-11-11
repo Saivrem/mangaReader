@@ -10,7 +10,6 @@ import org.dustyroom.ui.actions.ViewerActions;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
@@ -24,15 +23,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ReaderUiTest {
     private static Stream<Component> children(Container parent) {
-        return Arrays.stream(parent.getComponents()).flatMap(component ->
-                component instanceof Container container
+        return Arrays
+                .stream(parent.getComponents())
+                .flatMap(component -> component instanceof Container container
                         ? Stream.concat(Stream.of(component), children(container)) : Stream.of(component));
     }
 
     private static ViewerActions actions() {
         Map<String, Action> actions = new HashMap<>();
         return (ViewerActions) Proxy.newProxyInstance(ViewerActions.class.getClassLoader(),
-                new Class<?>[]{ViewerActions.class}, (proxy, method, arguments) ->
+                new Class<?>[]{ViewerActions.class}, (_, method, _) ->
                         actions.computeIfAbsent(method.getName(), name -> new AbstractAction(name) {
                             @Override
                             public void actionPerformed(ActionEvent event) {

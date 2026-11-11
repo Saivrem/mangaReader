@@ -1,8 +1,9 @@
 package org.dustyroom.ui.listeners;
 
+import lombok.RequiredArgsConstructor;
+
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public final class ComponentShownListener extends ComponentAdapter {

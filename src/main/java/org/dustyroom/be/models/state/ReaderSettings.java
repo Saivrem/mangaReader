@@ -1,10 +1,6 @@
 package org.dustyroom.be.models.state;
 
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
 import org.dustyroom.be.models.direction.ReadingMode;
 
@@ -32,18 +28,18 @@ public final class ReaderSettings {
                           boolean thumbnailsVisible, boolean groupRecentByFolder, ThemeMode themeMode,
                           ReadingMode defaultReadingMode, boolean defaultTwoPageMode, FitMode defaultFitMode,
                           String libraryDirectory) {
-        lastDirectory = lastDirectory == null ? "" : lastDirectory;
-        if (theme == null || fitMode == null || !Double.isFinite(zoom) || zoom < 0.05 || zoom > 20) {
-            throw new IllegalArgumentException("Invalid reader settings");
-        }
+        setTheme(theme);
+        setFitMode(fitMode);
+        setZoom(zoom);
+        setLastDirectory(lastDirectory);
 
-        this.theme = theme;
-        this.fitMode = fitMode;
-        this.zoom = zoom;
-        this.lastDirectory = lastDirectory;
         this.thumbnailsVisible = thumbnailsVisible;
         this.groupRecentByFolder = groupRecentByFolder;
-        this.themeMode = themeMode == null ? (theme == ViewerTheme.LIGHT ? ThemeMode.LIGHT : ThemeMode.DARK) : themeMode;
+
+        if (themeMode == null) {
+            themeMode = theme == ViewerTheme.LIGHT ? ThemeMode.LIGHT : ThemeMode.DARK;
+        }
+        this.themeMode = themeMode;
         this.defaultReadingMode = defaultReadingMode == null ? ReadingMode.MANGA : defaultReadingMode;
         this.defaultTwoPageMode = defaultTwoPageMode;
         this.defaultFitMode = defaultFitMode == null ? FitMode.FIT_SCREEN : defaultFitMode;
@@ -71,6 +67,7 @@ public final class ReaderSettings {
     public static ReaderSettings defaults() {
         return new ReaderSettings(ViewerTheme.DARK, FitMode.FIT_SCREEN, 1.0);
     }
+
     public ReaderSettings setTheme(ViewerTheme theme) {
         if (theme == null) {
             throw new IllegalArgumentException("Invalid reader settings");

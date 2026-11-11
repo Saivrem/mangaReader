@@ -1,5 +1,7 @@
 package org.dustyroom.be.settings;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -8,9 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Properties;
-import lombok.experimental.UtilityClass;
 
-/** Metadata for completing an explicitly requested move after an interrupted shutdown. */
+/**
+ * Metadata for completing an explicitly requested move after an interrupted shutdown.
+ */
 @UtilityClass
 class ProfileSwitchJournal {
     static Path file(Path standardDirectory) {

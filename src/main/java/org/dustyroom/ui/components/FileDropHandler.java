@@ -1,14 +1,11 @@
 package org.dustyroom.ui.components;
 
-import java.awt.Component;
-import java.awt.Container;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.io.File;
 import java.util.List;
 import java.util.function.Consumer;
-import javax.swing.JComponent;
-import javax.swing.SwingUtilities;
-import javax.swing.TransferHandler;
 
 /**
  * Only hands paths to the asynchronous loader; does not inspect the filesystem.
@@ -54,7 +51,7 @@ public final class FileDropHandler extends TransferHandler {
         }
         try {
             Object value = support.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-            if (!(value instanceof List<?> files) || files.size() != 1 || !(files.get(0) instanceof File file)) {
+            if (!(value instanceof List<?> files) || files.size() != 1 || !(files.getFirst() instanceof File file)) {
                 report("Drop one image, ZIP archive, or folder at a time.");
                 return false;
             }

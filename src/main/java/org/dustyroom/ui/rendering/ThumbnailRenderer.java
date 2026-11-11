@@ -1,9 +1,9 @@
 package org.dustyroom.ui.rendering;
 
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
 import lombok.experimental.UtilityClass;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
 
 @UtilityClass
 public class ThumbnailRenderer {

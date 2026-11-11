@@ -1,25 +1,5 @@
 package org.dustyroom.ui.library;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import org.dustyroom.be.models.library.LibraryChapter;
 import org.dustyroom.be.models.library.LibrarySnapshot;
 import org.dustyroom.be.models.library.LibraryWork;
@@ -28,6 +8,13 @@ import org.dustyroom.ui.components.ReaderIconKind;
 import org.dustyroom.ui.components.ThumbnailIcon;
 import org.dustyroom.ui.listeners.DocumentChangeListener;
 import org.dustyroom.ui.listeners.MouseClickListener;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 public final class LibraryPanel extends JPanel {
     private static final int PAGE_SIZE = 12;
@@ -60,9 +47,15 @@ public final class LibraryPanel extends JPanel {
         add(top, BorderLayout.NORTH);
         add(body, BorderLayout.CENTER);
         search.getDocument().addDocumentListener(new DocumentChangeListener(this::changed));
-        filter.addActionListener(event -> changed());
-        sort.addActionListener(event -> changed());
+        filter.addActionListener(_ -> changed());
+        sort.addActionListener(_ -> changed());
         render();
+    }
+
+    private static JButton button(String title, Runnable action) {
+        JButton button = new JButton(title);
+        button.addActionListener(_ -> action.run());
+        return button;
     }
 
     private void changed() {
@@ -70,33 +63,50 @@ public final class LibraryPanel extends JPanel {
         page = 0;
         render();
     }
+
     void status(String text) {
         status.setText(text);
     }
+
     void showSnapshot(LibrarySnapshot snapshot) {
         this.snapshot = snapshot;
         status(snapshot.getWorks().size() + " works · Files and reading history are kept separately.");
         render();
     }
 
-    private boolean matches(LibraryWork work) {
-        String query = search.getText().strip().toLowerCase(Locale.ROOT);
-        if (!(work.getTitle() + " " + work.getRoot()).toLowerCase(Locale.ROOT).contains(query)) {
+    private boolean matches(LibraryWork work, String query, int filterIndex) {
+        String text = work.getTitle() + " " + work.getRoot();
+        if (!text.toLowerCase(Locale.ROOT).contains(query)) {
             return false;
         }
-        return switch (filter.getSelectedIndex()) {
+
+        return switch (filterIndex) {
             case 1 -> work.getLastRead() == 0 && work.getCompleted() == 0;
-            case 2 -> (work.getLastRead() > 0 || work.getCompleted() > 0) && work.getCompleted() < work.getChapters().size();
+            case 2 -> {
+                long completed = work.getCompleted();
+                boolean started = completed > 0 || work.getLastRead() > 0;
+                yield started && completed < work.getChapters().size();
+            }
             case 3 -> !work.getChapters().isEmpty() && work.getCompleted() == work.getChapters().size();
-            case 4 -> work.getChapters().stream().anyMatch(chapter -> !snapshot.getAvailable().contains(chapter.getId()));
+            case 4 -> hasMissingChapters(work);
             default -> true;
         };
+    }
+
+    private boolean hasMissingChapters(LibraryWork work) {
+        return work.getChapters()
+                .stream()
+                .anyMatch(chapter -> !snapshot.getAvailable().contains(chapter.getId()));
     }
 
     private void render() {
         controller.invalidateCovers();
         body.removeAll();
-        LibraryWork selected = snapshot.getWorks().stream().filter(work -> work.getId().equals(selectedWork)).findFirst().orElse(null);
+        LibraryWork selected = snapshot.getWorks()
+                .stream()
+                .filter(work -> work.getId().equals(selectedWork))
+                .findFirst()
+                .orElse(null);
         if (selected != null) {
             details(selected);
         } else {
@@ -112,41 +122,21 @@ public final class LibraryPanel extends JPanel {
             case 2 -> Comparator.comparingLong(LibraryWork::getAddedAt).reversed();
             default -> Comparator.comparing(LibraryWork::getTitle, String.CASE_INSENSITIVE_ORDER);
         };
-        List<LibraryWork> works = snapshot.getWorks().stream().filter(this::matches).sorted(order).toList();
-        page = Math.min(page, Math.max(0, (works.size() - 1) / PAGE_SIZE));
+        String query = search.getText().strip().toLowerCase(Locale.ROOT);
+        int filterIndex = filter.getSelectedIndex();
+        List<LibraryWork> works = snapshot.getWorks()
+                .stream()
+                .filter(work -> matches(work, query, filterIndex))
+                .sorted(order)
+                .toList();
+        page = Math.clamp((works.size() - 1) / PAGE_SIZE, 0, page);
         JPanel grid = new JPanel(new GridLayout(0, 3, 16, 16));
-        for (LibraryWork work : works.stream().skip((long) page * PAGE_SIZE).limit(PAGE_SIZE).toList()) {
-            JPanel card = new JPanel(new BorderLayout(8, 8));
-            card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UIManager.getColor("Separator.foreground")),
-                    BorderFactory.createEmptyBorder(12, 12, 12, 12)));
-            JButton cover = button(work.getTitle(), () -> {
-                selectedWork = work.getId();
-                render();
-            });
-            cover.setIcon(new ReaderIcon(ReaderIconKind.BOOK, 64));
-            cover.setIconTextGap(16);
-            cover.setPreferredSize(new Dimension(180, 230));
-            cover.setVerticalTextPosition(SwingConstants.BOTTOM);
-            cover.setHorizontalTextPosition(SwingConstants.CENTER);
-            cover.setToolTipText(work.getRoot());
-            card.add(cover, BorderLayout.CENTER);
-            JPanel caption = new JPanel(new GridLayout(0, 1, 0, 4));
-            caption.add(new JLabel(work.getChapters().size() + " chapters · " + work.getCompleted() + " finished"));
-            LibraryChapter resume = work.getResumeChapter();
-            JButton continueReading = button(resume.getLastRead() > 0 ? "Continue reading" : "Start reading", () -> controller.open(resume));
-            continueReading.setEnabled(snapshot.getAvailable().contains(resume.getId()));
-            caption.add(new JLabel(resume.getProgress()));
-            caption.add(continueReading);
-            boolean unavailable = work.getChapters().stream().anyMatch(chapter -> !snapshot.getAvailable().contains(chapter.getId()));
-            caption.add(new JLabel(unavailable ? "Some sources are unavailable" : " "));
-            card.add(caption, BorderLayout.SOUTH);
-            grid.add(card);
-            controller.cover(work.getChapters().getFirst(), image -> {
-                if (image != null) {
-                    cover.setIcon(new ThumbnailIcon(image));
-                }
-            });
+        int start = page * PAGE_SIZE;
+        int end = Math.min(start + PAGE_SIZE, works.size());
+        for (LibraryWork work : works.subList(start, end)) {
+            grid.add(card(work));
         }
+
         if (works.isEmpty()) {
             body.add(new JLabel("No works found. Add a folder or change the filters.", SwingConstants.CENTER), BorderLayout.CENTER);
         } else {
@@ -171,6 +161,42 @@ public final class LibraryPanel extends JPanel {
         paging.add(new JLabel("Page " + (page + 1) + " / " + Math.max(1, (works.size() + PAGE_SIZE - 1) / PAGE_SIZE)));
         paging.add(next);
         body.add(paging, BorderLayout.SOUTH);
+    }
+
+    private JPanel card(LibraryWork work) {
+        JPanel card = new JPanel(new BorderLayout(8, 8));
+        card.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(UIManager.getColor("Separator.foreground")),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)));
+
+        JButton cover = button(work.getTitle(), () -> {
+            selectedWork = work.getId();
+            render();
+        });
+        cover.setIcon(new ReaderIcon(ReaderIconKind.BOOK, 64));
+        cover.setIconTextGap(16);
+        cover.setPreferredSize(new Dimension(180, 230));
+        cover.setVerticalTextPosition(SwingConstants.BOTTOM);
+        cover.setHorizontalTextPosition(SwingConstants.CENTER);
+        cover.setToolTipText(work.getRoot());
+        card.add(cover, BorderLayout.CENTER);
+
+        JPanel caption = new JPanel(new GridLayout(0, 1, 0, 4));
+        caption.add(new JLabel(work.getChapters().size() + " chapters · " + work.getCompleted() + " finished"));
+        LibraryChapter resume = work.getResumeChapter();
+        JButton continueReading = button(resume.getLastRead() > 0 ? "Continue reading" : "Start reading", () -> controller.open(resume));
+        continueReading.setEnabled(snapshot.getAvailable().contains(resume.getId()));
+        caption.add(new JLabel(resume.getProgress()));
+        caption.add(continueReading);
+        boolean unavailable = hasMissingChapters(work);
+        caption.add(new JLabel(unavailable ? "Some sources are unavailable" : " "));
+        card.add(caption, BorderLayout.SOUTH);
+
+        controller.cover(work.getChapters().getFirst(), image -> {
+            if (image != null) {
+                cover.setIcon(new ThumbnailIcon(image));
+            }
+        });
+        return card;
     }
 
     private void details(LibraryWork work) {
@@ -199,7 +225,7 @@ public final class LibraryPanel extends JPanel {
             }
         }
         chapters.setRowSelectionInterval(selectedRow, selectedRow);
-        chapters.getSelectionModel().addListSelectionListener(event -> {
+        chapters.getSelectionModel().addListSelectionListener(_ -> {
             int row = chapters.getSelectedRow();
             if (row >= 0) {
                 selectedChapter = work.getChapters().get(row).getId();
@@ -227,11 +253,5 @@ public final class LibraryPanel extends JPanel {
             }
         }));
         body.add(actionsBottom, BorderLayout.SOUTH);
-    }
-
-    private static JButton button(String title, Runnable action) {
-        JButton button = new JButton(title);
-        button.addActionListener(event -> action.run());
-        return button;
     }
 }

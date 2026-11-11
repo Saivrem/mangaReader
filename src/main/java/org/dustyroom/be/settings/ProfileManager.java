@@ -1,20 +1,21 @@
 package org.dustyroom.be.settings;
 
+import org.dustyroom.be.utils.SqliteUtils;
+import org.dustyroom.be.persistence.schema.SqlitePragmas;
+import lombok.experimental.UtilityClass;
+import org.dustyroom.be.persistence.schema.ProfileSql;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import lombok.experimental.UtilityClass;
-import org.dustyroom.be.persistence.schema.ProfileSql;
+import java.sql.*;
 
-/** Explicit profile switching only. No backups, merging, or release-dependent filenames. */
+/**
+ * Explicit profile switching only. No backups, merging, or release-dependent filenames.
+ */
 @UtilityClass
 public class ProfileManager {
     public static Path resolve(Path standardDirectory, String override) {
@@ -35,10 +36,11 @@ public class ProfileManager {
             if (!selected.isAbsolute()) {
                 throw new IOException("Profile path must be absolute");
             }
-            if (!Files.isRegularFile(selected.resolve("reader.sqlite3"))) {
+            Path database = selected.resolve("reader.sqlite3");
+            if (!Files.isRegularFile(database)) {
                 throw new IOException("Selected reader profile is unavailable: " + selected);
             }
-            return selected.normalize().resolve("reader.sqlite3");
+            return database.normalize();
         } catch (IOException | RuntimeException exception) {
             throw new IllegalStateException("Cannot resolve the selected reader profile; no new database was created.", exception);
         }
@@ -48,7 +50,7 @@ public class ProfileManager {
         return Files.exists(directory.resolve("reader.sqlite3"));
     }
 
-    public static void validateTarget(Path currentDatabase, Path target, boolean existing) throws IOException {
+    public static Path validateTarget(Path currentDatabase, Path target, boolean existing) throws IOException {
         Path directory = target.toAbsolutePath().normalize();
         Files.createDirectories(directory);
         if (Files.isSameFile(currentDatabase.getParent(), directory)) {
@@ -64,12 +66,15 @@ public class ProfileManager {
         if (!existing && (Files.exists(directory.resolve("reader.sqlite3-wal")) || Files.exists(directory.resolve("reader.sqlite3-shm")))) {
             throw new IOException("The target contains an unfinished SQLite profile.");
         }
+
+        return directory;
     }
 
-    /** Caller must close its ReaderStore and drain pending saves first. */
+    /**
+     * Caller must close its ReaderStore and drain pending saves first.
+     */
     public static void switchProfile(Path standardDirectory, Path currentDatabase, Path target, boolean existing) throws IOException {
-        validateTarget(currentDatabase, target, existing);
-        Path directory = target.toAbsolutePath().normalize();
+        Path directory = validateTarget(currentDatabase, target, existing);
         Path destination = directory.resolve("reader.sqlite3");
         boolean moved = false;
         boolean committed = false;
@@ -103,7 +108,7 @@ public class ProfileManager {
     }
 
     private static void validateSqlite(Path database) throws IOException {
-        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+        try (Connection connection = SqliteUtils.connect(database);
              Statement sql = connection.createStatement(); ResultSet result = sql.executeQuery(ProfileSql.CHECK_DATABASE)) {
             if (!result.next() || !"ok".equals(result.getString(1))) {
                 throw new IOException("The selected profile is not a readable SQLite database.");
@@ -114,9 +119,9 @@ public class ProfileManager {
     }
 
     private static void finishJournal(Path database) throws IOException {
-        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + database);
+        try (Connection connection = SqliteUtils.connect(database);
              Statement sql = connection.createStatement()) {
-            sql.execute(ProfileSql.BUSY_TIMEOUT);
+            sql.execute(SqlitePragmas.BUSY_TIMEOUT);
             try (ResultSet rows = sql.executeQuery(ProfileSql.CHECKPOINT)) {
                 if (rows.next() && rows.getInt(1) != 0) {
                     throw new IOException("The profile is in use by another reader.");

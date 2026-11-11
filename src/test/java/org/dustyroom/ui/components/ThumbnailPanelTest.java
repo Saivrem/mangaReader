@@ -3,42 +3,49 @@ package org.dustyroom.ui.components;
 import org.dustyroom.be.models.book.PageKey;
 import org.dustyroom.be.models.book.PageRef;
 import org.dustyroom.be.models.book.PictureMetadata;
+import org.dustyroom.ui.listeners.MouseClickListener;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import org.dustyroom.ui.listeners.MouseClickListener;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ThumbnailPanelTest {
+    private static List<Integer> indices(int first, int last) {
+        return IntStream
+                .rangeClosed(first, last)
+                .boxed()
+                .toList();
+    }
+
     private static void drain(List<Consumer<BufferedImage>> replies) {
         int limit = 100;
         while (!replies.isEmpty()) {
             assertTrue(limit-- > 0, "Loading must stop at the cache window boundary");
-            replies.remove(0).accept(new BufferedImage(2, 4, BufferedImage.TYPE_INT_ARGB));
+            replies.removeFirst().accept(new BufferedImage(2, 4, BufferedImage.TYPE_INT_ARGB));
         }
     }
 
     private static List<PageRef> pages(String source) {
-        return IntStream.range(0, 1000).mapToObj(i -> new PageRef(new PageKey(source, "page" + i),
-                new PictureMetadata("page" + i, source, new File(source)))).toList();
+        return IntStream
+                .range(0, 1000)
+                .mapToObj(index -> {
+                    String name = "page" + index;
+                    return new PageRef(new PageKey(source, name), new PictureMetadata(name, source, new File(source)));
+                })
+                .toList();
     }
 
     private static void layout(Container parent) {
@@ -56,10 +63,10 @@ class ThumbnailPanelTest {
         SwingUtilities.invokeAndWait(() -> {
             List<Integer> requested = new ArrayList<>();
             List<Consumer<BufferedImage>> replies = new ArrayList<>();
-            ThumbnailPanel panel = new ThumbnailPanel((index, page, result) -> {
+            ThumbnailPanel panel = new ThumbnailPanel((index, _, result) -> {
                 requested.add(index);
                 replies.add(result);
-            }, page -> {
+            }, _ -> {
             }, () -> {
             });
             panel.setSize(164, 500);
@@ -69,7 +76,7 @@ class ThumbnailPanelTest {
                 panel.showPages(pages("book"));
                 panel.showSpread(1, 2);
                 assertEquals(List.of(0), requested);
-                replies.get(0).accept(new BufferedImage(2, 4, BufferedImage.TYPE_INT_ARGB));
+                replies.getFirst().accept(new BufferedImage(2, 4, BufferedImage.TYPE_INT_ARGB));
                 assertEquals(List.of(0, 1), requested);
                 panel.setExpanded(false);
                 replies.get(1).accept(null);
@@ -87,10 +94,10 @@ class ThumbnailPanelTest {
         SwingUtilities.invokeAndWait(() -> {
             List<Integer> requested = new ArrayList<>();
             List<Consumer<BufferedImage>> replies = new ArrayList<>();
-            ThumbnailPanel panel = new ThumbnailPanel((index, page, result) -> {
+            ThumbnailPanel panel = new ThumbnailPanel((index, _, result) -> {
                 requested.add(index);
                 replies.add(result);
-            }, page -> {
+            }, _ -> {
             }, () -> {
             });
             panel.setSize(164, 500);
@@ -102,17 +109,20 @@ class ThumbnailPanelTest {
                 JList<?> list = (JList<?>) ((JScrollPane) ((BorderLayout) panel.getLayout()).getLayoutComponent(BorderLayout.CENTER)).getViewport().getView();
                 drain(replies);
                 int initialEnd = list.getLastVisibleIndex() + 10;
-                assertEquals(IntStream.rangeClosed(0, initialEnd).boxed().toList(), requested);
+                assertEquals(indices(0, initialEnd), requested);
                 requested.clear();
                 panel.showSpread(101, 102);
                 int first = list.getFirstVisibleIndex(), last = list.getLastVisibleIndex();
                 drain(replies);
-                assertEquals(IntStream.rangeClosed(first, last).boxed().toList(), requested.subList(0, last - first + 1));
-                assertEquals(IntStream.rangeClosed(first - 10, last + 10).boxed().toList(), requested.stream().sorted().toList());
+                assertEquals(indices(first, last), requested.subList(0, last - first + 1));
+                assertEquals(indices(first - 10, last + 10), requested
+                        .stream()
+                        .sorted()
+                        .toList());
                 requested.clear();
                 panel.showSpread(1, 1);
                 drain(replies);
-                assertEquals(IntStream.rangeClosed(0, initialEnd).boxed().toList(), requested);
+                assertEquals(indices(0, initialEnd), requested);
             } finally {
                 panel.removeNotify();
             }
@@ -124,10 +134,12 @@ class ThumbnailPanelTest {
         SwingUtilities.invokeAndWait(() -> {
             AtomicInteger opened = new AtomicInteger();
             AtomicBoolean returned = new AtomicBoolean();
-            ThumbnailPanel panel = new ThumbnailPanel((index, page, result) -> { }, page -> {
+            ThumbnailPanel panel = new ThumbnailPanel((_, _, _) -> {
+            }, page -> {
                 assertTrue(returned.get(), "Restore the reader before opening the selected page");
                 opened.set(page);
-            }, () -> { });
+            }, () -> {
+            });
             JPanel reader = new JPanel();
             JPanel navigation = new JPanel();
             ReaderWorkspace workspace = new ReaderWorkspace(panel, reader, navigation, grid -> returned.set(!grid));
@@ -160,10 +172,13 @@ class ThumbnailPanelTest {
     void escapeReturnsWithoutOpeningPageAndPreservesHiddenFullscreenControls() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             AtomicInteger opened = new AtomicInteger();
-            ThumbnailPanel panel = new ThumbnailPanel((index, page, result) -> { }, opened::set, () -> { });
+            ThumbnailPanel panel = new ThumbnailPanel((_, _, _) -> {
+            }, opened::set, () -> {
+            });
             JPanel navigation = new JPanel();
             navigation.setVisible(false);
-            ReaderWorkspace workspace = new ReaderWorkspace(panel, new JPanel(), navigation, grid -> { });
+            ReaderWorkspace workspace = new ReaderWorkspace(panel, new JPanel(), navigation, _ -> {
+            });
             workspace.setSize(1000, 700);
             panel.setGridMode(true);
             assertFalse(panel.isGridMode(), "Empty books cannot enter the grid");
@@ -187,11 +202,14 @@ class ThumbnailPanelTest {
         SwingUtilities.invokeAndWait(() -> {
             List<Integer> requested = new ArrayList<>();
             List<Consumer<BufferedImage>> replies = new ArrayList<>();
-            ThumbnailPanel panel = new ThumbnailPanel((index, page, result) -> {
+            ThumbnailPanel panel = new ThumbnailPanel((index, _, result) -> {
                 requested.add(index);
                 replies.add(result);
-            }, page -> { }, () -> { });
-            ReaderWorkspace workspace = new ReaderWorkspace(panel, new JPanel(), new JPanel(), grid -> { });
+            }, _ -> {
+            }, () -> {
+            });
+            ReaderWorkspace workspace = new ReaderWorkspace(panel, new JPanel(), new JPanel(), _ -> {
+            });
             workspace.setSize(1000, 700);
             workspace.addNotify();
             try {
@@ -204,7 +222,7 @@ class ThumbnailPanelTest {
                 drain(replies);
                 int visibleEnd = list.getLastVisibleIndex();
                 assertTrue(visibleEnd > 2);
-                assertEquals(IntStream.rangeClosed(0, visibleEnd + 10).boxed().toList(), requested);
+                assertEquals(indices(0, visibleEnd + 10), requested);
                 panel.setExpanded(false);
                 assertFalse(panel.isGridMode());
                 int loaded = requested.size();
@@ -220,8 +238,11 @@ class ThumbnailPanelTest {
     void mouseSelectionReturnsAndGridAdaptsToWindowWidth() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             AtomicInteger opened = new AtomicInteger();
-            ThumbnailPanel panel = new ThumbnailPanel((index, page, result) -> { }, opened::set, () -> { });
-            ReaderWorkspace workspace = new ReaderWorkspace(panel, new JPanel(), new JPanel(), grid -> { });
+            ThumbnailPanel panel = new ThumbnailPanel((_, _, _) -> {
+            }, opened::set, () -> {
+            });
+            ReaderWorkspace workspace = new ReaderWorkspace(panel, new JPanel(), new JPanel(), _ -> {
+            });
             workspace.setSize(1000, 700);
             panel.showPages(pages("book"));
             panel.setGridMode(true);

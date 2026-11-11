@@ -1,14 +1,18 @@
 package org.dustyroom.ui.actions;
 
-import java.awt.HeadlessException;
-import java.awt.Toolkit;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+
+import org.dustyroom.ui.ViewerController;
+import org.dustyroom.ui.utils.PlatformUi;
+
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import javax.swing.Action;
-import javax.swing.KeyStroke;
-import org.dustyroom.ui.utils.PlatformUi;
-import org.dustyroom.ui.ViewerController;
 
+@Getter
+@Accessors(fluent = true)
 public class DefaultViewerActions implements ViewerActions {
     private final Action openPageGrid;
     private final Action toggleThumbnails;
@@ -112,130 +116,5 @@ public class DefaultViewerActions implements ViewerActions {
 
     private static KeyStroke key(int keyCode) {
         return KeyStroke.getKeyStroke(keyCode, 0);
-    }
-
-    @Override
-    public Action openPageGrid() {
-        return openPageGrid;
-    }
-
-    @Override
-    public Action toggleThumbnails() {
-        return toggleThumbnails;
-    }
-
-    @Override
-    public Action home() {
-        return home;
-    }
-
-    @Override
-    public Action openFile() {
-        return openFile;
-    }
-
-    @Override
-    public Action exit() {
-        return exit;
-    }
-
-    @Override
-    public Action fitHeight() {
-        return fitHeight;
-    }
-
-    @Override
-    public Action fitWidth() {
-        return fitWidth;
-    }
-
-    @Override
-    public Action fitScreen() {
-        return fitScreen;
-    }
-
-    @Override
-    public Action zoomIn() {
-        return zoomIn;
-    }
-
-    @Override
-    public Action zoomOut() {
-        return zoomOut;
-    }
-
-    @Override
-    public Action nextImage() {
-        return nextImage;
-    }
-
-    @Override
-    public Action prevImage() {
-        return prevImage;
-    }
-
-    @Override
-    public Action firstImage() {
-        return firstImage;
-    }
-
-    @Override
-    public Action lastImage() {
-        return lastImage;
-    }
-
-    @Override
-    public Action nextVolume() {
-        return nextVolume;
-    }
-
-    @Override
-    public Action prevVolume() {
-        return prevVolume;
-    }
-
-    @Override
-    public Action toggleFullscreen() {
-        return toggleFullscreen;
-    }
-
-    @Override
-    public Action toggleTwoPageMode() {
-        return toggleTwoPageMode;
-    }
-
-    @Override
-    public Action setComicsReadingMode() {
-        return setComicsReadingMode;
-    }
-
-    @Override
-    public Action setMangaReadingMode() {
-        return setMangaReadingMode;
-    }
-
-    @Override
-    public Action goToPage() {
-        return goToPage;
-    }
-
-    @Override
-    public Action exitFullscreen() {
-        return exitFullscreen;
-    }
-
-    @Override
-    public Action settings() {
-        return settings;
-    }
-
-    @Override
-    public Action resetApplication() {
-        return resetApplication;
-    }
-
-    @Override
-    public Action showAbout() {
-        return showAbout;
     }
 }

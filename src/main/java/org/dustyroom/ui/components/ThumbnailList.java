@@ -1,9 +1,12 @@
 package org.dustyroom.ui.components;
 
-import javax.swing.JList;
 import org.dustyroom.be.models.book.PageRef;
 
-/** Keeps wrap geometry current before scrolling and scheduling visible thumbnail requests. */
+import javax.swing.*;
+
+/**
+ * Keeps wrap geometry current before scrolling and scheduling visible thumbnail requests.
+ */
 final class ThumbnailList extends JList<PageRef> {
     @Override
     public void setBounds(int x, int y, int width, int height) {

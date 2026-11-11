@@ -1,15 +1,12 @@
 package org.dustyroom.be.models.view;
 
+import lombok.*;
+import lombok.experimental.Accessors;
+import org.dustyroom.be.models.state.BookState;
+
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-import lombok.experimental.Accessors;
-import org.dustyroom.be.models.state.BookState;
 
 /**
  * Immutable snapshot shared by the welcome view and Open Recent menu.
@@ -41,8 +38,17 @@ public final class RecentBook {
 
     public String getTitle() {
         File file = new File(state.getSourceId());
-        String name = chapters.size() > 1 && file.getParentFile() != null ? file.getParentFile().getName() : file.getName();
+        File parent = file.getParentFile();
+        if (chapters.size() > 1 && parent != null) {
+            file = parent;
+        }
+
+        String name = file.getName();
         return name.isBlank() ? state.getSourceId() : name;
+    }
+
+    public List<BookState> menuChapters() {
+        return chapters.subList(0, Math.min(chapters.size(), 20));
     }
 
     public String getProgress() {

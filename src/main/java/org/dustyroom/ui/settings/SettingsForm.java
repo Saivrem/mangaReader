@@ -1,10 +1,7 @@
 package org.dustyroom.ui.settings;
 
-import java.awt.Component;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import javax.swing.JPanel;
+import javax.swing.*;
+import java.awt.*;
 
 final class SettingsForm extends JPanel {
     private int nextRow;

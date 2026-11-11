@@ -1,22 +1,12 @@
 package org.dustyroom.ui.components;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.io.File;
-import java.util.function.Consumer;
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JProgressBar;
-import javax.swing.SwingConstants;
-import javax.swing.UIManager;
 import org.dustyroom.be.models.state.BookState;
 import org.dustyroom.be.models.view.RecentBook;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.util.function.Consumer;
 
 final class RecentBookCard extends JPanel {
     private final JLabel cover = new JLabel(new ReaderIcon(ReaderIconKind.OPEN));
@@ -40,23 +30,23 @@ final class RecentBookCard extends JPanel {
         details.setLayout(new BoxLayout(details, BoxLayout.Y_AXIS));
         title.setHorizontalAlignment(SwingConstants.LEFT);
         title.putClientProperty("JButton.buttonType", "borderless");
-        title.addActionListener(event -> open.accept(id));
+        title.addActionListener(_ -> open.accept(id));
         title.setToolTipText(id);
         bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 5));
         JButton hide = new JButton("Remove from recent");
         hide.putClientProperty("JButton.buttonType", "borderless");
         hide.setToolTipText("Keep this book and its saved reading position");
         hide.getAccessibleContext().setAccessibleName("Remove " + new File(id).getName() + " from recent");
-        hide.addActionListener(event -> remove.accept(id));
+        hide.addActionListener(_ -> remove.accept(id));
         chapters.putClientProperty("JButton.buttonType", "borderless");
-        chapters.addActionListener(event -> {
+        chapters.addActionListener(_ -> {
             JPopupMenu menu = new JPopupMenu();
-            for (BookState chapter : current.getChapters().stream().limit(20).toList()) {
+            for (BookState chapter : current.menuChapters()) {
                 JMenuItem entry = new JMenuItem();
                 entry.putClientProperty("html.disable", true);
                 entry.setText(new File(chapter.getSourceId()).getName() + " — " + chapter.getPageNumber() + "/" + chapter.getPageCount());
                 entry.setToolTipText(chapter.getSourceId());
-                entry.addActionListener(click -> open.accept(chapter.getSourceId()));
+                entry.addActionListener(_ -> open.accept(chapter.getSourceId()));
                 menu.add(entry);
             }
             menu.show(chapters, 0, chapters.getHeight());

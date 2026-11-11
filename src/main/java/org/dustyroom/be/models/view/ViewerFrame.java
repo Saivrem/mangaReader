@@ -1,15 +1,12 @@
 package org.dustyroom.be.models.view;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
 import org.dustyroom.be.models.book.PageKey;
 import org.dustyroom.be.models.direction.ReadingMode;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
 
 @Getter
 @EqualsAndHashCode

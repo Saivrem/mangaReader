@@ -1,8 +1,9 @@
 package org.dustyroom.be.persistence;
 
-import java.util.Optional;
 import org.dustyroom.be.models.state.BookState;
 import org.dustyroom.be.models.state.ReaderSettings;
+
+import java.util.Optional;
 
 final class DisabledReaderStore implements ReaderStore {
 

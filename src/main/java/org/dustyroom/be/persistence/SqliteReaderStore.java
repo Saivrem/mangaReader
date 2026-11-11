@@ -1,18 +1,8 @@
 package org.dustyroom.be.persistence;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import org.dustyroom.be.utils.SqliteUtils;
+import org.dustyroom.be.persistence.schema.SqlitePragmas;
+import org.apache.commons.lang3.EnumUtils;
 import org.dustyroom.be.models.direction.ReadingMode;
 import org.dustyroom.be.models.library.LibraryImport;
 import org.dustyroom.be.models.library.LibraryWork;
@@ -22,6 +12,11 @@ import org.dustyroom.be.persistence.schema.LibrarySchema;
 import org.dustyroom.be.persistence.schema.ReaderSchema;
 import org.dustyroom.be.persistence.schema.ReaderSql;
 import org.dustyroom.be.settings.SettingsCodec;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.*;
+import java.util.*;
 
 public final class SqliteReaderStore implements ReaderStore {
     // Independent of the application release version (0.8, 0.9, ...).
@@ -35,12 +30,12 @@ public final class SqliteReaderStore implements ReaderStore {
         try {
             Path path = database.toAbsolutePath().normalize();
             Files.createDirectories(path.getParent());
-            opened = DriverManager.getConnection("jdbc:sqlite:" + path);
+            opened = SqliteUtils.connect(path);
             connection = opened;
             int version;
             try (Statement sql = connection.createStatement()) {
-                sql.execute(ReaderSql.BUSY_TIMEOUT);
-                try (ResultSet result = sql.executeQuery(ReaderSql.READ_VERSION)) {
+                sql.execute(SqlitePragmas.BUSY_TIMEOUT);
+                try (ResultSet result = sql.executeQuery(SqlitePragmas.READ_VERSION)) {
                     version = result.next() ? result.getInt(1) : 0;
 
                 }
@@ -73,14 +68,6 @@ public final class SqliteReaderStore implements ReaderStore {
         return new IllegalStateException("Cannot read or save reader state", exception);
     }
 
-    private static <E extends Enum<E>> E enumValue(Class<E> type, String value, E fallback) {
-        try {
-            return value == null ? fallback : Enum.valueOf(type, value);
-        } catch (IllegalArgumentException exception) {
-            return fallback;
-        }
-    }
-
     @Override
     public Path databasePath() {
         return database;
@@ -105,9 +92,7 @@ public final class SqliteReaderStore implements ReaderStore {
             connection.setAutoCommit(false);
             try (PreparedStatement sql = connection.prepareStatement(ReaderSql.SAVE_SETTING)) {
                 for (Map.Entry<String, String> entry : SettingsCodec.encode(settings).entrySet()) {
-                    sql.setString(1, entry.getKey());
-                    sql.setString(2, entry.getValue());
-                    sql.addBatch();
+                    SqliteUtils.addBatch(sql, entry.getKey(), entry.getValue());
                 }
                 sql.executeBatch();
                 connection.commit();
@@ -124,32 +109,34 @@ public final class SqliteReaderStore implements ReaderStore {
 
     @Override
     public Optional<BookState> book(String sourceId) {
-        try (PreparedStatement sql = connection.prepareStatement(ReaderSql.SELECT_BOOK)) {
-            sql.setString(1, sourceId);
-            try (ResultSet result = sql.executeQuery()) {
-                if (!result.next()) {
-                    return Optional.empty();
-                }
-                return Optional.of(new BookState(sourceId, result.getString("page_id"),
-                        result.getInt("page_number"), result.getInt("page_count"), result.getInt("two_page") != 0,
-                        enumValue(ReadingMode.class, result.getString("reading_mode"), ReadingMode.MANGA)));
+        try (PreparedStatement sql = SqliteUtils.prepare(connection, ReaderSql.SELECT_BOOK, sourceId);
+             ResultSet result = sql.executeQuery()) {
+            if (!result.next()) {
+                return Optional.empty();
             }
+            return Optional.of(readBook(result, sourceId));
         } catch (SQLException exception) {
             throw failure(exception);
         }
     }
 
+    private static BookState readBook(ResultSet row, String sourceId) throws SQLException {
+        ReadingMode mode = EnumUtils.getEnum(ReadingMode.class, row.getString("reading_mode"), ReadingMode.MANGA);
+        return new BookState(sourceId, row.getString("page_id"), row.getInt("page_number"),
+                row.getInt("page_count"), row.getBoolean("two_page"), mode);
+    }
+
     @Override
     public void saveBook(BookState state) {
-        try (PreparedStatement sql = connection.prepareStatement(ReaderSql.SAVE_BOOK)) {
-            sql.setString(1, state.getSourceId());
-            sql.setString(2, state.getPageId());
-            sql.setInt(3, state.getPageNumber());
-            sql.setInt(4, state.getPageCount());
-            sql.setInt(5, state.isTwoPageMode() ? 1 : 0);
-            sql.setString(6, state.getReadingMode().name());
-            sql.setLong(7, System.currentTimeMillis());
-            sql.executeUpdate();
+        try {
+            SqliteUtils.update(connection, ReaderSql.SAVE_BOOK,
+                    state.getSourceId(),
+                    state.getPageId(),
+                    state.getPageNumber(),
+                    state.getPageCount(),
+                    state.isTwoPageMode() ? 1 : 0,
+                    state.getReadingMode().name(),
+                    System.currentTimeMillis());
         } catch (SQLException exception) {
             throw failure(exception);
         }
@@ -160,15 +147,11 @@ public final class SqliteReaderStore implements ReaderStore {
         if (limit < 1 || limit > 1000) {
             throw new IllegalArgumentException("Invalid recent book limit");
         }
-        List<BookState> books = new ArrayList<BookState>();
-        try (PreparedStatement sql = connection.prepareStatement(ReaderSql.SELECT_RECENTS)) {
-            sql.setInt(1, limit);
-            try (ResultSet result = sql.executeQuery()) {
-                while (result.next()) {
-                    books.add(new BookState(result.getString("source_id"), result.getString("page_id"),
-                            result.getInt("page_number"), result.getInt("page_count"), result.getInt("two_page") != 0,
-                            enumValue(ReadingMode.class, result.getString("reading_mode"), ReadingMode.MANGA)));
-                }
+        List<BookState> books = new ArrayList<>();
+        try (PreparedStatement sql = SqliteUtils.prepare(connection, ReaderSql.SELECT_RECENTS, limit);
+             ResultSet result = sql.executeQuery()) {
+            while (result.next()) {
+                books.add(readBook(result, result.getString("source_id")));
             }
             return List.copyOf(books);
         } catch (SQLException exception) {
@@ -187,10 +170,8 @@ public final class SqliteReaderStore implements ReaderStore {
     }
 
     private void setRecentHidden(String sourceId, boolean hidden) {
-        try (PreparedStatement sql = connection.prepareStatement(ReaderSql.SET_RECENT_HIDDEN)) {
-            sql.setInt(1, hidden ? 1 : 0);
-            sql.setString(2, sourceId);
-            sql.executeUpdate();
+        try {
+            SqliteUtils.update(connection, ReaderSql.SET_RECENT_HIDDEN, hidden ? 1 : 0, sourceId);
         } catch (SQLException exception) {
             throw failure(exception);
         }
@@ -221,18 +202,22 @@ public final class SqliteReaderStore implements ReaderStore {
     public List<LibraryWork> libraryWorks() {
         return new SqliteLibraryStore(connection).libraryWorks();
     }
+
     @Override
-    public void importLibrary(LibraryImport selection) {
-        new SqliteLibraryStore(connection).importLibrary(selection);
+    public void importWorks(List<LibraryImport> selections) {
+        new SqliteLibraryStore(connection).importWorks(selections);
     }
+
     @Override
     public void removeLibrary(String id) {
         new SqliteLibraryStore(connection).removeLibrary(id);
     }
+
     @Override
     public void renameLibrary(String id, String title) {
         new SqliteLibraryStore(connection).renameLibrary(id, title);
     }
+
     @Override
     public void finishChapter(String id, boolean finished) {
         new SqliteLibraryStore(connection).finishChapter(id, finished);

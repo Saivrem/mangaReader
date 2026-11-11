@@ -1,25 +1,26 @@
 package org.dustyroom.be.persistence;
 
-import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
+import org.dustyroom.be.utils.SqliteUtils;
+import org.dustyroom.be.persistence.schema.SqlitePragmas;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.be.persistence.schema.RecoverySql;
 
-/** Explicit user-confirmed reset only. Never invoked by initialization or migration. */
+import java.nio.file.Path;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Explicit user-confirmed reset only. Never invoked by initialization or migration.
+ */
 @UtilityClass
 final class DatabaseRecovery {
 
     static void reset(Path database) {
         Path path = database.toAbsolutePath().normalize();
-        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + path)) {
+        try (Connection connection = SqliteUtils.connect(path)) {
             try (Statement sql = connection.createStatement()) {
-                sql.execute(RecoverySql.BUSY_TIMEOUT);
+                sql.execute(SqlitePragmas.BUSY_TIMEOUT);
                 sql.execute(RecoverySql.DISABLE_FOREIGN_KEYS);
             }
             connection.setAutoCommit(false);
@@ -35,7 +36,7 @@ final class DatabaseRecovery {
                 for (String drop : drops) {
                     sql.execute(drop);
                 }
-                sql.execute(RecoverySql.RESET_VERSION);
+                sql.execute(SqlitePragmas.schemaVersion(0));
                 connection.commit();
             } catch (SQLException exception) {
                 connection.rollback();

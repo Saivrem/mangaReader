@@ -1,8 +1,9 @@
 package org.dustyroom.be.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class Constants {

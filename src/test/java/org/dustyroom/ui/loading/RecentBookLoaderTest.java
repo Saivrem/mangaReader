@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import javax.imageio.ImageIO;
-
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;

@@ -1,38 +1,33 @@
 package org.dustyroom.ui.components;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
-import java.awt.geom.Area;
-import java.awt.image.BufferedImage;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.JComponent;
-import javax.swing.JScrollPane;
-import javax.swing.JViewport;
-import javax.swing.Timer;
+import lombok.Getter;
+
 import org.dustyroom.be.models.animation.AnimatedPage;
 import org.dustyroom.be.models.animation.AnimationFrame;
 import org.dustyroom.be.models.state.FitMode;
 import org.dustyroom.ui.loading.BufferedAnimation;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.geom.Area;
+import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class ImageComponent extends JComponent {
-    private final Timer animationTimer = new Timer(10, event -> animate());
+    private final Timer animationTimer = new Timer(10, _ -> animate());
     private BufferedImage image;
     private List<AnimatedPage> animations = List.of();
     private List<BufferedAnimation> players = List.of();
     private boolean animationPaused;
+    @Getter
     private double scale = 1.0;
+    @Getter
     private FitMode fitMode = FitMode.FIT_SCREEN;
 
     public ImageComponent() {
-        addHierarchyListener(event -> {
+        addHierarchyListener(_ -> {
             if (isShowing()) {
                 startAnimations();
             } else {
@@ -44,13 +39,18 @@ public class ImageComponent extends JComponent {
     private void animate() {
         long now = System.nanoTime();
         boolean changed = false;
+        boolean finished = true;
         for (BufferedAnimation player : players) {
             AnimationFrame previous = player.currentFrame();
             if (player.advance(now) != previous) {
                 changed = true;
             }
+            if (!player.finished(now)) {
+                finished = false;
+            }
         }
-        if (players.stream().allMatch(player -> player.finished(now))) {
+
+        if (finished) {
             animationTimer.stop();
         }
         if (changed) {
@@ -62,9 +62,12 @@ public class ImageComponent extends JComponent {
         if (animationPaused || !players.isEmpty() || animations.isEmpty()) {
             return;
         }
-        players = animations.stream().map(page -> new BufferedAnimation(page.getClip(), error ->
-                Logger.getLogger(ImageComponent.class.getName())
-                        .log(Level.WARNING, "Cannot play GIF", error))).toList();
+        Logger logger = Logger.getLogger(ImageComponent.class.getName());
+        players = animations
+                .stream()
+                .map(page -> new BufferedAnimation(page.getClip(), error -> logger.log(Level.WARNING, "Cannot play GIF", error)))
+                .toList();
+
         animationTimer.start();
     }
 
@@ -101,17 +104,23 @@ public class ImageComponent extends JComponent {
     public void setImageAndCenter(BufferedImage img, JScrollPane scrollPane) {
         setImage(img);
 
+        JViewport viewport = scrollPane.getViewport();
         // Finish layout before painting: no intermediate frame at x=0 or stale sidebar width.
         for (int pass = 0; pass < 3; pass++) {
             scrollPane.doLayout();
-            scrollPane.getViewport().doLayout();
+            viewport.doLayout();
             updateScale();
-            setSize(getPreferredSize().width < scrollPane.getViewport().getWidth()
-                            ? scrollPane.getViewport().getWidth() : getPreferredSize().width,
-                    Math.max(scrollPane.getViewport().getHeight(), getPreferredSize().height));
+            sizeToViewport(viewport);
         }
-        Dimension viewSize = scrollPane.getViewport().getExtentSize();
-        scrollPane.getViewport().setViewPosition(new Point(Math.max(0, (getPreferredSize().width - viewSize.width) / 2), 0));
+
+        int centerX = Math.max(0, (getWidth() - viewport.getExtentSize().width) / 2);
+        viewport.setViewPosition(new Point(centerX, 0));
+    }
+
+    private void sizeToViewport(JViewport viewport) {
+        Dimension preferred = getPreferredSize();
+        setSize(Math.max(preferred.width, viewport.getWidth()),
+                Math.max(preferred.height, viewport.getHeight()));
     }
 
     private void setImage(BufferedImage image) {
@@ -124,19 +133,11 @@ public class ImageComponent extends JComponent {
         repaint();
     }
 
-    public FitMode getFitMode() {
-        return fitMode;
-    }
-
     public void setFitMode(FitMode mode) {
         this.fitMode = mode;
         updateScale();
         revalidate();
         repaint();
-    }
-
-    public double getScale() {
-        return scale;
     }
 
     public void restoreView(FitMode mode, double zoom) {
@@ -180,28 +181,34 @@ public class ImageComponent extends JComponent {
         double imageX = (oldPosition.x + viewportAnchor.x - (getWidth() - image.getWidth() * oldScale) / 2) / oldScale;
         double imageY = (oldPosition.y + viewportAnchor.y - (getHeight() - image.getHeight() * oldScale) / 2) / oldScale;
         fitMode = FitMode.ORIGINAL;
-        scale = Math.max(0.05, Math.min(20, scale * factor));
+        scale = Math.clamp(scale * factor, 0.05, 20);
         revalidate();
         scroll.doLayout();
         viewport.doLayout();
-        setSize(Math.max(viewport.getWidth(), getPreferredSize().width), Math.max(viewport.getHeight(), getPreferredSize().height));
+        sizeToViewport(viewport);
+
         int x = (int) Math.round(imageX * scale + (getWidth() - image.getWidth() * scale) / 2 - viewportAnchor.x);
         int y = (int) Math.round(imageY * scale + (getHeight() - image.getHeight() * scale) / 2 - viewportAnchor.y);
-        viewport.setViewPosition(new Point(Math.max(0, Math.min(x, getWidth() - viewport.getWidth())),
-                Math.max(0, Math.min(y, getHeight() - viewport.getHeight()))));
+        setViewportPosition(viewport, x, y);
+    }
+
+    void setViewportPosition(JViewport viewport, int x, int y) {
+        int maxX = Math.max(0, getWidth() - viewport.getWidth());
+        int maxY = Math.max(0, getHeight() - viewport.getHeight());
+        viewport.setViewPosition(new Point(Math.clamp(x, 0, maxX), Math.clamp(y, 0, maxY)));
         repaint();
     }
 
     public void zoomIn() {
         fitMode = FitMode.ORIGINAL;
-        scale = Math.max(0.05, Math.min(20, scale * 1.1));
+        scale = Math.clamp(scale * 1.1, 0.05, 20);
         revalidate();
         repaint();
     }
 
     public void zoomOut() {
         fitMode = FitMode.ORIGINAL;
-        scale = Math.max(0.05, Math.min(20, scale / 1.1));
+        scale = Math.clamp(scale / 1.1, 0.05, 20);
         revalidate();
         repaint();
     }
@@ -275,5 +282,4 @@ public class ImageComponent extends JComponent {
                 (int) (image.getHeight() * scale)
         );
     }
-
 }

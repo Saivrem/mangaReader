@@ -1,7 +1,8 @@
 package org.dustyroom.be.iterators;
 
-import java.io.File;
 import lombok.experimental.UtilityClass;
+
+import java.io.File;
 
 import static org.dustyroom.be.utils.FileUtils.*;
 
@@ -12,7 +13,7 @@ public class ImageIteratorFactory {
         if (isZipFile.test(source)) {
             return new ZipIterator(source);
         }
-        if (isImage.test(source) || containsImages.test(source)) {
+        if (isImage.test(source) || isDirectory.test(source)) {
             return new FileImageIterator(source);
         }
         throw new ImageIteratorException("Unsupported or empty image source", source);

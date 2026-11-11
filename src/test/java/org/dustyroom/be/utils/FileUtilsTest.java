@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FileUtilsTest {
     @TempDir
-    Path tempDir;
+    Path directory;
 
     @Test
     void recognizesExactFinalExtensionsCaseInsensitively() {
@@ -38,26 +38,27 @@ class FileUtilsTest {
 
     @Test
     void filePredicatesRequireTheExpectedRealFileType() throws Exception {
-        Path image = Files.createFile(tempDir.resolve("page.JPG"));
-        Path archive = Files.createFile(tempDir.resolve("volume.ZIP"));
-        Files.createDirectory(tempDir.resolve("folder.jpg"));
+        Path image = Files.createFile(directory.resolve("page.JPG"));
+        Path archive = Files.createFile(directory.resolve("volume.ZIP"));
+        Files.createDirectory(directory.resolve("folder.jpg"));
 
         assertTrue(isImage.test(image.toFile()));
         assertTrue(isZipFile.test(archive.toFile()));
         assertFalse(isImage.test(archive.toFile()));
         assertFalse(isZipFile.test(image.toFile()));
-        assertFalse(isImage.test(tempDir.resolve("folder.jpg").toFile()));
+        assertFalse(isImage.test(directory.resolve("folder.jpg").toFile()));
     }
 
     @Test
     void returnsOnlyNaturallySortedMatchingFiles() throws Exception {
-        Files.createFile(tempDir.resolve("page10.png"));
-        Files.createFile(tempDir.resolve("page2.JPG"));
-        Files.createFile(tempDir.resolve("page1.jpeg"));
-        Files.createFile(tempDir.resolve("volume.zip"));
-        Files.createFile(tempDir.resolve("notes.txt"));
+        Files.createFile(directory.resolve("page10.png"));
+        Files.createFile(directory.resolve("page2.JPG"));
+        Files.createFile(directory.resolve("page1.jpeg"));
+        Files.createFile(directory.resolve("volume.zip"));
+        Files.createFile(directory.resolve("notes.txt"));
 
-        List<String> names = getSortedFiles(tempDir.toFile(), isImage).stream()
+        List<String> names = getSortedFiles(directory.toFile(), isImage)
+                .stream()
                 .map(File::getName)
                 .toList();
 
@@ -67,10 +68,26 @@ class FileUtilsTest {
 
     @Test
     void distinguishesNonEmptyDirectoriesFromDirectoriesContainingImages() throws Exception {
-        Path textOnly = Files.createDirectory(tempDir.resolve("text-only"));
+        Path textOnly = Files.createDirectory(directory.resolve("text-only"));
         Files.createFile(textOnly.resolve("notes.txt"));
 
         assertTrue(isNotEmptyDirectory.test(textOnly.toFile()));
         assertFalse(containsImages.test(textOnly.toFile()));
+    }
+
+    @Test
+    void usesExistingSavedDirectory() throws Exception {
+        Path saved = Files.createDirectory(directory.resolve("日本語 books"));
+        assertEquals(saved.toFile(), FileUtils.resolve(saved.toString(), directory.toString()));
+    }
+
+    @Test
+    void fallsBackForMissingFileRelativeAndMalformedPaths() throws Exception {
+        Path file = Files.createFile(directory.resolve("book.zip"));
+        Path deleted = Files.createDirectory(directory.resolve("deleted"));
+        Files.delete(deleted);
+        for (String saved : new String[]{null, "", " ", deleted.toString(), file.toString(), "relative", "invalid\0path"}) {
+            assertEquals(directory.toFile(), FileUtils.resolve(saved, directory.toString()));
+        }
     }
 }

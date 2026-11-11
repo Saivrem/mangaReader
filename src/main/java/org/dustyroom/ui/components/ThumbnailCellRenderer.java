@@ -1,15 +1,12 @@
 package org.dustyroom.ui.components;
 
-import java.awt.Component;
-import java.util.Map;
-import java.util.function.IntSupplier;
-import java.util.function.BooleanSupplier;
-import javax.swing.BorderFactory;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.Icon;
-import javax.swing.JLabel;
-import javax.swing.JList;
 import lombok.RequiredArgsConstructor;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.Map;
+import java.util.function.BooleanSupplier;
+import java.util.function.IntSupplier;
 
 @RequiredArgsConstructor
 final class ThumbnailCellRenderer extends DefaultListCellRenderer {
@@ -20,19 +17,28 @@ final class ThumbnailCellRenderer extends DefaultListCellRenderer {
 
     @Override
     public Component getListCellRendererComponent(JList<?> owner, Object value, int index, boolean selected, boolean focus) {
+        boolean gridSelection = gridMode.getAsBoolean() && selected;
+        boolean visiblePage = index >= first.getAsInt() && index <= last.getAsInt();
         JLabel label = (JLabel) super.getListCellRendererComponent(owner, value, index,
-                        (index >= first.getAsInt() && index <= last.getAsInt()) || (gridMode.getAsBoolean() && selected), focus);
+                visiblePage || gridSelection, focus);
         Icon icon = cache.get(index);
-        label.setText("Page " + (index + 1) + (icon == null ? " · …" : icon.getIconWidth() < 0 ? " · unavailable" : ""));
+        String title = "Page " + (index + 1);
+        if (icon == null) {
+            title += " · …";
+        } else if (icon.getIconWidth() < 0) {
+            title += " · unavailable";
+        }
+
+        label.setText(title);
         label.setIcon(icon);
         label.setHorizontalAlignment(CENTER);
         label.setHorizontalTextPosition(CENTER);
         label.setVerticalTextPosition(BOTTOM);
         label.setIconTextGap(6);
         label.setBorder(BorderFactory.createCompoundBorder(
-                        (focus || (gridMode.getAsBoolean() && selected)) ? BorderFactory.createLineBorder(owner.getSelectionBackground(), 2)
-                                : BorderFactory.createEmptyBorder(2, 2, 2, 2),
-                        BorderFactory.createEmptyBorder(4, 4, 4, 4)));
+                (focus || gridSelection) ? BorderFactory.createLineBorder(owner.getSelectionBackground(), 2)
+                        : BorderFactory.createEmptyBorder(2, 2, 2, 2),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)));
         return label;
     }
 

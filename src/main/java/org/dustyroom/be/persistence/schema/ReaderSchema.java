@@ -1,10 +1,11 @@
 package org.dustyroom.be.persistence.schema;
 
+import lombok.experimental.UtilityClass;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ReaderSchema {
@@ -20,20 +21,20 @@ public class ReaderSchema {
             if (version < 1) {
                 sql.execute(ReaderSql.CREATE_SETTINGS);
                 sql.execute(ReaderSql.CREATE_BOOKS);
-                sql.execute(ReaderSql.VERSION_ONE);
+                sql.execute(SqlitePragmas.schemaVersion(1));
             }
             if (version < 2) {
                 sql.execute(ReaderSql.ADD_RECENT_HIDDEN);
                 sql.execute(ReaderSql.CREATE_RECENT_INDEX);
-                sql.execute(ReaderSql.VERSION_TWO);
+                sql.execute(SqlitePragmas.schemaVersion(2));
             }
             if (libraryVersion < 1) {
                 LibrarySchema.create(connection, transitional);
             }
             if (transitional) {
-                sql.execute(ReaderSql.VERSION_TWO);
+                sql.execute(SqlitePragmas.schemaVersion(2));
             }
-            try (ResultSet result = sql.executeQuery(ReaderSql.READ_VERSION)) {
+            try (ResultSet result = sql.executeQuery(SqlitePragmas.READ_VERSION)) {
                 if (!result.next() || result.getInt(1) != VERSION) {
                     throw new SQLException("Missing database migration; refusing a partial upgrade");
                 }

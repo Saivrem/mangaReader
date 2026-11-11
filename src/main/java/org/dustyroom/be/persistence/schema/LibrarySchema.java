@@ -1,17 +1,17 @@
 package org.dustyroom.be.persistence.schema;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import org.dustyroom.be.utils.SqliteUtils;
+import lombok.experimental.UtilityClass;
+
+import java.sql.*;
 import java.util.HashSet;
 import java.util.Set;
-import lombok.experimental.UtilityClass;
 
 import static org.dustyroom.be.persistence.schema.LibrarySchemaSql.*;
 
-/** Additive library tables have their own version; the reader's schema remains compatible with 0.9. */
+/**
+ * Additive library tables have their own version; the reader's schema remains compatible with 0.9.
+ */
 @UtilityClass
 public class LibrarySchema {
     public static final int VERSION = 1;
@@ -61,22 +61,18 @@ public class LibrarySchema {
     }
 
     private static String tableSql(Connection connection, String table) throws SQLException {
-        try (PreparedStatement sql = connection.prepareStatement(TABLE_SQL)) {
-            sql.setString(1, table);
-            try (ResultSet rows = sql.executeQuery()) {
-                return rows.next() ? rows.getString(1) : "";
-            }
+        try (PreparedStatement sql = SqliteUtils.prepare(connection, TABLE_SQL, table);
+             ResultSet rows = sql.executeQuery()) {
+            return rows.next() ? rows.getString(1) : "";
         }
     }
 
     private static Set<String> columns(Connection connection, String table) throws SQLException {
         Set<String> names = new HashSet<>();
-        try (PreparedStatement sql = connection.prepareStatement(TABLE_COLUMNS)) {
-            sql.setString(1, table);
-            try (ResultSet rows = sql.executeQuery()) {
-                while (rows.next()) {
-                    names.add(rows.getString("name"));
-                }
+        try (PreparedStatement sql = SqliteUtils.prepare(connection, TABLE_COLUMNS, table);
+             ResultSet rows = sql.executeQuery()) {
+            while (rows.next()) {
+                names.add(rows.getString("name"));
             }
         }
         return names;

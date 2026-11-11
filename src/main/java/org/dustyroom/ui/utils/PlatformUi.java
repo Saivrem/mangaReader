@@ -1,13 +1,14 @@
 package org.dustyroom.ui.utils;
 
-import java.awt.Desktop;
-import java.io.File;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Consumer;
-import javax.swing.SwingUtilities;
+import org.dustyroom.be.utils.OSUtils;
 import lombok.experimental.UtilityClass;
 import org.dustyroom.ui.ViewerController;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.File;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Configures UI behavior which must be decided before AWT is initialized.
@@ -17,7 +18,7 @@ public class PlatformUi {
     private static final String SCREEN_MENU_BAR_PROPERTY = "apple.laf.useScreenMenuBar";
 
     public static void configure() {
-        boolean macOs = isMacOs(System.getProperty("os.name", ""));
+        boolean macOs = usesScreenMenuBar();
 
         // Be explicit on every platform. This also neutralizes an inherited
         // -Dapple.laf.useScreenMenuBar=true when the application runs on Windows.
@@ -37,10 +38,10 @@ public class PlatformUi {
             desktop.setOpenFileHandler(event -> openFiles(event.getFiles(), controller::openExternalFile));
         }
         if (desktop.isSupported(Desktop.Action.APP_ABOUT)) {
-            desktop.setAboutHandler(event -> SwingUtilities.invokeLater(controller::showAboutDialog));
+            desktop.setAboutHandler(_ -> SwingUtilities.invokeLater(controller::showAboutDialog));
         }
         if (desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
-            desktop.setQuitHandler((event, response) -> {
+            desktop.setQuitHandler((_, response) -> {
                 response.cancelQuit();
                 SwingUtilities.invokeLater(controller::exit);
             });
@@ -56,11 +57,6 @@ public class PlatformUi {
     }
 
     public static boolean usesScreenMenuBar() {
-        return isMacOs(System.getProperty("os.name", ""));
-    }
-
-    public static boolean isMacOs(String osName) {
-        String normalizedName = osName.toLowerCase(Locale.ROOT);
-        return normalizedName.startsWith("mac") || normalizedName.startsWith("darwin");
+        return OSUtils.isMac(OSUtils.currentName());
     }
 }

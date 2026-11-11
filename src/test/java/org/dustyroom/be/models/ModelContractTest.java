@@ -28,7 +28,7 @@ class ModelContractTest {
         cache.put(key, "cached page");
         assertEquals(key, equal);
         assertEquals("cached page", cache.get(equal));
-        assertNotEquals(key, new PageKey("other", "page"));
+        assertNotEquals(new PageKey("other", "page"), key);
         assertThrows(NullPointerException.class, () -> PageKey.builder().pageId("page").build());
     }
 
@@ -62,14 +62,14 @@ class ModelContractTest {
         LibrarySource source = LibrarySource.builder().path("book.zip").title("Book").directory(false).build();
         List<LibrarySource> caller = new ArrayList<>(List.of(source));
         LibraryImport selection = LibraryImport.builder().root("root").title("Work")
-                .sources(caller).warnings(List.of()).build();
+                .sources(caller).build();
         caller.clear();
         assertEquals(1, selection.getSources().size());
         caller.add(source);
         assertSame(selection, selection.setSources(caller));
         caller.clear();
         assertEquals(1, selection.getSources().size());
-        assertThrows(UnsupportedOperationException.class, () -> selection.getSources().clear());
+        assertThrows(UnsupportedOperationException.class, selection.getSources()::clear);
     }
 
     @Test
